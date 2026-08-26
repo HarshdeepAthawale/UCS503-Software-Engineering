@@ -5,6 +5,11 @@
 
 generator client {
   provider = "prisma-client-js"
+  // Prisma 6.19.3 ships no Windows-ARM64 engine (issue prisma/prisma#15306),
+  // so "native" on this ARM64 dev box resolves to the x64 "windows" engine.
+  // That engine only loads under x64 Node — see .node-version / README note
+  // about running this repo with x64 Node.js on Windows on ARM.
+  binaryTargets = ["native"]
 }
 
 datasource db {

@@ -68,11 +68,14 @@ export const AlumniClaimSchema = z.object({
 
 export const ProfileUpdateSchema = z
   .object({
-    branch: z.string().trim().max(80).optional(),
-    year: z.coerce.number().int().gte(1).lte(6).optional(),
-    cgpa: z.coerce.number().gte(0).lte(10).optional(),
+    // Nullable so the owner can explicitly CLEAR a field (not just leave it
+    // untouched). `.optional()` alone would reject `null` and make fields
+    // un-clearsable.
+    branch: z.string().trim().max(80).nullable().optional(),
+    year: z.coerce.number().int().gte(1).lte(6).nullable().optional(),
+    cgpa: z.coerce.number().gte(0).lte(10).nullable().optional(),
     cgpaPublic: z.boolean().optional(),
-    bio: z.string().trim().max(1000).optional(),
+    bio: z.string().trim().max(1000).nullable().optional(),
   })
   .strict(); // reject unknown keys → no mass assignment of role/status/etc.
 
