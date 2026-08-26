@@ -93,10 +93,13 @@ The single source of truth is the **authorization matrix** in `src/lib/iam/permi
 | `opportunity:create` | ❌ | ✅ | ✅* | ❌ |
 | `attestation:create` | ❌ | ✅ | ✅* | ❌ |
 | `alumni_claim:approve` | ❌ | ❌ | ❌ | ✅ |
+| `skill_taxonomy:read` | ✅ | ✅ | ✅ | ✅ |
 | `skill_taxonomy:manage` | ❌ | ❌ | ❌ | ✅ |
 | `analytics:read` | ❌ | ❌ | ❌ | ✅ |
 
 _\*Alumni gain posting/attesting rights only once their claim is approved (status `ACTIVE`)._
+
+**Skill taxonomy (T-07).** The vocabulary is **admin-curated, not free text**: only `skill_taxonomy:manage` (ADMIN) can create/rename/delete entries (`/api/admin/skills`), and every mutation is audited (`skill.created` / `skill.updated` / `skill.deleted`). Deletion is **soft** (`deleted_at`) so `user_skills` history and analytics stay intact. Users assign skills to their own profile only (`profile:update` + ownership) and only from the live taxonomy — a soft-deleted or unknown `skillId` is rejected by the service before any write (`/api/profiles/me/skills`).
 
 The matrix is **test-driven**: `tests/iam/authorization-matrix.test.ts` asserts allow/deny for each cell, so any change that widens access fails CI.
 

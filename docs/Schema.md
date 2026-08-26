@@ -221,15 +221,20 @@ CREATE TABLE profiles (
 );
 
 CREATE TABLE skills (               -- admin-curated taxonomy, NOT free text
-    id   uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    name text NOT NULL UNIQUE,
-    domain text NOT NULL
+    id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    name       text NOT NULL UNIQUE,
+    domain     text NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    deleted_at timestamptz            -- soft delete (Rules.md: nothing hard-deleted)
 );
 
 CREATE TABLE user_skills (
     user_id     uuid REFERENCES users(id),
     skill_id    uuid REFERENCES skills(id),
     proficiency proficiency_enum NOT NULL,
+    created_at  timestamptz NOT NULL DEFAULT now(),
+    updated_at  timestamptz NOT NULL DEFAULT now(),
     PRIMARY KEY (user_id, skill_id)   -- composite PK, proficiency as enum
 );
 

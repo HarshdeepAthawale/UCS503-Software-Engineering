@@ -83,6 +83,56 @@ export const AlumniClaimDecisionSchema = z
   })
   .strict();
 
+// ── Skill taxonomy (admin-curated, NOT free text — docs/PRD M2) ──────────────
+
+const proficiency = z.enum(["BEGINNER", "INTERMEDIATE", "ADVANCED", "EXPERT"]);
+const skillName = z
+  .string()
+  .trim()
+  .min(1, "Skill name is required.")
+  .max(80, "Skill name is too long.");
+const domain = z
+  .string()
+  .trim()
+  .min(1, "Domain is required.")
+  .max(80, "Domain is too long.");
+const skillId = z
+  .string()
+  .trim()
+  .uuid("Invalid skill id.");
+
+export const SkillCreateSchema = z
+  .object({ name: skillName, domain })
+  .strict(); // reject unknown keys
+
+export const SkillUpdateSchema = z
+  .object({
+    name: skillName.optional(),
+    domain: domain.optional(),
+  })
+  .strict()
+  .refine((v) => v.name !== undefined || v.domain !== undefined, {
+    message: "Provide at least one field to update.",
+  });
+
+export const UserSkillAddSchema = z
+  .object({ skillId, proficiency })
+  .strict();
+
+// Replace the caller's whole skill set in one call (profile editor).
+export const UserSkillsReplaceSchema = z
+  .object({
+    skills: z
+      .array(z.object({ skillId, proficiency }).strict())
+      .max(50, "A profile can hold at most 50 skills."),
+  })
+  .strict();
+
+export type SkillCreateInput = z.infer<typeof SkillCreateSchema>;
+export type SkillUpdateInput = z.infer<typeof SkillUpdateSchema>;
+export type UserSkillAddInput = z.infer<typeof UserSkillAddSchema>;
+export type UserSkillsReplaceInput = z.infer<typeof UserSkillsReplaceSchema>;
+
 export type RegisterInput = z.infer<typeof RegisterSchema>;
 export type LoginInput = z.infer<typeof LoginSchema>;
 export type ProfileUpdateInput = z.infer<typeof ProfileUpdateSchema>;

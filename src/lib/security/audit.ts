@@ -16,6 +16,10 @@ export type AuditAction =
   | "alumni.claim.submitted"
   | "alumni.claim.decided"
   | "profile.updated"
+  | "profile.skills_replaced"
+  | "skill.created"
+  | "skill.updated"
+  | "skill.deleted"
   | "authz.denied";
 
 export async function audit(params: {

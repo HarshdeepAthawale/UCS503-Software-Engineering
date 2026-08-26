@@ -181,8 +181,12 @@ flowchart TD
 |---|---|---|---|
 | GET | `/profiles/:id` | access | Field-level visibility applied server-side |
 | PATCH | `/profiles/me` | access (self) | Partial update, Zod-validated |
-| POST | `/profiles/me/skills` | access (self) | `{skillId, proficiency}` from taxonomy only |
+| POST | `/profiles/me/skills` | access (self) | Add/upsert one skill: `{skillId, proficiency}` from taxonomy only |
+| PUT | `/profiles/me/skills` | access (self) | Replace whole skill set atomically: `{skills:[{skillId, proficiency}]}` (≤ 50) |
+| DELETE | `/profiles/me/skills/:skillId` | access (self) | Remove one skill (idempotent) |
 | POST | `/profiles/me/projects` | access (self) | `{title, repoUrl, description}` → queues S7 verification |
+
+**Skill taxonomy** — `/api/skills` (GET, any role: the admin-curated controlled vocabulary) and `/api/admin/skills` (+ `/:id`) for ADMIN curation (`skill_taxonomy:manage`): POST create, PATCH rename/re-domain, DELETE soft-delete. Skills are **not free text** (docs/PRD M2).
 
 ### 5.4 Opportunity — `/api/opportunities`
 

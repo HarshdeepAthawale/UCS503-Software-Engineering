@@ -41,6 +41,14 @@ const CASES: Array<[Role, Permission, boolean]> = [
   ["ADMIN", "skill_taxonomy:manage", true],
   ["ADMIN", "analytics:read", true],
   ["ADMIN", "opportunity:create", false], // admins govern, they don't post
+  // Skill taxonomy (T-07): everyone reads the controlled vocabulary;
+  // only ADMIN can curate it.
+  ["STUDENT", "skill_taxonomy:read", true],
+  ["STUDENT", "skill_taxonomy:manage", false],
+  ["FACULTY", "skill_taxonomy:read", true],
+  ["FACULTY", "skill_taxonomy:manage", false],
+  ["ALUMNI", "skill_taxonomy:read", true],
+  ["ALUMNI", "skill_taxonomy:manage", false],
 ];
 
 describe("RBAC matrix (deny-by-default)", () => {

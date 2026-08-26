@@ -45,7 +45,7 @@
 | T-04 | Prisma schema (identity + profile) | Data | Shared | Must | ✅ | T-01 | 1d → — |
 | T-05 | Admin bootstrap (no mock data) | Data | Shared | Must | ✅ | T-04 | 0.5d → — |
 | T-06 | Profile CRUD + field-level privacy | Profile | SD | Must | ✅ | T-02 | 1d → — |
-| T-07 | Skill taxonomy + user_skills (schema) | Profile | SD | Must | 🟦 | T-04 | 1d → — |
+| T-07 | Skill taxonomy + user_skills (schema) | Profile | SD | Must | ✅ | T-04 | 1d → — |
 | T-08 | Alumni claim flow | Identity | HA | Must | ✅ | T-02 | 1d → — |
 | T-09 | Opportunity CRUD + SLA pledge | Opportunity | AC | Must | ⬜ | T-04 | 2d → — |
 | T-10 | Deadline expiry job | Opportunity | AC | Must | ⬜ | T-09 | 0.5d → — |
@@ -115,6 +115,13 @@
 | HA | Scaffolded Next 15 + Prisma; built auth (register/OTP/login/refresh w/ rotation+reuse detection), deny-by-default RBAC (matrix→policy→guard→edge middleware), profile + alumni-claim routes, audit log, security headers; matrix + OTP tests; `docs/Security.md`. Removed all mock data — admin bootstraps from env only. | CI workflow (lint→typecheck→test→migrate); wire skill-taxonomy admin routes | Prisma migration needs a live Postgres URL |
 | AC | — | Opportunity schema (Phase 2) | — |
 | SD | — | Profile UI + skill assignment endpoint | — |
+
+### 2026-08-27 (Phase 1 — skill taxonomy complete)
+| Member | Done | Next | Blocked |
+|---|---|---|---|
+| HA | Wired T-07 end to end: `Skill.updatedAt/deletedAt` + `UserSkill.updatedAt` (soft delete per Rules.md), strict Zod DTOs (no free-text skills, no mass assignment), `skill.service.ts` (taxonomy CRUD + replace/add/remove own skills, all audited), routes: `GET /api/skills` (any role), `GET/POST /api/admin/skills` + `PATCH/DELETE /api/admin/skills/:id` (ADMIN), `PUT/POST /api/profiles/me/skills` + `DELETE /api/profiles/me/skills/:skillId` (self, ownership-scoped); matrix + validation tests (48 total); vitest env setup so tests run without a live DB. | Phase 2 — Opportunity CRUD (T-09) | Postgres URL still needed for `db:migrate` |
+| AC | — | Opportunity schema (Phase 2) | — |
+| SD | — | Profile UI in warm-dark style (Fable/Figma) + wire skill assignment endpoint | — |
 
 ### _(Template for future days)_
 ```

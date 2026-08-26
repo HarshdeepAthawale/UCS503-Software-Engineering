@@ -153,16 +153,21 @@ model Profile {
 }
 
 // Admin-curated skill taxonomy (docs/PRD M2) — skills are NOT free text.
+// Soft-deleted (`deletedAt`) rather than hard-deleted so user_skills history and
+// analytics stay intact (docs/Rules.md: nothing hard-deleted).
 model Skill {
   id     String @id @default(uuid()) @db.Uuid
   name   String @unique
   domain String
 
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
 
   userSkills UserSkill[]
 
   @@index([domain])
+  @@index([deletedAt])
   @@map("skills")
 }
 
@@ -172,6 +177,7 @@ model UserSkill {
   proficiency Proficiency
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   profile Profile @relation(fields: [userId], references: [userId], onDelete: Cascade)
   skill   Skill   @relation(fields: [skillId], references: [id], onDelete: Cascade)
