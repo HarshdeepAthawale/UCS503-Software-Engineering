@@ -154,7 +154,8 @@
 
 | ID | Severity | Title | Module | Found | Status | Resolution |
 |---|---|---|---|---|---|---|
-| _(none yet)_ | | | | | | |
+| B-01 | S1 | CI blocked: account billing — Actions never start ("recent account payments have failed…") | Infra | 2026-08-27 | 🟨 | **External** — fix in GitHub Settings → Billing & plans; not a repo issue |
+| B-02 | S1 | CI `db:deploy` would fail: no `prisma/migrations` and missing `citext` extension for `@db.Citext` | Infra | 2026-08-27 | ✅ | Added initial migration `20260826191437_init` (patched `CREATE EXTENSION citext`); verified deploy against postgres:16 |
 
 **Severity scale:** S1 Blocker · S2 Major · S3 Minor · S4 Cosmetic.
 
