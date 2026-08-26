@@ -411,17 +411,19 @@ flowchart LR
 
 ---
 
-## 9. Seed Data Specification
+## 9. Bootstrap Policy — no mock data
 
-| Dataset | Contents |
-|---|---|
-| **Skill taxonomy** | ~60 skills across ML, Web, Systems, Data, Design domains |
-| **Users** | 1 admin (seeded), 5 faculty, 3 alumni (1 pending claim), 20 students |
-| **Opportunities** | 12 postings across all types, varied SLA pledges & deadlines (some near-deadline for reminder testing) |
-| **Applications** | ~40 applications spread across pipeline states for realistic TTA/analytics |
-| **Attestations** | 3 attestations on `SELECTED` applications |
+The database ships **empty of application data**. There are **no seeded users, profiles, opportunities, applications, or sample skills** — every record is created by a real user through the real flows. This keeps analytics and the pilot honest (no synthetic rows contaminating TTA or resolution metrics).
 
-Seed is idempotent and used for local dev, E2E tests, and the pilot dataset.
+The single exception is a **bootstrap administrator**, because only an admin can approve the first alumni claims and curate the taxonomy. It is provisioned from **operator-supplied environment credentials**, never from committed values:
+
+```bash
+ADMIN_EMAIL=you@thapar.edu ADMIN_PASSWORD='<strong-secret>' npm run bootstrap:admin
+```
+
+The script (`prisma/bootstrap-admin.ts`) refuses to run without real credentials, uses no default password, and is idempotent (does nothing if an admin already exists). The **skill taxonomy is curated by the admin in-app** (feature M9), not pre-seeded.
+
+> For automated tests, fixtures are created and torn down *within each test*, never persisted to a shared/seeded database.
 
 ---
 

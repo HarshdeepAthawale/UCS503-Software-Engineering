@@ -171,7 +171,7 @@ A task is **Done** only when **all** hold:
 | **Validate every input** | Zod at the boundary — bodies, params, queries |
 | **Parameterised queries only** | No dynamic SQL string building |
 | **Rate-limit every mutation** | Redis token bucket per user + per IP |
-| **Hash passwords** | Argon2/bcrypt; never store plaintext |
+| **Hash passwords** | scrypt (impl) / Argon2 / bcrypt; per-hash salt; never store plaintext |
 | **Rotate refresh tokens** | 7d refresh, rotation with theft-detection family |
 | **Least privilege** | RBAC on every resource action (`TechSpecifications.md` §6.2) |
 | **No PII in URLs/logs** | Never place personal/sensitive data in query strings or log payloads |

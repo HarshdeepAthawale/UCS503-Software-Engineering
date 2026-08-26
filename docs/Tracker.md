@@ -39,14 +39,14 @@
 
 | ID | Title | Module | Owner | Tier | Status | Blockers | Est → Act |
 |---|---|---|---|---|---|---|---|
-| T-01 | Repo + CI skeleton | Infra | Shared | Must | ⬜ | — | 0.5d → — |
-| T-02 | Auth: register/verify/login/refresh | Identity | HA | Must | ⬜ | T-01 | 2d → — |
-| T-03 | RBAC middleware | Identity | HA | Must | ⬜ | T-02 | 0.5d → — |
-| T-04 | Prisma schema + migrations | Data | Shared | Must | ⬜ | T-01 | 1d → — |
-| T-05 | Seed data | Data | Shared | Must | ⬜ | T-04 | 0.5d → — |
-| T-06 | Profile CRUD | Profile | SD | Must | ⬜ | T-02 | 1d → — |
-| T-07 | Skill taxonomy + user_skills | Profile | SD | Must | ⬜ | T-04 | 1d → — |
-| T-08 | Alumni claim flow | Identity | HA | Must | ⬜ | T-02 | 1d → — |
+| T-01 | Repo + project scaffold (Next 15 + Prisma) | Infra | Shared | Must | 🟦 | — | 0.5d → — |
+| T-02 | Auth: register/verify/login/refresh | Identity | HA | Must | ✅ | T-01 | 2d → — |
+| T-03 | RBAC: matrix + policy + guard + edge gate | Identity | HA | Must | ✅ | T-02 | 0.5d → — |
+| T-04 | Prisma schema (identity + profile) | Data | Shared | Must | ✅ | T-01 | 1d → — |
+| T-05 | Admin bootstrap (no mock data) | Data | Shared | Must | ✅ | T-04 | 0.5d → — |
+| T-06 | Profile CRUD + field-level privacy | Profile | SD | Must | ✅ | T-02 | 1d → — |
+| T-07 | Skill taxonomy + user_skills (schema) | Profile | SD | Must | 🟦 | T-04 | 1d → — |
+| T-08 | Alumni claim flow | Identity | HA | Must | ✅ | T-02 | 1d → — |
 | T-09 | Opportunity CRUD + SLA pledge | Opportunity | AC | Must | ⬜ | T-04 | 2d → — |
 | T-10 | Deadline expiry job | Opportunity | AC | Must | ⬜ | T-09 | 0.5d → — |
 | T-11 | FTS + GIN + faceted search | Opportunity | AC | Must | ⬜ | T-09 | 1d → — |
@@ -109,6 +109,13 @@
 | AC | Reviewed opportunity/application scope | Prisma schema for opportunities | — |
 | SD | Reviewed profile/matching scope | Wireframes for profile + search | — |
 
+### 2026-08-26 (Phase 1 — IAM foundation)
+| Member | Done | Next | Blocked |
+|---|---|---|---|
+| HA | Scaffolded Next 15 + Prisma; built auth (register/OTP/login/refresh w/ rotation+reuse detection), deny-by-default RBAC (matrix→policy→guard→edge middleware), profile + alumni-claim routes, audit log, security headers; matrix + OTP tests; `docs/Security.md`. Removed all mock data — admin bootstraps from env only. | CI workflow (lint→typecheck→test→migrate); wire skill-taxonomy admin routes | Prisma migration needs a live Postgres URL |
+| AC | — | Opportunity schema (Phase 2) | — |
+| SD | — | Profile UI + skill assignment endpoint | — |
+
 ### _(Template for future days)_
 ```
 ### YYYY-MM-DD
@@ -130,6 +137,9 @@
 | 2026-08-26 | Custom JWT over managed auth | Auth0, Clerk | Course expects auth built, not delegated |
 | 2026-08-26 | Attestation gated by SELECTED in DB CHECK | Service-layer enforcement | Makes competency unfarmable at the strongest layer |
 | 2026-08-26 | Alumni claim-and-approve flow | `@thapar.edu`-only signup | Alumni lose institute email; naive rule makes role unreachable |
+| 2026-08-26 | No mock data/accounts; admin bootstraps from env only | Seeded demo users/skills | Keeps pilot TTA/analytics honest; avoids committed credentials |
+| 2026-08-26 | Authoritative role/status re-loaded from DB each request | Trust JWT claims | A stolen/stale token cannot outrun a suspension or role change |
+| 2026-08-26 | Deny-by-default RBAC enforced at 4 layers | Single middleware check | Defense-in-depth; matrix-driven CI tests block widening access |
 
 ---
 

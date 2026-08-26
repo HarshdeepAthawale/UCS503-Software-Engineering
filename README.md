@@ -35,6 +35,30 @@ Full documentation lives in [`docs/`](docs/):
 
 Next.js 15 · TypeScript · Tailwind CSS v4 · PostgreSQL 16 · Prisma · Redis + BullMQ · Zod · Vitest / Supertest / Playwright · GitHub Actions
 
+## 🚀 Development (Phase 1 — Identity & IAM)
+
+```bash
+# 1. Install
+npm install
+
+# 2. Configure — copy the template and fill in real values
+cp .env.example .env      # set DATABASE_URL and strong JWT secrets
+
+# 3. Database
+npm run db:generate       # generate the Prisma client
+npm run db:migrate        # create the schema (needs a live Postgres)
+
+# 4. Provision the single admin (no mock data is ever seeded)
+ADMIN_EMAIL=you@thapar.edu ADMIN_PASSWORD='<strong-secret>' npm run bootstrap:admin
+
+# 5. Run
+npm run dev               # http://localhost:3000  (API under /api)
+npm test                  # RBAC matrix + security unit tests
+npm run typecheck
+```
+
+**Security model:** see [docs/Security.md](docs/Security.md). RBAC is deny-by-default and enforced at four layers (edge middleware → route guard → service → database). The database starts empty — every record is created by a real user.
+
 ## 👥 Team
 
 | Member | Roll No |

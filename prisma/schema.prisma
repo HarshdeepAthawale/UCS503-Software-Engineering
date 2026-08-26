@@ -1,0 +1,202 @@
+// Thapar Nexus — Prisma schema (Phase 1: Identity & Profile).
+// Conventions (docs/Rules.md): snake_case columns, plural tables, uuid PKs,
+// created_at/updated_at/deleted_at on every table, soft delete (never hard-delete).
+// Product rules are encoded as DB constraints wherever possible (docs/Schema.md §6).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── Enumerations ─────────────────────────────────────────────────────────────
+
+enum Role {
+  STUDENT
+  FACULTY
+  ALUMNI
+  ADMIN
+}
+
+enum UserStatus {
+  UNVERIFIED      // registered, OTP not yet confirmed
+  ACTIVE          // verified, full access for their role
+  PENDING_ALUMNI  // alumni claim submitted, read-only until approved
+  SUSPENDED       // access revoked by admin
+}
+
+enum Proficiency {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+}
+
+enum SkillRequirement {
+  REQUIRED
+  PREFERRED
+}
+
+enum AlumniClaimDecision {
+  APPROVED
+  REJECTED
+}
+
+// ── Identity ─────────────────────────────────────────────────────────────────
+
+model User {
+  id           String     @id @default(uuid()) @db.Uuid
+  email        String     @unique @db.Citext
+  passwordHash String     @map("password_hash")
+  role         Role       @default(STUDENT)
+  status       UserStatus @default(UNVERIFIED)
+  name         String
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  profile       Profile?
+  refreshTokens RefreshToken[]
+  otpChallenges OtpChallenge[]
+  alumniClaim   AlumniClaim?
+  auditEvents   AuditLog[]     @relation("actor")
+
+  @@index([role])
+  @@index([status])
+  @@map("users")
+}
+
+// Refresh tokens act as the server-side session store (docs/TechSpec §6.1).
+// Stored as a SHA-256 hash — never the raw token. `familyId` groups a rotation
+// lineage so reuse of a revoked token can invalidate the whole family (theft
+// detection, codeguard-0-session-management-and-cookies).
+model RefreshToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  tokenHash String    @unique @map("token_hash")
+  familyId  String    @map("family_id") @db.Uuid
+  // Session context fingerprint (hashed) for anomaly detection.
+  uaHash    String?   @map("ua_hash")
+  revokedAt DateTime? @map("revoked_at") @db.Timestamptz(6)
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+  @@map("refresh_tokens")
+}
+
+// One-time passwords are stored hashed with a short TTL and an attempt counter
+// (codeguard-0-authentication-mfa). Raw OTP is emailed, never persisted.
+model OtpChallenge {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  codeHash  String    @map("code_hash")
+  purpose   String    // e.g. "REGISTER_VERIFY"
+  attempts  Int       @default(0)
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz(6)
+  consumedAt DateTime? @map("consumed_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("otp_challenges")
+}
+
+// Alumni claim-and-approve flow (docs/PRD §4.5). Account stays PENDING_ALUMNI
+// (read-only) until an admin approves.
+model AlumniClaim {
+  id             String               @id @default(uuid()) @db.Uuid
+  userId         String               @unique @map("user_id") @db.Uuid
+  rollNo         String               @map("roll_no")
+  gradYear       Int                  @map("grad_year")
+  degree         String
+  proofUrl       String               @map("proof_url")
+  decision       AlumniClaimDecision?
+  decisionReason String?              @map("decision_reason")
+  reviewedById   String?              @map("reviewed_by_id") @db.Uuid
+  createdAt      DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([decision])
+  @@map("alumni_claims")
+}
+
+// ── Profile ──────────────────────────────────────────────────────────────────
+
+model Profile {
+  userId     String  @id @map("user_id") @db.Uuid
+  branch     String?
+  year       Int?
+  // CGPA is private by default (docs/PRD NFR-PR1); `cgpaPublic` gates exposure.
+  cgpa       Decimal? @db.Decimal(3, 2)
+  cgpaPublic Boolean  @default(false) @map("cgpa_public")
+  bio        String?
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userSkills UserSkill[]
+
+  @@map("profiles")
+}
+
+// Admin-curated skill taxonomy (docs/PRD M2) — skills are NOT free text.
+model Skill {
+  id     String @id @default(uuid()) @db.Uuid
+  name   String @unique
+  domain String
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  userSkills UserSkill[]
+
+  @@index([domain])
+  @@map("skills")
+}
+
+model UserSkill {
+  userId      String      @map("user_id") @db.Uuid
+  skillId     String      @map("skill_id") @db.Uuid
+  proficiency Proficiency
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  profile Profile @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  skill   Skill   @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  // Composite PK prevents duplicate skill rows (docs/Schema.md §6, constraint 6).
+  @@id([userId, skillId])
+  @@map("user_skills")
+}
+
+// ── Governance ───────────────────────────────────────────────────────────────
+
+// Append-only audit trail for privileged/security-relevant actions
+// (docs/TechSpec §7). No UPDATE/DELETE at the application layer.
+model AuditLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  actorId   String?  @map("actor_id") @db.Uuid
+  action    String
+  target    String?
+  // Non-PII context only (codeguard-0-logging): rationale codes, ids, ip hash.
+  metadata  Json?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  actor User? @relation("actor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([actorId])
+  @@index([action])
+  @@map("audit_log")
+}

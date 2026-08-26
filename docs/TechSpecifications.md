@@ -260,7 +260,7 @@ sequenceDiagram
     G->>I: verify credentials
     I->>DB: fetch user + hash
     DB-->>I: user row
-    I->>I: argon2.verify()
+    I->>I: verify password (scrypt)
     I-->>G: issue access(15m)+refresh(7d)
     G-->>C: 200 {access, refresh}
     Note over C,DB: Later — access expired
