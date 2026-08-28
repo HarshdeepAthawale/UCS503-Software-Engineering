@@ -39,3 +39,8 @@ Thumbs.db
 
 # Prisma
 prisma/*.db
+
+# Editor scratch dirs. One of these was swept into a commit and had to be
+# untracked again (e6b2ead); it is not content.
+*.tmpdir/
+*.md.tmp
