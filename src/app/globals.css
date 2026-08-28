@@ -1992,12 +1992,18 @@ footer {
   height: 100%;
   z-index: -1;
   pointer-events: none;
-  /* Subtle dotted grid + a faint accent wash — clean, not a colored blob. */
-  background-image:
-    radial-gradient(circle at 1px 1px, var(--border) 1px, transparent 0),
-    radial-gradient(60% 55% at 80% 0%, var(--accent-soft), transparent 70%);
-  background-size: 26px 26px, 100% 100%;
-  opacity: 0.6;
+  /* Deliberately paints nothing.
+
+     This drew a 26px dotted grid plus an accent wash behind the hero. Both
+     are gone: the reference design (cyberhound.ai) puts its hero directly on
+     a flat canvas, and a texture behind display type is exactly what stops
+     that type reading as the only thing on the page. The dots also fought
+     the monochrome palette — they were the one remaining place a `--border`
+     tint tiled across a full viewport.
+
+     The element is kept rather than deleted so the hero's `isolation:
+     isolate` stacking context and its z-index ordering stay as they are;
+     removing it is a layout change, not a paint change. */
 }
 
 .hero-badge {
