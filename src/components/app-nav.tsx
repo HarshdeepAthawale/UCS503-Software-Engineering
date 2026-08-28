@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { apiLogout, type SessionUser } from "@/lib/client/api";
 import { TiLogo } from "@/components/ti-logo";
+import ThemeToggle from "@/components/theme-toggle";
 
 /**
  * Shared top navigation for authenticated app screens. Role-aware: only
@@ -44,6 +45,7 @@ export function AppNav({ user, unread = 0 }: { user: SessionUser | null; unread?
           {link("/profile", "Profile")}
         </nav>
         <div className="appnav-cta">
+          <ThemeToggle />
           {canPost && (
             <Link className="btn btn-primary btn-sm" href="/opportunities/new">
               + Post

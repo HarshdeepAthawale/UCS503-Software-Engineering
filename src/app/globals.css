@@ -1,13 +1,13 @@
 /* ============================================================================
    Thapar Nexus — clean editorial design system (light-first + dark toggle)
-   Warm off-white / near-black surfaces with a single orange-red accent, an
+   Warm off-white / near-black surfaces, fully monochrome (no colour accent),
    editorial serif for display (Newsreader) and a geometric sans for UI
    (Plus Jakarta Sans). Tokens live on :root (light); dark is applied via
    prefers-color-scheme and [data-theme="dark"]. Every colour is a token.
    ========================================================================== */
 
 :root {
-  /* Light: warm paper ground, near-black ink, orange-red accent. */
+  /* Light: warm paper ground, near-black ink. Monochrome — no colour. */
   --bg: #f5f5f0;
   --surface: #eaeae5;
   --surface-alt: #efefea;
@@ -17,23 +17,23 @@
   --text: #141413;
   --muted: #6b6b66;
   --faint: #8a8a82;
-  --accent: #e63312;
-  --accent-hover: #cf2c0e;
-  --accent-press: #b8250c;
-  --accent-soft: #fbeae6;
-  --accent-glow: rgba(230, 51, 18, 0.12);
-  --accent-ring: rgba(230, 51, 18, 0.4);
+  --accent: #141413;
+  --accent-hover: #000000;
+  --accent-press: #000000;
+  --accent-soft: #eaeae5;
+  --accent-glow: rgba(20, 20, 19, 0.08);
+  --accent-ring: rgba(20, 20, 19, 0.3);
   --ink: #141413;
   --on-ink: #f5f5f0;
-  --maroon: #b8250c;
+  --maroon: #141413;
   --st-applied: #8a8a82;
   --st-received: #6b6b66;
   --st-shortlisted: #4a4a45;
   --st-interview: #2a2a26;
-  --st-selected: #16a34a;
-  --st-rejected: #e63312;
+  --st-selected: #141413;
+  --st-rejected: #a8a8a0;
   --st-withdrawn: #a8a8a0;
-  --st-atrisk: #c2710c;
+  --st-atrisk: #6b6b66;
   --shadow-sm: 0 1px 2px rgba(20, 20, 19, 0.05), 0 1px 3px rgba(20, 20, 19, 0.07);
   --shadow-md: 0 6px 22px -6px rgba(20, 20, 19, 0.12);
   --shadow-lg: 0 26px 64px -18px rgba(20, 20, 19, 0.18);
@@ -55,23 +55,23 @@
     --text: #e8e8e3;
     --muted: #8a8a82;
     --faint: #6b6b66;
-    --accent: #ff4d2a;
-    --accent-hover: #ff6647;
-    --accent-press: #e63312;
-    --accent-soft: rgba(255, 77, 42, 0.12);
-    --accent-glow: rgba(255, 77, 42, 0.2);
-    --accent-ring: rgba(255, 77, 42, 0.45);
+    --accent: #e8e8e3;
+    --accent-hover: #ffffff;
+    --accent-press: #d5d5cd;
+    --accent-soft: rgba(232, 232, 227, 0.08);
+    --accent-glow: rgba(232, 232, 227, 0.12);
+    --accent-ring: rgba(232, 232, 227, 0.4);
     --ink: #e8e8e3;
     --on-ink: #0c0c0a;
-    --maroon: #ff4d2a;
+    --maroon: #e8e8e3;
     --st-applied: #6b6b66;
     --st-received: #8a8a82;
     --st-shortlisted: #a8a8a0;
     --st-interview: #c8c8c0;
-    --st-selected: #4ade80;
-    --st-rejected: #ff4d2a;
+    --st-selected: #e8e8e3;
+    --st-rejected: #57574f;
     --st-withdrawn: #57574f;
-    --st-atrisk: #f5a524;
+    --st-atrisk: #a8a8a0;
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
     --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45);
     --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
@@ -89,23 +89,23 @@
   --text: #141413;
   --muted: #6b6b66;
   --faint: #8a8a82;
-  --accent: #e63312;
-  --accent-hover: #cf2c0e;
-  --accent-press: #b8250c;
-  --accent-soft: #fbeae6;
-  --accent-glow: rgba(230, 51, 18, 0.12);
-  --accent-ring: rgba(230, 51, 18, 0.4);
+  --accent: #141413;
+  --accent-hover: #000000;
+  --accent-press: #000000;
+  --accent-soft: #eaeae5;
+  --accent-glow: rgba(20, 20, 19, 0.08);
+  --accent-ring: rgba(20, 20, 19, 0.3);
   --ink: #141413;
   --on-ink: #f5f5f0;
-  --maroon: #b8250c;
+  --maroon: #141413;
   --st-applied: #8a8a82;
   --st-received: #6b6b66;
   --st-shortlisted: #4a4a45;
   --st-interview: #2a2a26;
-  --st-selected: #16a34a;
-  --st-rejected: #e63312;
+  --st-selected: #141413;
+  --st-rejected: #a8a8a0;
   --st-withdrawn: #a8a8a0;
-  --st-atrisk: #c2710c;
+  --st-atrisk: #6b6b66;
   --shadow-sm: 0 1px 2px rgba(20, 20, 19, 0.05), 0 1px 3px rgba(20, 20, 19, 0.07);
   --shadow-md: 0 6px 22px -6px rgba(20, 20, 19, 0.12);
   --shadow-lg: 0 26px 64px -18px rgba(20, 20, 19, 0.18);
@@ -121,23 +121,23 @@
   --text: #e8e8e3;
   --muted: #8a8a82;
   --faint: #6b6b66;
-  --accent: #ff4d2a;
-  --accent-hover: #ff6647;
-  --accent-press: #e63312;
-  --accent-soft: rgba(255, 77, 42, 0.12);
-  --accent-glow: rgba(255, 77, 42, 0.2);
-  --accent-ring: rgba(255, 77, 42, 0.45);
+  --accent: #e8e8e3;
+  --accent-hover: #ffffff;
+  --accent-press: #d5d5cd;
+  --accent-soft: rgba(232, 232, 227, 0.08);
+  --accent-glow: rgba(232, 232, 227, 0.12);
+  --accent-ring: rgba(232, 232, 227, 0.4);
   --ink: #e8e8e3;
   --on-ink: #0c0c0a;
-  --maroon: #ff4d2a;
+  --maroon: #e8e8e3;
   --st-applied: #6b6b66;
   --st-received: #8a8a82;
   --st-shortlisted: #a8a8a0;
   --st-interview: #c8c8c0;
-  --st-selected: #4ade80;
-  --st-rejected: #ff4d2a;
+  --st-selected: #e8e8e3;
+  --st-rejected: #57574f;
   --st-withdrawn: #57574f;
-  --st-atrisk: #f5a524;
+  --st-atrisk: #a8a8a0;
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45);
   --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
@@ -226,7 +226,7 @@ header.nav {
   display: grid;
   place-items: center;
   background: linear-gradient(150deg, var(--accent), var(--maroon));
-  color: #fff;
+  color: var(--on-ink);
   font-family: var(--font-display);
   font-size: 15px;
   box-shadow: 0 0 0 1px var(--accent-glow);
@@ -273,10 +273,10 @@ header.nav {
   outline: 2px solid var(--accent-ring);
   outline-offset: 2px;
 }
-/* Primary = the accent (orange-red), white label — the single loud element. */
+/* Primary = ink on light / near-white on dark; label inverts with the theme. */
 .btn-primary {
   background: var(--accent);
-  color: #fff;
+  color: var(--on-ink);
   box-shadow: var(--shadow-sm);
 }
 .btn-primary:hover {
@@ -305,10 +305,13 @@ header.nav {
   background: color-mix(in oklab, var(--st-rejected) 12%, transparent);
 }
 .icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 38px;
   height: 38px;
+  min-height: 38px;
   padding: 0;
-  justify-content: center;
   background: var(--surface-alt);
   border: 1px solid var(--border);
   color: var(--muted);
@@ -494,7 +497,7 @@ header.nav {
 .step.done .dot {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--on-ink);
 }
 .step.done .cap {
   color: var(--text);
@@ -917,7 +920,7 @@ section {
 .mini.solid {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--on-ink);
 }
 
 /* ---- CTA band ---- */
@@ -1379,7 +1382,7 @@ footer {
   padding: 0 5px;
   border-radius: 99px;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-ink);
   font-size: 11px;
   font-weight: 700;
   display: inline-flex;
@@ -1725,7 +1728,7 @@ footer {
 .bubble.me {
   align-self: flex-end;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-ink);
   border-bottom-right-radius: 4px;
 }
 .bubble.them {
@@ -2229,7 +2232,7 @@ footer {
   place-items: center;
   font-family: var(--font-display);
   font-size: 18px;
-  color: #fff;
+  color: var(--on-ink);
   background: linear-gradient(140deg, var(--accent), var(--maroon));
 }
 .teamcard h3 {
