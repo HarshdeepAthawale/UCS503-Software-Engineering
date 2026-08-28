@@ -2619,11 +2619,42 @@ html {
   gap: 8px;
   padding: 8px 10px;
   border-radius: 16px;
-  /* The reference uses bg-black/30 + backdrop-blur-xl. Opaque surface plus a
-     hairline instead - see the note in site-nav.tsx. */
-  background: var(--surface);
-  border: 1px solid var(--border);
   max-width: 100%;
+
+  /* Translucent, like the reference's bg-black/30 + backdrop-blur-xl.
+
+     Expressed as a share of `--surface` rather than as a fixed black or white,
+     so one rule covers both themes: on paper it thins the warm card colour,
+     on near-black it thins the raised charcoal. A literal `rgba(0,0,0,.3)`
+     would go grey and muddy over the cream canvas, which is the failure this
+     avoids.
+
+     Light gets a higher opacity than dark. Dark text over a light blur needs
+     more backing to stay legible than light text over a dark one, and the
+     cream canvas has far less contrast with the pill to begin with.
+
+     `saturate` compensates for the blur washing colour out - without it the
+     accent on the active item goes chalky. */
+  background: color-mix(in oklab, var(--surface) 72%, transparent);
+  backdrop-filter: blur(20px) saturate(1.6);
+  -webkit-backdrop-filter: blur(20px) saturate(1.6);
+  border: 1px solid var(--border);
+}
+
+:root[data-theme="dark"] .dock-pill,
+:root:not([data-theme="light"]) .dock-pill {
+  background: color-mix(in oklab, var(--surface) 58%, transparent);
+}
+
+/* Safari and Firefox with backdrop-filter disabled would render the pill at
+   58-72% alpha with nothing behind it, so text would sit directly on whatever
+   scrolls past. Fall back to the opaque surface. */
+@supports not (
+  (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
+) {
+  .dock-pill {
+    background: var(--surface);
+  }
 }
 
 .dock-brand {

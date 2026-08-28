@@ -12,12 +12,16 @@ import { TiLogo } from "@/components/ti-logo";
  * edge rather than a full-bleed bar, icon targets at 44px, and a label that
  * fades in underneath on hover.
  *
- * Deliberately NOT taken: the reference pill is `bg-black/30` with
- * `backdrop-blur-xl`. Glass is wrong here twice over - this system has no
- * blur and no shadows anywhere by design, and a translucent blurred surface
- * cannot sit on a warm cream canvas without going muddy. The pill uses
- * `--surface` with a `--rule` hairline instead, which reads correctly on both
- * paper and near-black with no per-theme special-casing.
+ * The pill is translucent with a backdrop blur, as the reference's is. It was
+ * opaque at first on the reasoning that this system has no blur anywhere; that
+ * was overruled, and the glass is the point of the reference's dock.
+ *
+ * What it is NOT is a literal `bg-black/30`. The translucency is a share of
+ * `--surface`, so the same rule thins the warm card colour on paper and the
+ * raised charcoal on near-black - a fixed black would go grey and muddy over
+ * the cream canvas, which is the real failure mode here. Light carries a
+ * higher alpha than dark, because dark text over a light blur needs more
+ * backing than light text over a dark one. See globals.css `.dock-pill`.
  *
  * It is `sticky`, not `fixed`. Fixed takes the dock out of flow, and each of
  * the three marketing pages would then need its own top clearance - exactly
