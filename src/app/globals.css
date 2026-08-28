@@ -398,8 +398,11 @@ header.nav {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: 1.05fr 0.95fr;
-  gap: 56px;
+  /* 1.15/0.85, up from 1.05/0.95. The headline is the largest type on the
+     site and was living in a 550px column; the demo card beside it is a
+     fixed-content panel that loses nothing by being narrower. */
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 48px;
   align-items: center;
 }
 .hero h1 {
@@ -424,6 +427,15 @@ header.nav {
 }
 .hero h1 .fade {
   color: var(--muted);
+}
+
+/* Each phrase of the headline is its own block, so `text-wrap: balance`
+   distributes words evenly WITHIN the phrase rather than across the whole
+   run. This restores the author's three-part structure - statement, accent,
+   fade - without the hard <br>s that fought the responsive size, and without
+   an inter-span whitespace sliver rendering as a stray line. */
+.hero-line {
+  display: block;
 }
 .hero .lede {
   font-size: 19px;

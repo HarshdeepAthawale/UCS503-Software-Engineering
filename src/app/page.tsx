@@ -63,17 +63,28 @@ export default function Home() {
           <div className="hero-glow" aria-hidden="true" />
           <div className="wrap hero-grid">
             <div>
+              {/* No hard <br>. They were chosen for one viewport width and
+                  fought the responsive clamp: at the 64px maximum the longest
+                  intended line needs about 780px in a 550px column, so each of
+                  the three "lines" wrapped again and left "Make sure" stranded
+                  on a line of its own - three intended lines rendering as five.
+                  `text-wrap: balance` (set on h1 in globals.css) distributes
+                  the words evenly at whatever width the column happens to be,
+                  which is the only version that is correct at every size. The
+                  spans keep the accent and the fade. */}
               <h1>
-                Make sure an application
-                <br />
-                <span className="grad-text">reaches a decision.</span>
-                <br />
-                <span className="fade">And make it visible when it doesn&apos;t.</span>
+                <span className="hero-line">Make sure an application</span>
+                <span className="hero-line grad-text">reaches a decision.</span>
+                <span className="hero-line fade">
+                  And make it visible when it doesn&apos;t.
+                </span>
               </h1>
               <p className="lede">
-                Research roles, TA-ships, internships, referrals and hackathon teams - inside one
-                verified pipeline. <b>Not a network. Not a feed.</b> A pipeline with accountability,
-                where every application is tracked, timestamped, and answered.
+                Research roles, TA-ships, internships, referrals and hackathon
+                teams - inside one verified pipeline.{" "}
+                <b>Not a network. Not a feed.</b> A pipeline with
+                accountability, where every application is tracked, timestamped,
+                and answered.
               </p>
               <div className="hero-actions">
                 <Link className="btn btn-primary" href="/register">
@@ -108,7 +119,10 @@ export default function Home() {
             <div className="section-head">
               <span className="eyebrow">How it works</span>
               <h2>Three steps from opening to outcome.</h2>
-              <p>Discovery that respects your time, applying with intent, and an answer you can rely on.</p>
+              <p>
+                Discovery that respects your time, applying with intent, and an
+                answer you can rely on.
+              </p>
             </div>
             <div className="steps">
               {STEPS.map((s) => (
@@ -128,7 +142,10 @@ export default function Home() {
             <div className="section-head">
               <span className="eyebrow">Status legibility</span>
               <h2>Every application has one unambiguous state.</h2>
-              <p>Colour, icon and label together - so where you stand is never a guess, and never a colour alone.</p>
+              <p>
+                Colour, icon and label together - so where you stand is never a
+                guess, and never a colour alone.
+              </p>
             </div>
             <Reveal className="pillwrap">
               {PILLS.map(([g, label, cls]) => (
@@ -147,7 +164,11 @@ export default function Home() {
               <span className="eyebrow">Why Nexus</span>
               <h2>Three guarantees a feed structurally can&apos;t make.</h2>
               <p>
-                Each depends on the application record existing as a first-class entity. <Link href="/product" className="inline-link">See all four →</Link>
+                Each depends on the application record existing as a first-class
+                entity.{" "}
+                <Link href="/product" className="inline-link">
+                  See all four →
+                </Link>
               </p>
             </div>
             <div className="steps">
@@ -167,8 +188,8 @@ export default function Home() {
             <Reveal className="cta-band">
               <h2>Apply once. Always know where you stand.</h2>
               <p>
-                Join the pilot at Thapar Institute - find a posting in under two minutes, apply, and
-                get a real answer within 48 hours.
+                Join the pilot at Thapar Institute - find a posting in under two
+                minutes, apply, and get a real answer within 48 hours.
               </p>
               <div className="cta-actions">
                 <Link className="btn btn-primary" href="/register">
