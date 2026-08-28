@@ -345,3 +345,46 @@ export async function expirePastDeadline(): Promise<number> {
   }
   return result.count;
 }
+
+// ── SLA breach sweep (T-15) ──────────────────────────────────────────────────
+
+/**
+ * Flip a LIVE posting to AT_RISK when it holds any application that is still
+ * unacknowledged (APPLIED, no first transition) past the posting's own SLA
+ * window (H24 → 24h, H48 → 48h, WEEK → 7d, measured from applied_at).
+ *
+ * Idempotent (only LIVE → AT_RISK). Returns the affected opportunity ids so the
+ * caller can nudge each poster (T-17 notifications wire in here). Pure set-based
+ * SQL; the SLA interval is chosen by the row's own pledge, no user input.
+ */
+export async function sweepSlaBreaches(): Promise<{ atRisk: string[] }> {
+  const rows = await prisma.$queryRaw<{ id: string; poster_id: string }[]>(Prisma.sql`
+    UPDATE opportunities o
+    SET status = 'AT_RISK'::"OppStatus", updated_at = now()
+    WHERE o.status = 'LIVE'::"OppStatus"
+      AND o.deleted_at IS NULL
+      AND EXISTS (
+        SELECT 1 FROM applications a
+        WHERE a.opportunity_id = o.id
+          AND a.deleted_at IS NULL
+          AND a.status = 'APPLIED'::"AppState"
+          AND a.first_transition_at IS NULL
+          AND a.applied_at < now() - (
+            CASE o.sla_pledge
+              WHEN 'H24'::"SlaPledge"  THEN interval '24 hours'
+              WHEN 'H48'::"SlaPledge"  THEN interval '48 hours'
+              WHEN 'WEEK'::"SlaPledge" THEN interval '7 days'
+            END
+          )
+      )
+    RETURNING o.id, o.poster_id
+  `);
+
+  if (rows.length > 0) {
+    await audit({
+      action: "opportunity.at_risk",
+      metadata: { count: rows.length },
+    });
+  }
+  return { atRisk: rows.map((r) => r.id) };
+}

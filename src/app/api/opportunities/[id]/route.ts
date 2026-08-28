@@ -8,6 +8,7 @@ import {
   getOpportunityPosterId,
   updateOpportunity,
 } from "@/lib/services/opportunity.service";
+import { getPosterResponsiveness } from "@/lib/services/analytics.service";
 
 export const runtime = "nodejs";
 
@@ -40,7 +41,9 @@ export const GET = handler(async (req) => {
   const id = new URL(req.url).pathname.split("/").filter(Boolean).pop() ?? "";
   if (!/^[0-9a-f-]{36}$/i.test(id)) throw Errors.notFound();
   const opportunity = await getOpportunity(id);
-  return ok({ opportunity });
+  // Public responsiveness badge (T-14) so students can judge before applying.
+  const responsiveness = await getPosterResponsiveness(opportunity.poster.id);
+  return ok({ opportunity: { ...opportunity, poster: { ...opportunity.poster, responsiveness } } });
 });
 
 export const PATCH = handler(async (req) => {
