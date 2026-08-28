@@ -24,6 +24,10 @@ export type AuditAction =
   | "opportunity.updated"
   | "opportunity.closed"
   | "opportunity.expired"
+  | "opportunity.at_risk"
+  | "application.created"
+  | "application.transitioned"
+  | "application.withdrawn"
   | "authz.denied";
 
 export async function audit(params: {

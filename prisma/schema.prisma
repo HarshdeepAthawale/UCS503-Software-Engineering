@@ -317,6 +317,11 @@ model Application {
 
   @@index([opportunityId])
   @@index([studentId])
+  @@index([studentId, status]) // budget count (T-12)
+  // NOTE: a PARTIAL unique index on (opportunity_id, student_id) WHERE deleted_at
+  // IS NULL enforces "one active application per student per opportunity". Prisma
+  // cannot express a partial unique, so it lives in the migration
+  // 20260828130000_application_constraints (constraint 3, docs/Schema §6).
   @@map("applications")
 }
 

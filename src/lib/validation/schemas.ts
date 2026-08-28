@@ -222,6 +222,42 @@ export type OpportunityCreateInput = z.infer<typeof OpportunityCreateSchema>;
 export type OpportunityUpdateInput = z.infer<typeof OpportunityUpdateSchema>;
 export type OpportunityListQuery = z.infer<typeof OpportunityListQuerySchema>;
 
+// ── Application pipeline (T-12 / T-13; docs/PRD M5, S3) ──────────────────────
+
+const rejectionCode = z.enum([
+  "SKILL_MISMATCH",
+  "SEATS_FILLED",
+  "TIMING_CONFLICT",
+  "PROFILE_INCOMPLETE",
+  "STRONGER_APPLICANTS",
+  "OTHER",
+]);
+
+// Student applies. Optional short pitch; posterId/status/etc. are never client-set.
+export const ApplicationCreateSchema = z
+  .object({
+    note: z.string().trim().max(1000).optional(),
+  })
+  .strict();
+
+// Poster-driven transitions. The legal target set is a subset of AppState; the
+// full state-machine (which source states may reach which targets) is enforced
+// in the service, not here. A rejection code is only meaningful on REJECTED.
+export const ApplicationTransitionSchema = z
+  .object({
+    toState: z.enum(["RECEIVED", "SHORTLISTED", "INTERVIEW", "SELECTED", "REJECTED"]),
+    note: z.string().trim().max(1000).optional(),
+    rejectionCode: rejectionCode.optional(),
+  })
+  .strict()
+  .refine((v) => v.toState === "REJECTED" || v.rejectionCode === undefined, {
+    message: "A rejection code is only valid when rejecting an application.",
+    path: ["rejectionCode"],
+  });
+
+export type ApplicationCreateInput = z.infer<typeof ApplicationCreateSchema>;
+export type ApplicationTransitionInput = z.infer<typeof ApplicationTransitionSchema>;
+
 export type RegisterInput = z.infer<typeof RegisterSchema>;
 export type LoginInput = z.infer<typeof LoginSchema>;
 export type ProfileUpdateInput = z.infer<typeof ProfileUpdateSchema>;
