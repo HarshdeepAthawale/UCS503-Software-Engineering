@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { Errors } from "@/lib/http/errors";
 import { audit } from "@/lib/security/audit";
+import { notify } from "./notification.service";
 import type { Principal } from "@/lib/iam/policy";
 import type {
   OpportunityCreateInput,
@@ -385,6 +386,10 @@ export async function sweepSlaBreaches(): Promise<{ atRisk: string[] }> {
       action: "opportunity.at_risk",
       metadata: { count: rows.length },
     });
+    // Nudge each poster whose posting just went AT_RISK (T-15 → T-17).
+    for (const r of rows) {
+      await notify(r.poster_id, "opportunity.at_risk", { opportunityId: r.id });
+    }
   }
   return { atRisk: rows.map((r) => r.id) };
 }

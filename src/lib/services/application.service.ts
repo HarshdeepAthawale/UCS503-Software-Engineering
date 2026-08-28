@@ -9,6 +9,7 @@ import {
   canPosterTransition,
   canWithdraw,
 } from "@/lib/domain/application-state";
+import { notify } from "./notification.service";
 import type {
   ApplicationCreateInput,
   ApplicationTransitionInput,
@@ -113,6 +114,11 @@ export async function applyToOpportunity(
       target: application.id,
       metadata: { opportunityId },
     });
+    // Notify the poster that a new application arrived (T-17).
+    await notify(opp.posterId, "application.received", {
+      opportunityId,
+      applicationId: application.id,
+    });
     return application;
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
@@ -138,6 +144,7 @@ export async function transitionApplication(
         where: { id: applicationId, deletedAt: null },
         select: {
           status: true,
+          studentId: true,
           opportunityId: true,
           firstTransitionAt: true,
           opportunity: { select: { seatCount: true } },
@@ -186,7 +193,7 @@ export async function transitionApplication(
           rejectionCode: true,
         },
       });
-      return { updated, from: app.status };
+      return { updated, from: app.status, studentId: app.studentId };
     }, SERIALIZABLE);
 
     await audit({
@@ -194,6 +201,12 @@ export async function transitionApplication(
       actorId: principal.userId,
       target: applicationId,
       metadata: { from: result.from, to: input.toState },
+    });
+    // Notify the applicant that their pipeline advanced (T-17).
+    await notify(result.studentId, "application.status_changed", {
+      applicationId,
+      from: result.from,
+      to: input.toState,
     });
     return result.updated;
   } catch (e) {
@@ -210,7 +223,11 @@ export async function withdrawApplication(principal: Principal, applicationId: s
   const result = await prisma.$transaction(async (tx) => {
     const app = await tx.application.findFirst({
       where: { id: applicationId, deletedAt: null },
-      select: { status: true, studentId: true },
+      select: {
+        status: true,
+        studentId: true,
+        opportunity: { select: { posterId: true } },
+      },
     });
     if (!app) throw Errors.notFound();
     if (app.studentId !== principal.userId) throw Errors.forbidden();
@@ -231,7 +248,7 @@ export async function withdrawApplication(principal: Principal, applicationId: s
       },
       select: { id: true, status: true },
     });
-    return { updated, from: app.status };
+    return { updated, from: app.status, posterId: app.opportunity.posterId };
   });
 
   await audit({
@@ -240,6 +257,8 @@ export async function withdrawApplication(principal: Principal, applicationId: s
     target: applicationId,
     metadata: { from: result.from },
   });
+  // Notify the poster that an applicant withdrew (T-17).
+  await notify(result.posterId, "application.withdrawn", { applicationId });
   return result.updated;
 }
 

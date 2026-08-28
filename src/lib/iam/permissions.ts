@@ -22,6 +22,8 @@ export const RESOURCES = [
   "attestation",
   "alumni_claim",
   "skill_taxonomy",
+  "message",
+  "notification",
   "flag",
   "analytics",
   "user",
@@ -52,6 +54,10 @@ const STUDENT: Permission[] = [
   "application:withdraw", // OWN
   "attestation:read",
   "skill_taxonomy:read",
+  "message:read", // membership-scoped in the service
+  "message:send", // membership-scoped in the service
+  "notification:read", // own feed (scoped in the service)
+  "notification:manage", // own read-state & prefs (scoped in the service)
 ];
 
 const FACULTY: Permission[] = [
@@ -66,6 +72,10 @@ const FACULTY: Permission[] = [
   "attestation:create", // gated further by SELECTED application (Phase 3 + DB CHECK)
   "attestation:read",
   "skill_taxonomy:read",
+  "message:read", // membership-scoped in the service
+  "message:send", // membership-scoped in the service
+  "notification:read", // own feed (scoped in the service)
+  "notification:manage", // own read-state & prefs (scoped in the service)
   "flag:create",
 ];
 
@@ -83,6 +93,9 @@ const ADMIN: Permission[] = [
   "attestation:read",
   "skill_taxonomy:read",
   "skill_taxonomy:manage",
+  "message:read", // moderation
+  "notification:read", // own feed
+  "notification:manage", // own read-state & prefs
   "alumni_claim:read",
   "alumni_claim:approve",
   "flag:read",

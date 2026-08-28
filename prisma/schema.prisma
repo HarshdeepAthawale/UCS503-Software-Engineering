@@ -122,6 +122,9 @@ model User {
   opportunities Opportunity[]  @relation("poster")
   applications  Application[]  @relation("student")
   events        ApplicationEvent[] @relation("event_actor")
+  messagesSent  Message[]      @relation("message_sender")
+  notifications Notification[] @relation("notification_user")
+  notificationPref NotificationPreference? @relation("notification_pref")
 
   @@index([role])
   @@index([status])
@@ -314,6 +317,7 @@ model Application {
   opportunity Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
   student     User        @relation("student", fields: [studentId], references: [id], onDelete: Cascade)
   events      ApplicationEvent[]
+  thread      MessageThread?
 
   @@index([opportunityId])
   @@index([studentId])
@@ -340,6 +344,68 @@ model ApplicationEvent {
 
   @@index([applicationId])
   @@map("application_events")
+}
+
+// ── Scoped messaging (T-16; docs/PRD M7) ─────────────────────────────────────
+
+// A thread is bound 1:1 to an application. Only that application's student and
+// its opportunity's poster (or an admin) may read/post — messaging cannot be
+// used to cold-contact anyone outside an active application context.
+model MessageThread {
+  id            String   @id @default(uuid()) @db.Uuid
+  applicationId String   @unique @map("application_id") @db.Uuid
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  messages    Message[]
+
+  @@map("message_threads")
+}
+
+model Message {
+  id        String   @id @default(uuid()) @db.Uuid
+  threadId  String   @map("thread_id") @db.Uuid
+  senderId  String   @map("sender_id") @db.Uuid
+  body      String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  thread MessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  sender User          @relation("message_sender", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([threadId, createdAt])
+  @@map("messages")
+}
+
+// ── Notifications (T-17; docs/PRD M8) ────────────────────────────────────────
+
+// In-app notification feed. `deliveredAt` is stamped when a notification is
+// rolled into a digest, so the digest job never re-delivers the same item.
+model Notification {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  type        String
+  payload     Json      @default("{}")
+  readAt      DateTime? @map("read_at") @db.Timestamptz(6)
+  deliveredAt DateTime? @map("delivered_at") @db.Timestamptz(6)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation("notification_user", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@index([deliveredAt])
+  @@map("notifications")
+}
+
+// One row per user; the digest cadence they prefer.
+model NotificationPreference {
+  userId       String    @id @map("user_id") @db.Uuid
+  frequency    NotifFreq @default(DAILY)
+  lastDigestAt DateTime? @map("last_digest_at") @db.Timestamptz(6)
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation("notification_pref", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_preferences")
 }
 
 // ── Governance ───────────────────────────────────────────────────────────────

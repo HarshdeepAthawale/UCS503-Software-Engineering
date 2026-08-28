@@ -56,6 +56,17 @@ const CASES: Array<[Role, Permission, boolean]> = [
   ["FACULTY", "opportunity:list", true],
   ["ALUMNI", "opportunity:create", true],
   ["ADMIN", "opportunity:update", false], // admins govern, they don't post
+  // Messaging (T-16): students & posters may message; membership is enforced in
+  // the service. Admin may read (moderation) but not send.
+  ["STUDENT", "message:send", true],
+  ["STUDENT", "message:read", true],
+  ["FACULTY", "message:send", true],
+  ["ADMIN", "message:read", true],
+  ["ADMIN", "message:send", false],
+  // Notifications (T-17): every non-admin role manages its own feed.
+  ["STUDENT", "notification:read", true],
+  ["STUDENT", "notification:manage", true],
+  ["FACULTY", "notification:manage", true],
 ];
 
 describe("RBAC matrix (deny-by-default)", () => {

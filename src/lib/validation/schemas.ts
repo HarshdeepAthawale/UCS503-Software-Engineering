@@ -258,6 +258,27 @@ export const ApplicationTransitionSchema = z
 export type ApplicationCreateInput = z.infer<typeof ApplicationCreateSchema>;
 export type ApplicationTransitionInput = z.infer<typeof ApplicationTransitionSchema>;
 
+// ── Messaging (T-16) & notifications (T-17) ──────────────────────────────────
+
+export const MessageSendSchema = z
+  .object({ body: z.string().trim().min(1, "Message cannot be empty.").max(4000) })
+  .strict();
+
+export const NotificationsReadSchema = z
+  .object({
+    // Omit / empty → mark ALL of the caller's notifications read.
+    ids: z.array(z.string().trim().uuid()).max(200).optional(),
+  })
+  .strict();
+
+export const NotificationPrefSchema = z
+  .object({ frequency: z.enum(["IMMEDIATE", "DAILY", "WEEKLY"]) })
+  .strict();
+
+export type MessageSendInput = z.infer<typeof MessageSendSchema>;
+export type NotificationsReadInput = z.infer<typeof NotificationsReadSchema>;
+export type NotificationPrefInput = z.infer<typeof NotificationPrefSchema>;
+
 export type RegisterInput = z.infer<typeof RegisterSchema>;
 export type LoginInput = z.infer<typeof LoginSchema>;
 export type ProfileUpdateInput = z.infer<typeof ProfileUpdateSchema>;
