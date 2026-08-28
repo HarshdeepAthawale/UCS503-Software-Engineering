@@ -2,7 +2,7 @@ import { prisma } from "@/lib/db";
 
 /**
  * Append-only audit logging for privileged and security-relevant events
- * (docs/TechSpec §7). Store rationale codes and identifiers only — never raw
+ * (docs/TechSpec §7). Store rationale codes and identifiers only - never raw
  * tokens, passwords, OTPs, or other PII (codeguard-0-logging).
  */
 export type AuditAction =

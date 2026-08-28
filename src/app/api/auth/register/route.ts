@@ -11,7 +11,7 @@ export const runtime = "nodejs";
 /**
  * POST /api/auth/register
  * Domain-restricted student registration. The role is fixed to STUDENT server-side
- * — clients can never choose their own role (prevents privilege escalation).
+ * - clients can never choose their own role (prevents privilege escalation).
  * Responds with a uniform 202 whether or not the email already exists, to avoid
  * account enumeration (codeguard-0-authentication-mfa).
  */

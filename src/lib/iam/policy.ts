@@ -28,10 +28,10 @@ export type Decision =
 /**
  * Central authorization decision (codeguard-0-authorization: centralize at the
  * boundary; deny by default). Layers, in order:
- *   1. Status gate — SUSPENDED never passes; UNVERIFIED/PENDING_ALUMNI are
+ *   1. Status gate - SUSPENDED never passes; UNVERIFIED/PENDING_ALUMNI are
  *      read-only.
- *   2. RBAC matrix — role must be granted the permission.
- *   3. Ownership — ownership-scoped permissions require actor === resource owner
+ *   2. RBAC matrix - role must be granted the permission.
+ *   3. Ownership - ownership-scoped permissions require actor === resource owner
  *      (prevents IDOR / horizontal privilege escalation).
  *
  * Admins bypass the ownership check ONLY for non-mutating reads; ownership-scoped
@@ -56,7 +56,7 @@ export function decide(
     return { allowed: false, reason: "account_read_only" };
   }
 
-  // 2. RBAC matrix — deny by default.
+  // 2. RBAC matrix - deny by default.
   if (!roleHasPermission(principal.role, permission)) {
     return { allowed: false, reason: "missing_permission" };
   }
@@ -64,7 +64,7 @@ export function decide(
   // 3. Ownership scoping.
   if (OWNERSHIP_SCOPED.has(permission)) {
     if (resource.ownerId === undefined) {
-      // Caller forgot to pass the owner — fail closed rather than open.
+      // Caller forgot to pass the owner - fail closed rather than open.
       return { allowed: false, reason: "ownership_unresolved" };
     }
     if (resource.ownerId !== principal.userId) {

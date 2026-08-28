@@ -267,7 +267,7 @@ export default function AdminPage() {
               <h2 style={{ fontSize: 16, marginTop: 0 }}>Provision an alumni account</h2>
               <p className="empty-note" style={{ marginBottom: 14 }}>
                 Alumni can't self-register (revoked institute email). Create their account with a personal email after
-                verifying proof — they'll sign in with a one-time code.
+                verifying proof - they'll sign in with a one-time code.
               </p>
               <form className="form" onSubmit={provision}>
                 <div className="field"><label htmlFor="an">Full name</label>

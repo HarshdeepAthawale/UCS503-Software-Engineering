@@ -2,13 +2,13 @@ import { NextResponse, type NextRequest } from "next/server";
 import { verifyAccessToken } from "@/lib/security/access-token";
 
 /**
- * Edge middleware — the OUTERMOST security layer (defense-in-depth).
+ * Edge middleware - the OUTERMOST security layer (defense-in-depth).
  *
  * 1. Security headers on every response (codeguard-0-client-side-web-security):
  *    HSTS, a strict CSP, no sniffing, no framing, tight referrer/permissions.
  * 2. A COARSE authentication gate: protected API paths must carry a structurally
  *    valid, unexpired access token, else 401 before the handler runs. This is a
- *    cheap early reject — it is NOT the authoritative check. Fine-grained RBAC and
+ *    cheap early reject - it is NOT the authoritative check. Fine-grained RBAC and
  *    fresh role/status come from the database inside each route (see iam/guard.ts),
  *    so a token cannot outrun a revocation.
  *
@@ -18,7 +18,7 @@ import { verifyAccessToken } from "@/lib/security/access-token";
 
 // Paths under /api that skip the edge USER-JWT gate. Public auth endpoints, plus
 // scheduled-job endpoints under /api/cron (authenticated by CRON_SECRET at the
-// route layer, not by a user token — see http/cron-auth.ts).
+// route layer, not by a user token - see http/cron-auth.ts).
 const PUBLIC_API = [
   "/api/health",
   "/api/auth/register",
@@ -35,7 +35,10 @@ function securityHeaders(res: NextResponse, nonce: string): NextResponse {
   res.headers.set("X-Content-Type-Options", "nosniff");
   res.headers.set("X-Frame-Options", "DENY");
   res.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
-  res.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  res.headers.set(
+    "Permissions-Policy",
+    "camera=(), microphone=(), geolocation=()",
+  );
   res.headers.set(
     "Strict-Transport-Security",
     "max-age=63072000; includeSubDomains; preload",
@@ -90,7 +93,9 @@ export async function middleware(req: NextRequest): Promise<NextResponse> {
   const nonce = btoa(crypto.randomUUID());
 
   const isApi = pathname.startsWith("/api/");
-  const isPublic = PUBLIC_API.some((p) => pathname === p || pathname.startsWith(p + "/"));
+  const isPublic = PUBLIC_API.some(
+    (p) => pathname === p || pathname.startsWith(p + "/"),
+  );
 
   if (isApi && !isPublic) {
     const header = req.headers.get("authorization");
@@ -99,7 +104,13 @@ export async function middleware(req: NextRequest): Promise<NextResponse> {
     if (!claims) {
       return securityHeaders(
         NextResponse.json(
-          { error: { code: "UNAUTHENTICATED", message: "Authentication required.", field: null } },
+          {
+            error: {
+              code: "UNAUTHENTICATED",
+              message: "Authentication required.",
+              field: null,
+            },
+          },
           { status: 401 },
         ),
         nonce,
@@ -113,7 +124,10 @@ export async function middleware(req: NextRequest): Promise<NextResponse> {
   const requestHeaders = new Headers(req.headers);
   requestHeaders.set("x-nonce", nonce);
 
-  return securityHeaders(NextResponse.next({ request: { headers: requestHeaders } }), nonce);
+  return securityHeaders(
+    NextResponse.next({ request: { headers: requestHeaders } }),
+    nonce,
+  );
 }
 
 // Apply to all API routes and app pages, skipping static assets.

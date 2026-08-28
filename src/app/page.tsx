@@ -5,7 +5,7 @@ import { SiteNav } from "@/components/site-nav";
 import { SiteFooter } from "@/components/site-footer";
 
 /**
- * Home — page 1 of the three-page landing. Hook, proof, how-it-works, and a
+ * Home - page 1 of the three-page landing. Hook, proof, how-it-works, and a
  * funnel to sign-up. Content is visible by default (no fragile scroll-reveal).
  */
 
@@ -13,11 +13,11 @@ const STEPS = [
   {
     n: "01",
     title: "Discover in under 2 minutes",
-    body: "Full-text search and typed facets — role, domain, stipend, skill. No WhatsApp forwards, no missed noticeboards.",
+    body: "Full-text search and typed facets - role, domain, stipend, skill. No WhatsApp forwards, no missed noticeboards.",
   },
   {
     n: "02",
-    title: "Apply — with a budget",
+    title: "Apply - with a budget",
     body: "Hold at most ten live applications. One constraint kills spray-and-pray and caps every poster's review load.",
   },
   {
@@ -41,15 +41,15 @@ const PILLS = [
 const HIGHLIGHTS = [
   {
     title: "Accountable, not optional",
-    body: "Time-to-Acknowledgement is computed from the event log — never self-reported. Posters carry a rolling Responsiveness Badge.",
+    body: "Time-to-Acknowledgement is computed from the event log - never self-reported. Posters carry a rolling Responsiveness Badge.",
   },
   {
     title: "Competency you can trust",
-    body: "Skill attestations exist only where a Selected application connects two people. Enforced in the schema — unfarmable.",
+    body: "Skill attestations exist only where a Selected application connects two people. Enforced in the schema - unfarmable.",
   },
   {
     title: "Safe by design",
-    body: "Messaging lives only inside an application or team — never a free-form DM. An entire class of harassment has nowhere to live.",
+    body: "Messaging lives only inside an application or team - never a free-form DM. An entire class of harassment has nowhere to live.",
   },
 ];
 
@@ -71,7 +71,7 @@ export default function Home() {
                 <span className="fade">And make it visible when it doesn&apos;t.</span>
               </h1>
               <p className="lede">
-                Research roles, TA-ships, internships, referrals and hackathon teams — inside one
+                Research roles, TA-ships, internships, referrals and hackathon teams - inside one
                 verified pipeline. <b>Not a network. Not a feed.</b> A pipeline with accountability,
                 where every application is tracked, timestamped, and answered.
               </p>
@@ -128,7 +128,7 @@ export default function Home() {
             <div className="section-head">
               <span className="eyebrow">Status legibility</span>
               <h2>Every application has one unambiguous state.</h2>
-              <p>Colour, icon and label together — so where you stand is never a guess, and never a colour alone.</p>
+              <p>Colour, icon and label together - so where you stand is never a guess, and never a colour alone.</p>
             </div>
             <Reveal className="pillwrap">
               {PILLS.map(([g, label, cls]) => (
@@ -167,7 +167,7 @@ export default function Home() {
             <Reveal className="cta-band">
               <h2>Apply once. Always know where you stand.</h2>
               <p>
-                Join the pilot at Thapar Institute — find a posting in under two minutes, apply, and
+                Join the pilot at Thapar Institute - find a posting in under two minutes, apply, and
                 get a real answer within 48 hours.
               </p>
               <div className="cta-actions">

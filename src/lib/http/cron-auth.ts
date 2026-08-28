@@ -8,7 +8,7 @@ import { Errors } from "@/lib/http/errors";
  * A caller must present `Authorization: Bearer <CRON_SECRET>`. The comparison is
  * constant-time to avoid leaking the secret through timing. If CRON_SECRET is
  * not configured, the endpoint refuses entirely (fail-closed) rather than
- * running unauthenticated — a cron trigger is never left open to the internet.
+ * running unauthenticated - a cron trigger is never left open to the internet.
  */
 export function requireCronSecret(req: Request): void {
   const configured = env.CRON_SECRET;

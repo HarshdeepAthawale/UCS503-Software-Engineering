@@ -9,7 +9,7 @@ const scrypt = promisify(_scrypt) as (
 ) => Promise<Buffer>;
 
 /**
- * Password hashing with **scrypt** — a memory-hard KDF recommended by OWASP and
+ * Password hashing with **scrypt** - a memory-hard KDF recommended by OWASP and
  * built into Node's `crypto`, so it needs no native compilation (unlike argon2,
  * which requires a C++ toolchain we cannot assume on every machine). Each hash
  * carries its own random salt and its parameters, so we can raise the cost later

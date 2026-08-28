@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { AppNav } from "@/components/app-nav";
 import { useCallback, useEffect, useState } from "react";
 import {
   apiGetMyProfile,
@@ -16,7 +17,12 @@ import {
   type TaxonomySkill,
 } from "@/lib/client/api";
 
-const PROFICIENCIES = ["BEGINNER", "INTERMEDIATE", "ADVANCED", "EXPERT"] as const;
+const PROFICIENCIES = [
+  "BEGINNER",
+  "INTERMEDIATE",
+  "ADVANCED",
+  "EXPERT",
+] as const;
 
 interface PendingSkill {
   skillId: string;
@@ -40,9 +46,8 @@ export default function ProfilePage() {
   const [bio, setBio] = useState("");
 
   const [pickerSkill, setPickerSkill] = useState("");
-  const [pickerProficiency, setPickerProficiency] = useState<(typeof PROFICIENCIES)[number]>(
-    "INTERMEDIATE",
-  );
+  const [pickerProficiency, setPickerProficiency] =
+    useState<(typeof PROFICIENCIES)[number]>("INTERMEDIATE");
 
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -66,10 +71,17 @@ export default function ProfilePage() {
         setCgpa(p.cgpa != null ? String(p.cgpa) : "");
         setCgpaPublic(p.cgpaPublic);
         setBio(p.bio ?? "");
-        setSkills(p.skills.map((s) => ({ skillId: s.id, proficiency: s.proficiency as PendingSkill["proficiency"] })));
+        setSkills(
+          p.skills.map((s) => ({
+            skillId: s.id,
+            proficiency: s.proficiency as PendingSkill["proficiency"],
+          })),
+        );
       }
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to load your profile.");
+      setError(
+        err instanceof ApiError ? err.message : "Failed to load your profile.",
+      );
     } finally {
       setLoading(false);
     }
@@ -96,7 +108,9 @@ export default function ProfilePage() {
       setSaved(true);
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not save your profile.");
+      setError(
+        err instanceof ApiError ? err.message : "Could not save your profile.",
+      );
     } finally {
       setBusy(false);
     }
@@ -106,7 +120,10 @@ export default function ProfilePage() {
     if (!pickerSkill) return;
     setSkills((prev) => {
       const next = prev.filter((s) => s.skillId !== pickerSkill);
-      return [...next, { skillId: pickerSkill, proficiency: pickerProficiency }];
+      return [
+        ...next,
+        { skillId: pickerSkill, proficiency: pickerProficiency },
+      ];
     });
     setPickerSkill("");
     setPickerProficiency("INTERMEDIATE");
@@ -154,160 +171,190 @@ export default function ProfilePage() {
   const skillById = new Map(taxonomy.map((t) => [t.id, t]));
 
   return (
-    <main className="profile-shell">
-      <div className="wrap">
-        <div className="profile-head">
-          <div>
-            <span className="role">{user?.role ?? ""}</span>
-            <h1>{user?.name ?? "My profile"}</h1>
-            <div className="mono-id">
-              {user?.id ?? ""} · {user?.status ?? ""}
-            </div>
-          </div>
-          <div className="nav-cta">
-            <Link className="btn btn-ghost" href="/">
-              ← Home
-            </Link>
-            <button className="btn btn-danger" type="button" onClick={onLogout}>
-              Sign out
-            </button>
-          </div>
-        </div>
-
-        {error && <p className="form-err" role="alert">{error}</p>}
-        {saved && <p className="form-ok">Profile saved.</p>}
-
-        <form className="panel-grid" onSubmit={onSave} noValidate>
-          <div className="panel-card">
-            <h2>About you</h2>
-            <div className="form">
-              <div className="field">
-                <label htmlFor="branch">Branch</label>
-                <input
-                  id="branch"
-                  type="text"
-                  value={branch}
-                  onChange={(e) => setBranch(e.target.value)}
-                  placeholder="e.g. Computer Science"
-                  maxLength={80}
-                />
-              </div>
-              <div className="field">
-                <label htmlFor="year">Year</label>
-                <input
-                  id="year"
-                  type="number"
-                  min={1}
-                  max={6}
-                  value={year}
-                  onChange={(e) => setYear(e.target.value)}
-                  placeholder="1–6"
-                />
-              </div>
-              <div className="field">
-                <label htmlFor="cgpa">CGPA (private by default)</label>
-                <input
-                  id="cgpa"
-                  type="number"
-                  step="0.01"
-                  min={0}
-                  max={10}
-                  value={cgpa}
-                  onChange={(e) => setCgpa(e.target.value)}
-                  placeholder="0.00 – 10.00"
-                />
-              </div>
-              <div className="check-row">
-                <input
-                  id="cgpaPublic"
-                  type="checkbox"
-                  checked={cgpaPublic}
-                  onChange={(e) => setCgpaPublic(e.target.checked)}
-                />
-                <label htmlFor="cgpaPublic">Make my CGPA visible to posters</label>
-              </div>
-              <div className="field">
-                <label htmlFor="bio">Bio</label>
-                <textarea
-                  id="bio"
-                  value={bio}
-                  onChange={(e) => setBio(e.target.value)}
-                  placeholder="Research interests, projects, what you're looking for…"
-                  maxLength={1000}
-                />
+    // Wrapped in `.app-shell` with `AppNav`, exactly like every other signed-in
+    // screen. This page was the only portal route that rendered no navigation
+    // at all: it offered a single "Home" link, which sent a signed-in user out
+    // to the marketing landing page and left them no way back into the app
+    // except the browser's back button.
+    <div className="app-shell">
+      <AppNav user={user} />
+      <main className="profile-shell">
+        <div className="wrap">
+          <div className="profile-head">
+            <div>
+              <span className="role">{user?.role ?? ""}</span>
+              <h1>{user?.name ?? "My profile"}</h1>
+              <div className="mono-id">
+                {user?.id ?? ""} · {user?.status ?? ""}
               </div>
             </div>
           </div>
 
-          <div className="panel-card">
-            <h2>Skills</h2>
-            <p className="empty-note" style={{ marginBottom: 12 }}>
-              Drawn from the institute taxonomy — self-claimed until an attestation verifies them.
+          {error && (
+            <p className="form-err" role="alert">
+              {error}
             </p>
+          )}
+          {saved && <p className="form-ok">Profile saved.</p>}
 
-            <div className="skills-current">
-              {skills.length === 0 && <p className="empty-note">No skills yet. Add from the taxonomy.</p>}
-              {skills.map((s) => {
-                const meta = skillById.get(s.skillId);
-                return (
-                  <span key={s.skillId} className="skill-chip" title={meta?.domain ?? ""}>
-                    {meta?.name ?? s.skillId.slice(0, 8)} · {s.proficiency.toLowerCase()}
-                    <span
-                      className="x"
-                      role="button"
-                      aria-label={`Remove ${meta?.name ?? "skill"}`}
-                      tabIndex={0}
-                      onClick={() => removeSkill(s.skillId)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") removeSkill(s.skillId);
-                      }}
-                    >
-                      ×
-                    </span>
-                  </span>
-                );
-              })}
+          <form className="panel-grid" onSubmit={onSave} noValidate>
+            <div className="panel-card">
+              <h2>About you</h2>
+              <div className="form">
+                <div className="field">
+                  <label htmlFor="branch">Branch</label>
+                  <input
+                    id="branch"
+                    type="text"
+                    value={branch}
+                    onChange={(e) => setBranch(e.target.value)}
+                    placeholder="e.g. Computer Science"
+                    maxLength={80}
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor="year">Year</label>
+                  <input
+                    id="year"
+                    type="number"
+                    min={1}
+                    max={6}
+                    value={year}
+                    onChange={(e) => setYear(e.target.value)}
+                    placeholder="1-6"
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor="cgpa">CGPA (private by default)</label>
+                  <input
+                    id="cgpa"
+                    type="number"
+                    step="0.01"
+                    min={0}
+                    max={10}
+                    value={cgpa}
+                    onChange={(e) => setCgpa(e.target.value)}
+                    placeholder="0.00 - 10.00"
+                  />
+                </div>
+                <div className="check-row">
+                  <input
+                    id="cgpaPublic"
+                    type="checkbox"
+                    checked={cgpaPublic}
+                    onChange={(e) => setCgpaPublic(e.target.checked)}
+                  />
+                  <label htmlFor="cgpaPublic">
+                    Make my CGPA visible to posters
+                  </label>
+                </div>
+                <div className="field">
+                  <label htmlFor="bio">Bio</label>
+                  <textarea
+                    id="bio"
+                    value={bio}
+                    onChange={(e) => setBio(e.target.value)}
+                    placeholder="Research interests, projects, what you're looking for…"
+                    maxLength={1000}
+                  />
+                </div>
+              </div>
             </div>
 
-            <div className="skill-picker">
-              <div className="skill-add-row">
-                <select
-                  aria-label="Pick a skill"
-                  value={pickerSkill}
-                  onChange={(e) => setPickerSkill(e.target.value)}
+            <div className="panel-card">
+              <h2>Skills</h2>
+              <p className="empty-note" style={{ marginBottom: 12 }}>
+                Drawn from the institute taxonomy - self-claimed until an
+                attestation verifies them.
+              </p>
+
+              <div className="skills-current">
+                {skills.length === 0 && (
+                  <p className="empty-note">
+                    No skills yet. Add from the taxonomy.
+                  </p>
+                )}
+                {skills.map((s) => {
+                  const meta = skillById.get(s.skillId);
+                  return (
+                    <span
+                      key={s.skillId}
+                      className="skill-chip"
+                      title={meta?.domain ?? ""}
+                    >
+                      {meta?.name ?? s.skillId.slice(0, 8)} ·{" "}
+                      {s.proficiency.toLowerCase()}
+                      <span
+                        className="x"
+                        role="button"
+                        aria-label={`Remove ${meta?.name ?? "skill"}`}
+                        tabIndex={0}
+                        onClick={() => removeSkill(s.skillId)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ")
+                            removeSkill(s.skillId);
+                        }}
+                      >
+                        ×
+                      </span>
+                    </span>
+                  );
+                })}
+              </div>
+
+              <div className="skill-picker">
+                <div className="skill-add-row">
+                  <select
+                    aria-label="Pick a skill"
+                    value={pickerSkill}
+                    onChange={(e) => setPickerSkill(e.target.value)}
+                  >
+                    <option value="">Choose a skill…</option>
+                    {available.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name} · {t.domain}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    aria-label="Proficiency"
+                    value={pickerProficiency}
+                    onChange={(e) =>
+                      setPickerProficiency(
+                        e.target.value as typeof pickerProficiency,
+                      )
+                    }
+                  >
+                    {PROFICIENCIES.map((p) => (
+                      <option key={p} value={p}>
+                        {p.charAt(0) + p.slice(1).toLowerCase()}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    className="mini solid"
+                    type="button"
+                    onClick={addSkill}
+                    disabled={!pickerSkill}
+                  >
+                    Add
+                  </button>
+                </div>
+              </div>
+
+              <div className="save-bar">
+                <button
+                  className="btn btn-primary"
+                  type="submit"
+                  disabled={busy}
                 >
-                  <option value="">Choose a skill…</option>
-                  {available.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.name} · {t.domain}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  aria-label="Proficiency"
-                  value={pickerProficiency}
-                  onChange={(e) => setPickerProficiency(e.target.value as typeof pickerProficiency)}
-                >
-                  {PROFICIENCIES.map((p) => (
-                    <option key={p} value={p}>
-                      {p.charAt(0) + p.slice(1).toLowerCase()}
-                    </option>
-                  ))}
-                </select>
-                <button className="mini solid" type="button" onClick={addSkill} disabled={!pickerSkill}>
-                  Add
+                  {busy ? "Saving…" : "Save profile"}
                 </button>
               </div>
             </div>
-
-            <div className="save-bar">
-              <button className="btn btn-primary" type="submit" disabled={busy}>
-                {busy ? "Saving…" : "Save profile"}
-              </button>
-            </div>
-          </div>
-        </form>
-      </div>
-    </main>
+          </form>
+        </div>
+      </main>
+    </div>
   );
 }

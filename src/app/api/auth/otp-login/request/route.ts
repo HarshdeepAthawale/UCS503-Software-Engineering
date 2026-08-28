@@ -8,10 +8,10 @@ import { requestLoginOtp } from "@/lib/services/auth.service";
 export const runtime = "nodejs";
 
 /**
- * POST /api/auth/otp-login/request — passwordless login step 1.
+ * POST /api/auth/otp-login/request - passwordless login step 1.
  *
  * Sends a one-time code to an ACTIVE account (email in prod; returned in dev).
- * The response is uniform whether or not the account exists — no enumeration.
+ * The response is uniform whether or not the account exists - no enumeration.
  * The primary path for admin-provisioned alumni (personal email, no password).
  */
 export const POST = handler(async (req) => {

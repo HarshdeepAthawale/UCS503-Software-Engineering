@@ -89,7 +89,7 @@ export async function verifyRegistrationOtp(params: {
     where: { email: params.email, deletedAt: null },
     select: { id: true, role: true, status: true, name: true },
   });
-  // Generic failure — never disclose which of email/otp was wrong.
+  // Generic failure - never disclose which of email/otp was wrong.
   const genericFail = Errors.validation("Invalid or expired code.");
   if (!user) throw genericFail;
 
@@ -178,12 +178,12 @@ export async function login(params: {
 
 /**
  * Sign in (or provision) a user from a Google-verified profile. Google has
- * proven email ownership, so no OTP is needed — the account is ACTIVE. Restricted
+ * proven email ownership, so no OTP is needed - the account is ACTIVE. Restricted
  * to the institutional domain; alumni (non-institute email) use the claim flow.
  *
  * If the email already exists, this LINKS to it (issues a session) rather than
  * creating a duplicate. A newly provisioned Google user gets an unusable random
- * password hash — they authenticate via Google, not a password.
+ * password hash - they authenticate via Google, not a password.
  */
 export async function loginWithGoogle(params: {
   email: string;
@@ -204,7 +204,7 @@ export async function loginWithGoogle(params: {
 
   if (user) {
     if (user.status === "SUSPENDED") throw Errors.forbidden("This account has been suspended.");
-    // Google proves ownership — promote an unverified account to ACTIVE.
+    // Google proves ownership - promote an unverified account to ACTIVE.
     if (user.status === "UNVERIFIED") {
       user = await prisma.user.update({
         where: { id: user.id },
@@ -350,7 +350,7 @@ async function resolveRoleWithAllowlist(
 /**
  * Request a one-time login code for an ACTIVE account. Returns the code for the
  * caller to deliver (email in prod; dev returns it). Uniform behaviour when the
- * account is missing/inactive is handled by the route — no enumeration.
+ * account is missing/inactive is handled by the route - no enumeration.
  */
 export async function requestLoginOtp(email: string): Promise<string | null> {
   const user = await prisma.user.findFirst({

@@ -13,7 +13,7 @@ import type {
 /**
  * Skill taxonomy + user-skill assignment (docs/PRD M2, tracker T-07).
  *
- * The taxonomy is admin-curated — skills are NOT free text. Admin mutations are
+ * The taxonomy is admin-curated - skills are NOT free text. Admin mutations are
  * `skill_taxonomy:manage` (ADMIN-only in the matrix) and audited. Skills are
  * soft-deleted (`deletedAt`) so user_skills history and analytics stay intact.
  *
@@ -33,7 +33,7 @@ export async function listSkills() {
   });
 }
 
-/** Admin console view — includes soft-deleted rows so restores are visible. */
+/** Admin console view - includes soft-deleted rows so restores are visible. */
 export async function listAllSkills() {
   return prisma.skill.findMany({
     orderBy: [{ deletedAt: "asc" }, { domain: "asc" }, { name: "asc" }],
@@ -101,7 +101,7 @@ export async function updateSkill(admin: Principal, id: string, input: SkillUpda
   }
 }
 
-/** Soft delete — keeps user_skills rows and analytics intact (Rules.md §6). */
+/** Soft delete - keeps user_skills rows and analytics intact (Rules.md §6). */
 export async function softDeleteSkill(admin: Principal, id: string) {
   const existing = await prisma.skill.findUnique({
     where: { id },
@@ -126,7 +126,7 @@ export async function softDeleteSkill(admin: Principal, id: string) {
 
 /**
  * Replace the caller's whole skill set (profile editor). Validates every skillId
- * against the LIVE taxonomy first — a soft-deleted skill cannot be re-attached.
+ * against the LIVE taxonomy first - a soft-deleted skill cannot be re-attached.
  * Runs in one transaction so the set is never observed half-written.
  */
 export async function replaceOwnSkills(principal: Principal, input: UserSkillsReplaceInput) {

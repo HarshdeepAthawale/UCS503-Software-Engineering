@@ -9,7 +9,7 @@ import {
 export const runtime = "nodejs";
 
 /**
- * POST /api/applications/:id/withdraw — the STUDENT withdraws their own
+ * POST /api/applications/:id/withdraw - the STUDENT withdraws their own
  * application (T-13). `application:withdraw` is ownership-scoped to the student
  * who owns the application; a poster cannot withdraw on a student's behalf.
  */

@@ -10,7 +10,7 @@ export const runtime = "nodejs";
 /**
  * POST /api/auth/verify-otp
  * Confirms the emailed code and, on success, issues an access token (body) and a
- * rotating refresh token (HttpOnly cookie). Uniform generic failures — never
+ * rotating refresh token (HttpOnly cookie). Uniform generic failures - never
  * disclose whether the email or the code was the wrong part.
  */
 export const POST = handler(async (req) => {

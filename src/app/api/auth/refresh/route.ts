@@ -9,7 +9,7 @@ export const runtime = "nodejs";
  * POST /api/auth/refresh
  * Rotates the refresh token and returns a new access token. The refresh token is
  * read only from the HttpOnly cookie (SameSite=Strict), so this endpoint is not
- * usable cross-site — our CSRF defence. Reuse of a rotated token invalidates the
+ * usable cross-site - our CSRF defence. Reuse of a rotated token invalidates the
  * whole family (theft detection) inside the service.
  */
 export const POST = handler(async (req) => {

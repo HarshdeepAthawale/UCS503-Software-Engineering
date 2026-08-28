@@ -10,7 +10,7 @@ import {
 export const runtime = "nodejs";
 
 /**
- * PATCH /api/applications/:id — the POSTER moves an application through the
+ * PATCH /api/applications/:id - the POSTER moves an application through the
  * pipeline (T-13). Ownership is the opportunity's poster; `opportunity:transition`
  * is ownership-scoped, so only the poster (never another faculty member) passes.
  */
@@ -26,7 +26,7 @@ function applicationIdFromPath(req: Request): string {
 export const PATCH = handler(async (req) => {
   const id = applicationIdFromPath(req);
   const refs = await getApplicationRefs(id);
-  if (!refs) throw Errors.notFound(); // generic 404 before authorize — no leak
+  if (!refs) throw Errors.notFound(); // generic 404 before authorize - no leak
 
   const principal = await authorize(req, "opportunity:transition", { ownerId: refs.posterId });
 

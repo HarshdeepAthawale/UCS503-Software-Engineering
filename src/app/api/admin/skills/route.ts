@@ -9,9 +9,9 @@ export const runtime = "nodejs";
 /**
  * Admin skill-taxonomy console.
  *
- * GET  /api/admin/skills — full list, including soft-deleted rows (so restores
+ * GET  /api/admin/skills - full list, including soft-deleted rows (so restores
  *      and history are visible). Requires `skill_taxonomy:manage` (ADMIN only).
- * POST /api/admin/skills — create a taxonomy entry {name, domain}. Same
+ * POST /api/admin/skills - create a taxonomy entry {name, domain}. Same
  *      permission; the create is audited with the acting admin's id.
  */
 export const GET = handler(async (req) => {

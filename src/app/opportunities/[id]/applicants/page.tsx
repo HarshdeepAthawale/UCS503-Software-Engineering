@@ -156,7 +156,7 @@ export default function ApplicantsPage() {
                         </div>
                       </div>
                     ))}
-                    {list.length === 0 && <p className="empty-note" style={{ fontSize: 12 }}>—</p>}
+                    {list.length === 0 && <p className="empty-note" style={{ fontSize: 12 }}>-</p>}
                   </div>
                 );
               })}

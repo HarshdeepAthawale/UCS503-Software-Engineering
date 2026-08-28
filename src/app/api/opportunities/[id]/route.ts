@@ -13,10 +13,10 @@ import { getPosterResponsiveness } from "@/lib/services/analytics.service";
 export const runtime = "nodejs";
 
 /**
- * GET    /api/opportunities/:id — detail view (any authenticated role).
- * PATCH  /api/opportunities/:id — edit (owner only, `opportunity:update` OWN;
+ * GET    /api/opportunities/:id - detail view (any authenticated role).
+ * PATCH  /api/opportunities/:id - edit (owner only, `opportunity:update` OWN;
  *        refused past EXPIRED).
- * POST   /api/opportunities/:id/close — owner closes the posting (CLOSED).
+ * POST   /api/opportunities/:id/close - owner closes the posting (CLOSED).
  *
  * Ownership is resolved from the DB row BEFORE authorize() so the ownership-
  * scoped check runs against the real poster id (fail-closed by design). The
@@ -29,7 +29,7 @@ async function resolveOwnedId(req: Request): Promise<{ id: string; principal: Aw
 
   const principal = await requireAuth(req);
   const posterId = await getOpportunityPosterId(id);
-  if (!posterId) throw Errors.notFound(); // generic 404 — no existence leak
+  if (!posterId) throw Errors.notFound(); // generic 404 - no existence leak
 
   // Ownership-scoped authorization: actor must be the poster.
   await authorize(req, "opportunity:update", { ownerId: posterId });

@@ -5,7 +5,7 @@ import { isDue } from "@/lib/domain/digest";
 /**
  * Notification service (T-17; docs/PRD M8).
  *
- * `notify()` is fire-and-forget and NEVER throws into the caller's path — a
+ * `notify()` is fire-and-forget and NEVER throws into the caller's path - a
  * failed notification must not roll back the business action that triggered it.
  * The digest job batches undelivered notifications per the recipient's cadence.
  */
@@ -42,7 +42,7 @@ export async function listNotifications(userId: string) {
   return { notifications, unread };
 }
 
-/** Mark the caller's notifications read — all, or a specific set. Scoped to userId. */
+/** Mark the caller's notifications read - all, or a specific set. Scoped to userId. */
 export async function markRead(userId: string, ids?: string[]): Promise<number> {
   const where =
     ids && ids.length

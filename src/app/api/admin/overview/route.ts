@@ -4,7 +4,7 @@ import { getOverview } from "@/lib/services/admin.service";
 
 export const runtime = "nodejs";
 
-/** GET /api/admin/overview — dashboard counts. ADMIN only (`user:read`). */
+/** GET /api/admin/overview - dashboard counts. ADMIN only (`user:read`). */
 export const GET = handler(async (req) => {
   await authorize(req, "user:read");
   const overview = await getOverview();

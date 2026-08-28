@@ -5,7 +5,7 @@ import { listPendingClaims } from "@/lib/services/alumni.service";
 export const runtime = "nodejs";
 
 /**
- * GET /api/admin/alumni-claims — the pending alumni claim queue.
+ * GET /api/admin/alumni-claims - the pending alumni claim queue.
  * Requires `alumni_claim:read`, which only ADMIN holds in the matrix. Any other
  * role is denied with a generic 403 (and the denial is audited).
  */

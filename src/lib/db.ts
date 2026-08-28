@@ -4,7 +4,7 @@ import { env } from "@/lib/env";
 
 /**
  * Prisma client singleton, backed by the pure-JS `pg` driver adapter + Prisma's
- * WASM query compiler — NO native query-engine binary. This is required on
+ * WASM query compiler - NO native query-engine binary. This is required on
  * Windows-on-ARM64 (no native engine ships) and is the right fit for Supabase's
  * connection pooler generally.
  *

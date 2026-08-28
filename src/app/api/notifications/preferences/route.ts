@@ -7,8 +7,8 @@ import { getPreference, setPreference } from "@/lib/services/notification.servic
 export const runtime = "nodejs";
 
 /**
- * GET /api/notifications/preferences — the caller's digest cadence (T-17).
- * PUT /api/notifications/preferences — set it (IMMEDIATE | DAILY | WEEKLY).
+ * GET /api/notifications/preferences - the caller's digest cadence (T-17).
+ * PUT /api/notifications/preferences - set it (IMMEDIATE | DAILY | WEEKLY).
  * Always the caller's own preference; no id is ever accepted from the client.
  */
 export const GET = handler(async (req) => {

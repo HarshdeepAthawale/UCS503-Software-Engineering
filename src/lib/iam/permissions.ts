@@ -8,7 +8,7 @@ import type { Role } from "@prisma/client";
  * only what is explicitly granted here; there is no "deny" list to get wrong.
  *
  * Ownership- and status-scoped rules (e.g. "edit *your own* profile") are marked
- * as `OWN` and additionally checked against the concrete resource in policy.ts —
+ * as `OWN` and additionally checked against the concrete resource in policy.ts -
  * a grant here is necessary but not sufficient.
  *
  * This matrix is mirrored by the tests in tests/iam/authorization-matrix.test.ts,

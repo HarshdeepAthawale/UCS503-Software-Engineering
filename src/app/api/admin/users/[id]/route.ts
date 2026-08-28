@@ -7,7 +7,7 @@ import { updateUser } from "@/lib/services/admin.service";
 export const runtime = "nodejs";
 
 /**
- * PATCH /api/admin/users/:id — change a user's role/status (`user:manage`).
+ * PATCH /api/admin/users/:id - change a user's role/status (`user:manage`).
  * Role can never be ADMIN; the admin's own account and any ADMIN are immutable
  * (enforced in the service).
  */

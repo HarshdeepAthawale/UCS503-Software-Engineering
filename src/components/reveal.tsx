@@ -3,7 +3,7 @@
 import { useEffect, useRef, type ReactNode } from "react";
 
 /**
- * Scroll-reveal wrapper — adds `.in` when the element intersects, then stops
+ * Scroll-reveal wrapper - adds `.in` when the element intersects, then stops
  * observing. Respects prefers-reduced-motion (globals.css makes .reveal
  * visible statically in that case).
  */

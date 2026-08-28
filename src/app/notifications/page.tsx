@@ -36,7 +36,7 @@ function describe(n: Notification): { text: string; href?: string } {
     case "message.received":
       return { text: "You have a new message.", href: appId ? `/applications/${appId}` : undefined };
     case "opportunity.at_risk":
-      return { text: "A posting is at risk — an applicant is waiting past your SLA.", href: oppId ? `/opportunities/${oppId}/applicants` : undefined };
+      return { text: "A posting is at risk - an applicant is waiting past your SLA.", href: oppId ? `/opportunities/${oppId}/applicants` : undefined };
     default:
       return { text: n.type };
   }

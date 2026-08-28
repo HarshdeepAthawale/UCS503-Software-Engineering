@@ -3,7 +3,7 @@ import { env } from "@/lib/env";
 import type { Role } from "@prisma/client";
 
 /**
- * Access-token sign/verify — kept in its own module because it must be
+ * Access-token sign/verify - kept in its own module because it must be
  * EDGE-SAFE (used by src/middleware.ts). It depends only on `jose` (WebCrypto)
  * and Web globals, never `node:crypto`, so it bundles cleanly for the edge
  * runtime. Node-only refresh-token helpers live in tokens.ts.
@@ -31,7 +31,7 @@ export async function signAccessToken(params: {
   return new SignJWT({ role: params.role, status: params.status })
     .setProtectedHeader({ alg: "HS256", typ: "JWT" })
     .setSubject(params.userId)
-    .setJti(crypto.randomUUID()) // Web Crypto global — edge-safe
+    .setJti(crypto.randomUUID()) // Web Crypto global - edge-safe
     .setIssuer(ISSUER)
     .setAudience(AUDIENCE)
     .setIssuedAt()

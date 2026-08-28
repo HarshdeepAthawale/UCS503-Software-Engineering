@@ -5,7 +5,7 @@ import { listMyApplications } from "@/lib/services/application.service";
 export const runtime = "nodejs";
 
 /**
- * GET /api/applications — the caller's own applications (student view, T-13).
+ * GET /api/applications - the caller's own applications (student view, T-13).
  * Scoped to the principal in the service; `application:read` gates the route.
  */
 export const GET = handler(async (req) => {

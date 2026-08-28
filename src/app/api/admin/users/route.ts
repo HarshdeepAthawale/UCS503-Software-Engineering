@@ -7,8 +7,8 @@ import { listUsers, provisionAlumni } from "@/lib/services/admin.service";
 export const runtime = "nodejs";
 
 /**
- * GET  /api/admin/users — search/filter users (`user:read`).
- * POST /api/admin/users — provision an ALUMNI account (`user:manage`).
+ * GET  /api/admin/users - search/filter users (`user:read`).
+ * POST /api/admin/users - provision an ALUMNI account (`user:manage`).
  */
 export const GET = handler(async (req) => {
   await authorize(req, "user:read");

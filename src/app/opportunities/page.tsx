@@ -114,7 +114,7 @@ export default function OpportunitiesPage() {
           <div className="page-head">
             <div>
               <h1>Opportunities</h1>
-              <p className="sub">Research, internships, TA roles and more — every posting SLA-pledged.</p>
+              <p className="sub">Research, internships, TA roles and more - every posting SLA-pledged.</p>
             </div>
           </div>
 

@@ -12,7 +12,7 @@ export function SiteFooter() {
               <TiLogo size={30} className="ti-mark" /> Thapar&nbsp;Nexus
             </Link>
             <p>
-              A verified opportunity pipeline for the institute — built to make sure an application
+              A verified opportunity pipeline for the institute - built to make sure an application
               reaches a decision, and to make it visible when it doesn&apos;t.
             </p>
           </div>

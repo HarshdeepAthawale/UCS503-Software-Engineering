@@ -3,8 +3,8 @@ import type { AppState } from "@prisma/client";
 /**
  * Application state machine (T-13; docs/AppFlow §5, PRD M5).
  *
- * A single authoritative transition graph. Keeping it here — pure, dependency-
- * free — means the exact same rules are unit-tested and enforced at runtime, and
+ * A single authoritative transition graph. Keeping it here - pure, dependency-
+ * free - means the exact same rules are unit-tested and enforced at runtime, and
  * no illegal transition can be written to the immutable event log.
  *
  *   APPLIED ─┬─► RECEIVED ─┬─► SHORTLISTED ─┬─► INTERVIEW ─┬─► SELECTED (terminal)

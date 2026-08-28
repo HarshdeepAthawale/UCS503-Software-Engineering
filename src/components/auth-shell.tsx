@@ -29,7 +29,7 @@ export function AuthShell({ children }: { children: ReactNode }) {
           <ul className="ticklist">
             <li>Discover a relevant posting in under two minutes.</li>
             <li>Every application is timestamped and answered.</li>
-            <li>Posters pledge an SLA — silence becomes visible.</li>
+            <li>Posters pledge an SLA - silence becomes visible.</li>
           </ul>
           <div className="pillwrap" style={{ marginTop: 28 }}>
             {PILLS.map(([g, label, cls]) => (

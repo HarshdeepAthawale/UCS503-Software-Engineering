@@ -8,7 +8,7 @@ import type { Principal } from "./policy";
  * The bearer token proves *authentication* and identifies the subject, but the
  * authoritative `role` and `status` are re-loaded from the database on every
  * request. This means a suspension, role change, or soft-delete takes effect
- * immediately — a stolen or stale token cannot outrun a revocation
+ * immediately - a stolen or stale token cannot outrun a revocation
  * (defense-in-depth over the token's own claims).
  */
 export async function getPrincipal(req: Request): Promise<Principal | null> {

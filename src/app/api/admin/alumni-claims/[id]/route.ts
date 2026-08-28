@@ -7,7 +7,7 @@ import { decideClaim } from "@/lib/services/alumni.service";
 export const runtime = "nodejs";
 
 /**
- * POST /api/admin/alumni-claims/:id — approve or reject a claim.
+ * POST /api/admin/alumni-claims/:id - approve or reject a claim.
  * Requires `alumni_claim:approve` (ADMIN only). Approval flips the account to
  * ACTIVE; rejection SUSPENDS it. The decision is audited with the reviewer id.
  */

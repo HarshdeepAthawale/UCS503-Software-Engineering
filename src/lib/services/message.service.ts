@@ -8,7 +8,7 @@ import { notify } from "./notification.service";
  *
  * A thread is bound to one application; the only participants are that
  * application's student and its opportunity's poster. Membership is checked on
- * every read and send — messaging can never be used to contact someone outside
+ * every read and send - messaging can never be used to contact someone outside
  * an active application. Admins may read (moderation) but not post.
  */
 
@@ -55,7 +55,7 @@ export async function listMessages(principal: Principal, applicationId: string) 
 export async function sendMessage(principal: Principal, applicationId: string, body: string) {
   const parts = await resolveParticipants(applicationId);
   if (!parts) throw Errors.notFound();
-  // Only the two participants may post — an admin's read access does not extend
+  // Only the two participants may post - an admin's read access does not extend
   // to speaking in the thread.
   if (!isParticipant(principal, parts)) throw Errors.forbidden();
 

@@ -12,12 +12,12 @@ import { loginWithGoogle } from "@/lib/services/auth.service";
 export const runtime = "nodejs";
 
 /**
- * GET /api/auth/google/callback — Google redirects here with `code` + `state`.
+ * GET /api/auth/google/callback - Google redirects here with `code` + `state`.
  *
  * Verifies the CSRF state against the cookie, exchanges the code for a verified
  * profile, provisions/links the user, sets the SAME rotating refresh cookie as
  * password login, and redirects into the app. The client then bootstraps an
- * access token from that cookie via /api/auth/refresh — identical to every other
+ * access token from that cookie via /api/auth/refresh - identical to every other
  * session, so Google users get the same theft-detection and rotation guarantees.
  */
 export async function GET(req: Request): Promise<NextResponse> {

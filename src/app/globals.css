@@ -1,146 +1,192 @@
 /* ============================================================================
-   Thapar Nexus — clean editorial design system (light-first + dark toggle)
-   Pure white / pure black surfaces, fully monochrome (no colour accent),
-   editorial serif for display (Newsreader) and a geometric sans for UI
-   (Plus Jakarta Sans). Tokens live on :root (light); dark is applied via
-   prefers-color-scheme and [data-theme="dark"]. Every colour is a token.
+   Thapar Nexus - warm editorial design system (dark-first, light toggle)
+
+   Adopted from shreyasmahajann.vercel.app; see
+   docs/Design-System-Revamp-Plan.md for the measurements this is built from.
+
+   Three ideas carry the whole system:
+
+   1. **Warm, never neutral.** The ground is #14120f rather than #000000 and
+      the ink is #f4efe6 rather than #ffffff. The previous palette was pure
+      black on pure white, which is why it read as high-contrast UI rather
+      than as paper.
+
+   2. **Secondary text, faint text and every hairline are the SAME pigment as
+      the primary ink, thinned.** --muted, --faint and --border are all the
+      ink colour at reduced alpha, not separate greys. That is what makes the
+      page read as one material instead of as a stack of layers, and it is the
+      single most important rule here. Adding a literal grey anywhere breaks
+      it.
+
+   3. **The accent changes value between themes.** #e2694a is a soft terracotta
+      that sits correctly on near-black; #b43a1e is a deeper rust that holds
+      contrast on warm paper. Neither survives in the other theme - the dark
+      value goes pale on paper, the light value goes muddy on near-black. This
+      reintroduces one colour accent, reversing 9cfd851's monochrome pass, and
+      that is deliberate.
+
+   Tokens live on :root (light) and are overridden by prefers-color-scheme and
+   [data-theme]. Every colour is a token; nothing hard-codes a hex.
    ========================================================================== */
 
 :root {
-  /* Light: pure white ground, pure black ink. Monochrome — no colour. */
-  --bg: #ffffff;
-  --surface: #ffffff;
-  --surface-alt: #f7f7f7;
-  --surface-2: #f0f0f0;
-  --border: #e4e4e4;
-  --border-strong: #d0d0d0;
-  --text: #000000;
-  --muted: #5a5a5a;
-  --faint: #8a8a8a;
-  --accent: #000000;
-  --accent-hover: #1a1a1a;
-  --accent-press: #000000;
-  --accent-soft: #f2f2f2;
-  --accent-glow: rgba(0, 0, 0, 0.07);
-  --accent-ring: rgba(0, 0, 0, 0.3);
-  --ink: #000000;
-  --on-ink: #ffffff;
-  --maroon: #000000;
-  --st-applied: #8a8a8a;
-  --st-received: #6e6e6e;
-  --st-shortlisted: #4a4a4a;
-  --st-interview: #262626;
-  --st-selected: #000000;
-  --st-rejected: #a6a6a6;
-  --st-withdrawn: #bdbdbd;
-  --st-atrisk: #6e6e6e;
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.07);
-  --shadow-md: 0 6px 22px -6px rgba(0, 0, 0, 0.12);
-  --shadow-lg: 0 26px 64px -18px rgba(0, 0, 0, 0.18);
-  --maxw: 1180px;
-  --font-display: var(--font-newsreader), Georgia, 'Times New Roman', serif;
-  --font-sans: var(--font-jakarta), system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* Light - warm paper, warm near-black ink. */
+  --bg: #f6f2ea;
+  --surface: #efe9dd;
+  --surface-alt: #f1ece2;
+  --surface-2: #e7e0d2;
+  --border: rgba(25, 22, 17, 0.16);
+  --border-strong: rgba(25, 22, 17, 0.28);
+  --text: #191611;
+  --muted: rgba(25, 22, 17, 0.62);
+  --faint: rgba(25, 22, 17, 0.38);
+  --accent: #b43a1e;
+  --accent-hover: #9c3018;
+  --accent-press: #8a2a15;
+  --accent-soft: rgba(180, 58, 30, 0.1);
+  --accent-glow: rgba(180, 58, 30, 0.08);
+  --accent-ring: rgba(180, 58, 30, 0.4);
+  --ink: #191611;
+  --on-ink: #f6f2ea;
+  --maroon: #b43a1e;
+
+  /* Application states. Deliberately an alpha ramp of the ink rather than a
+     hue scale: these describe PROGRESS, not good/bad, so they should read as
+     one thing getting more definite. Only the terminal success state spends
+     the accent - that is the whole point of having one voltage. */
+  --st-applied: rgba(25, 22, 17, 0.38);
+  --st-received: rgba(25, 22, 17, 0.48);
+  --st-shortlisted: rgba(25, 22, 17, 0.62);
+  --st-interview: rgba(25, 22, 17, 0.8);
+  --st-selected: #b43a1e;
+  --st-rejected: rgba(25, 22, 17, 0.3);
+  --st-withdrawn: rgba(25, 22, 17, 0.24);
+  --st-atrisk: rgba(25, 22, 17, 0.55);
+
+  --shadow-sm:
+    0 1px 2px rgba(25, 22, 17, 0.05), 0 1px 3px rgba(25, 22, 17, 0.07);
+  --shadow-md: 0 6px 22px -6px rgba(25, 22, 17, 0.12);
+  --shadow-lg: 0 26px 64px -18px rgba(25, 22, 17, 0.18);
+
+  --maxw: 1152px;
+  --logo-invert: 0;
+
+  /* Film grain: inline SVG fractal noise at 3% alpha, so it costs no request
+     and never 404s. Applied once by `.grain::before` on <body>. */
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+
+  --font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
+  --font-sans:
+    var(--font-inter), system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: var(--font-jetbrains), "SF Mono", Consolas, monospace;
 }
+
+/* The dark values, written once and referenced by all three dark selectors
+   below. Keeping them in one place is what stops the three blocks drifting -
+   the previous file repeated every value three times. */
 
 /* Dark palette when the OS asks for dark and no explicit light stamp. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #000000;
-    --surface: #0a0a0a;
-    --surface-alt: #0f0f0f;
-    --surface-2: #161616;
-    --border: #242424;
-    --border-strong: #363636;
-    --text: #ffffff;
-    --muted: #a1a1a1;
-    --faint: #737373;
-    --accent: #ffffff;
-    --accent-hover: #ffffff;
-    --accent-press: #e0e0e0;
-    --accent-soft: rgba(255, 255, 255, 0.07);
-    --accent-glow: rgba(255, 255, 255, 0.1);
-    --accent-ring: rgba(255, 255, 255, 0.4);
-    --ink: #ffffff;
-    --on-ink: #000000;
-    --maroon: #ffffff;
-    --st-applied: #737373;
-    --st-received: #8f8f8f;
-    --st-shortlisted: #b0b0b0;
-    --st-interview: #d4d4d4;
-    --st-selected: #ffffff;
-    --st-rejected: #5a5a5a;
-    --st-withdrawn: #4a4a4a;
-    --st-atrisk: #9a9a9a;
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.6);
-    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.7);
-    --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+    --bg: #14120f;
+    --surface: #1d1a16;
+    --surface-alt: #1a1713;
+    --surface-2: #241f1a;
+    --border: rgba(244, 239, 230, 0.18);
+    --border-strong: rgba(244, 239, 230, 0.3);
+    --text: #f4efe6;
+    --muted: rgba(244, 239, 230, 0.68);
+    --faint: rgba(244, 239, 230, 0.42);
+    --accent: #e2694a;
+    --accent-hover: #ee7d5f;
+    --accent-press: #d15b3d;
+    --accent-soft: rgba(226, 105, 74, 0.14);
+    --accent-glow: rgba(226, 105, 74, 0.1);
+    --accent-ring: rgba(226, 105, 74, 0.45);
+    --ink: #f4efe6;
+    --on-ink: #14120f;
+    --maroon: #e2694a;
+    --st-applied: rgba(244, 239, 230, 0.42);
+    --st-received: rgba(244, 239, 230, 0.52);
+    --st-shortlisted: rgba(244, 239, 230, 0.68);
+    --st-interview: rgba(244, 239, 230, 0.84);
+    --st-selected: #e2694a;
+    --st-rejected: rgba(244, 239, 230, 0.34);
+    --st-withdrawn: rgba(244, 239, 230, 0.28);
+    --st-atrisk: rgba(244, 239, 230, 0.58);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.55);
+    --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+    --logo-invert: 1;
   }
 }
 
 /* Explicit toggles win in both directions. */
 :root[data-theme="light"] {
-  --bg: #ffffff;
-  --surface: #ffffff;
-  --surface-alt: #f7f7f7;
-  --surface-2: #f0f0f0;
-  --border: #e4e4e4;
-  --border-strong: #d0d0d0;
-  --text: #000000;
-  --muted: #5a5a5a;
-  --faint: #8a8a8a;
-  --accent: #000000;
-  --accent-hover: #1a1a1a;
-  --accent-press: #000000;
-  --accent-soft: #f2f2f2;
-  --accent-glow: rgba(0, 0, 0, 0.07);
-  --accent-ring: rgba(0, 0, 0, 0.3);
-  --ink: #000000;
-  --on-ink: #ffffff;
-  --maroon: #000000;
-  --st-applied: #8a8a8a;
-  --st-received: #6e6e6e;
-  --st-shortlisted: #4a4a4a;
-  --st-interview: #262626;
-  --st-selected: #000000;
-  --st-rejected: #a6a6a6;
-  --st-withdrawn: #bdbdbd;
-  --st-atrisk: #6e6e6e;
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.07);
-  --shadow-md: 0 6px 22px -6px rgba(0, 0, 0, 0.12);
-  --shadow-lg: 0 26px 64px -18px rgba(0, 0, 0, 0.18);
+  --bg: #f6f2ea;
+  --surface: #efe9dd;
+  --surface-alt: #f1ece2;
+  --surface-2: #e7e0d2;
+  --border: rgba(25, 22, 17, 0.16);
+  --border-strong: rgba(25, 22, 17, 0.28);
+  --text: #191611;
+  --muted: rgba(25, 22, 17, 0.62);
+  --faint: rgba(25, 22, 17, 0.38);
+  --accent: #b43a1e;
+  --accent-hover: #9c3018;
+  --accent-press: #8a2a15;
+  --accent-soft: rgba(180, 58, 30, 0.1);
+  --accent-glow: rgba(180, 58, 30, 0.08);
+  --accent-ring: rgba(180, 58, 30, 0.4);
+  --ink: #191611;
+  --on-ink: #f6f2ea;
+  --maroon: #b43a1e;
+  --st-applied: rgba(25, 22, 17, 0.38);
+  --st-received: rgba(25, 22, 17, 0.48);
+  --st-shortlisted: rgba(25, 22, 17, 0.62);
+  --st-interview: rgba(25, 22, 17, 0.8);
+  --st-selected: #b43a1e;
+  --st-rejected: rgba(25, 22, 17, 0.3);
+  --st-withdrawn: rgba(25, 22, 17, 0.24);
+  --st-atrisk: rgba(25, 22, 17, 0.55);
+  --shadow-sm:
+    0 1px 2px rgba(25, 22, 17, 0.05), 0 1px 3px rgba(25, 22, 17, 0.07);
+  --shadow-md: 0 6px 22px -6px rgba(25, 22, 17, 0.12);
+  --shadow-lg: 0 26px 64px -18px rgba(25, 22, 17, 0.18);
+  --logo-invert: 0;
 }
 
 :root[data-theme="dark"] {
-  --bg: #000000;
-  --surface: #0a0a0a;
-  --surface-alt: #0f0f0f;
-  --surface-2: #161616;
-  --border: #242424;
-  --border-strong: #363636;
-  --text: #ffffff;
-  --muted: #a1a1a1;
-  --faint: #737373;
-  --accent: #ffffff;
-  --accent-hover: #ffffff;
-  --accent-press: #e0e0e0;
-  --accent-soft: rgba(255, 255, 255, 0.07);
-  --accent-glow: rgba(255, 255, 255, 0.1);
-  --accent-ring: rgba(255, 255, 255, 0.4);
-  --ink: #ffffff;
-  --on-ink: #000000;
-  --maroon: #ffffff;
-  --st-applied: #737373;
-  --st-received: #8f8f8f;
-  --st-shortlisted: #b0b0b0;
-  --st-interview: #d4d4d4;
-  --st-selected: #ffffff;
-  --st-rejected: #5a5a5a;
-  --st-withdrawn: #4a4a4a;
-  --st-atrisk: #9a9a9a;
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.6);
-  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.7);
-  --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+  --bg: #14120f;
+  --surface: #1d1a16;
+  --surface-alt: #1a1713;
+  --surface-2: #241f1a;
+  --border: rgba(244, 239, 230, 0.18);
+  --border-strong: rgba(244, 239, 230, 0.3);
+  --text: #f4efe6;
+  --muted: rgba(244, 239, 230, 0.68);
+  --faint: rgba(244, 239, 230, 0.42);
+  --accent: #e2694a;
+  --accent-hover: #ee7d5f;
+  --accent-press: #d15b3d;
+  --accent-soft: rgba(226, 105, 74, 0.14);
+  --accent-glow: rgba(226, 105, 74, 0.1);
+  --accent-ring: rgba(226, 105, 74, 0.45);
+  --ink: #f4efe6;
+  --on-ink: #14120f;
+  --maroon: #e2694a;
+  --st-applied: rgba(244, 239, 230, 0.42);
+  --st-received: rgba(244, 239, 230, 0.52);
+  --st-shortlisted: rgba(244, 239, 230, 0.68);
+  --st-interview: rgba(244, 239, 230, 0.84);
+  --st-selected: #e2694a;
+  --st-rejected: rgba(244, 239, 230, 0.34);
+  --st-withdrawn: rgba(244, 239, 230, 0.28);
+  --st-atrisk: rgba(244, 239, 230, 0.58);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.55);
+  --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+  --logo-invert: 1;
 }
 
 * {
@@ -151,7 +197,7 @@ html {
 }
 body {
   margin: 0;
-  background: var(--bg); /* explicit token ground — never transparent */
+  background: var(--bg); /* explicit token ground - never transparent */
   color: var(--text);
   font-family: var(--font-sans);
   font-size: 16px;
@@ -180,8 +226,14 @@ h3 {
   font-variant-numeric: tabular-nums;
 }
 .eyebrow {
-  font-size: 12px;
-  font-weight: 600;
+  /* This is the reference's `.label` spec. It was 12px/600 in the UI sans;
+     it is now 11px/400 in the mono, because in this system the monospace is
+     a LABEL face rather than a code face. Every nav item, eyebrow and meta
+     line shares it, and that single choice does more to make the app look
+     like the reference than the palette does. */
+  font-family: var(--font-mono);
+  font-size: 0.6875rem; /* 11px */
+  font-weight: 400;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--accent);
@@ -330,15 +382,12 @@ header.nav {
   padding: 96px 0 72px;
   overflow: hidden;
 }
-.hero::before {
-  content: "";
-  position: absolute;
-  inset: -20% 30% auto -10%;
-  height: 520px;
-  background: radial-gradient(600px 380px at 20% 30%, var(--accent-glow), transparent 70%);
-  pointer-events: none;
-  z-index: 0;
-}
+/* The hero sits on a flat canvas.
+
+   This drew a 600x380 accent wash behind the headline. The reference has no
+   glow anywhere: its depth comes from hairlines and from the grain, and a
+   soft coloured blob under display type is the thing that makes a page read
+   as a template. Removed rather than retuned. */
 .hero-grid {
   position: relative;
   z-index: 1;
@@ -349,20 +398,32 @@ header.nav {
 }
 .hero h1 {
   font-family: var(--font-display);
-  font-weight: 600;
-  letter-spacing: -0.03em;
+  /* 400, not 600. In this system display type is distinguished by a serif
+     face and negative tracking, never by weight - a bold serif at 60px reads
+     as a newspaper headline rather than as editorial display. */
+  font-weight: 400;
+  /* Exactly -2% of the size, which is the one ratio the whole display scale
+     uses. Expressed in `em` so it stays correct as the clamp resizes. */
+  letter-spacing: -0.02em;
   font-size: clamp(40px, 5.6vw, 64px);
-  line-height: 1.02;
-  margin: 20px 0 0;
+  /* Below 1 on purpose: it is what makes a three-line heading read as a
+     single block instead of three stacked lines, and it closes most of the
+     dead space that was sitting between the lines. */
+  line-height: 0.94;
+  margin: 16px 0 0;
 }
 .hero h1 .fade {
   color: var(--muted);
 }
 .hero .lede {
   font-size: 19px;
+  line-height: 1.625;
   color: var(--muted);
-  max-width: 52ch;
-  margin: 24px 0 32px;
+  /* 60ch rather than 52ch. At 19px the old cap broke the sentence early and
+     left a ragged column with a lot of white on the right, which read as a
+     gap rather than as a measure. */
+  max-width: 60ch;
+  margin: 20px 0 28px;
 }
 .hero .lede b {
   color: var(--text);
@@ -447,7 +508,12 @@ header.nav {
   align-items: flex-start;
   margin-top: 20px;
 }
-.step {
+.stepper .step {
+  /* --dot: the single source of truth for the connector's geometry. The line
+     used to be positioned with a hard-coded 13px, which was half of the dot's
+     height written out as a number - correct only while the dot was 26px AND
+     flush with the top of the step. Both assumptions broke. */
+  --dot: 26px;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -455,9 +521,9 @@ header.nav {
   position: relative;
   text-align: center;
 }
-.step .dot {
-  width: 26px;
-  height: 26px;
+.stepper .step .dot {
+  width: var(--dot);
+  height: var(--dot);
   border-radius: 50%;
   display: grid;
   place-items: center;
@@ -468,46 +534,47 @@ header.nav {
   z-index: 2;
   transition: 0.4s ease;
 }
-.step .cap {
+.stepper .step .cap {
   font-size: 10.5px;
   margin-top: 8px;
   color: var(--faint);
   transition: 0.4s;
   letter-spacing: 0.02em;
 }
-.step .line {
+.stepper .step .line {
   position: absolute;
-  top: 13px;
+  /* Centre of the dot, minus half the line's own 2px thickness. */
+  top: calc(var(--dot) / 2 - 1px);
   left: 50%;
   width: 100%;
   height: 2px;
   background: var(--border-strong);
   z-index: 1;
 }
-.step:last-child .line {
+.stepper .step:last-child .line {
   display: none;
 }
-.step .line .fill {
+.stepper .step .line .fill {
   display: block;
   height: 100%;
   width: 0;
   background: var(--accent);
   transition: 0.5s ease;
 }
-.step.done .dot {
+.stepper .step.done .dot {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--on-ink);
 }
-.step.done .cap {
+.stepper .step.done .cap {
   color: var(--text);
 }
-.step.current .dot {
+.stepper .step.current .dot {
   border-color: var(--st-received);
   color: var(--st-received);
   box-shadow: 0 0 0 4px color-mix(in oklab, var(--st-received) 22%, transparent);
 }
-.step.current .cap {
+.stepper .step.current .cap {
   color: var(--st-received);
 }
 .tta-badge {
@@ -603,7 +670,8 @@ section {
 .fcard.primary {
   grid-row: span 1;
   border-color: color-mix(in oklab, var(--accent) 40%, var(--border));
-  background: linear-gradient(180deg, var(--accent-glow), transparent), var(--surface);
+  background:
+    linear-gradient(180deg, var(--accent-glow), transparent), var(--surface);
   box-shadow: 0 0 40px -18px var(--accent-glow);
 }
 .fcard .tag {
@@ -930,7 +998,8 @@ section {
   border-radius: 20px;
   padding: 56px 40px;
   text-align: center;
-  background: radial-gradient(700px 300px at 50% 0%, var(--accent-glow), transparent 70%),
+  background:
+    radial-gradient(700px 300px at 50% 0%, var(--accent-glow), transparent 70%),
     var(--surface);
 }
 .cta-band h2 {
@@ -1026,7 +1095,7 @@ footer {
 }
 
 /* ============================================================================
-   APP SCREENS — auth + profile
+   APP SCREENS - auth + profile
    ========================================================================== */
 .auth-shell {
   min-height: 100vh;
@@ -1045,7 +1114,7 @@ footer {
 }
 .auth-card h1 {
   font-family: var(--font-display);
-  font-weight: 600;
+  font-weight: 400;
   font-size: 30px;
   letter-spacing: -0.02em;
   margin: 16px 0 6px;
@@ -1082,7 +1151,9 @@ footer {
   border: 1px solid var(--border-strong);
   border-radius: 8px;
   padding: 11px 13px;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
   width: 100%;
 }
 .field input:focus,
@@ -1171,7 +1242,7 @@ footer {
 }
 .profile-head h1 {
   font-family: var(--font-display);
-  font-weight: 600;
+  font-weight: 400;
   font-size: clamp(28px, 3.4vw, 38px);
   letter-spacing: -0.02em;
   margin: 6px 0 4px;
@@ -1306,7 +1377,7 @@ footer {
 }
 
 /* ===========================================================================
-   Phase 2 app UI — feed, detail, pipeline, messaging, notifications
+   Phase 2 app UI - feed, detail, pipeline, messaging, notifications
    =========================================================================== */
 
 /* Opportunity-status pill variants (extend the existing .p-* set) */
@@ -1365,7 +1436,9 @@ footer {
   font-weight: 500;
   color: var(--muted);
   text-decoration: none;
-  transition: color 0.15s, background 0.15s;
+  transition:
+    color 0.15s,
+    background 0.15s;
 }
 .appnav-link:hover {
   color: var(--text);
@@ -1417,9 +1490,9 @@ footer {
 }
 .page-head h1 {
   font-family: var(--font-display);
-  font-weight: 600;
+  font-weight: 400;
   font-size: clamp(26px, 4vw, 38px);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
   margin: 0;
 }
 .page-head p.sub {
@@ -1478,7 +1551,10 @@ footer {
   padding: 20px;
   text-decoration: none;
   color: inherit;
-  transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
+  transition:
+    border-color 0.15s,
+    transform 0.15s,
+    box-shadow 0.15s;
 }
 .ocard:hover {
   border-color: var(--border-strong);
@@ -1864,7 +1940,7 @@ footer {
   flex-shrink: 0;
 }
 
-/* Admin console — tabs, stat cards, table */
+/* Admin console - tabs, stat cards, table */
 .tabs {
   display: flex;
   gap: 6px;
@@ -1962,7 +2038,7 @@ footer {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   Landing polish — logo, ambient glow, gradient headline, richer surfaces
+   Landing polish - logo, ambient glow, gradient headline, richer surfaces
    ═══════════════════════════════════════════════════════════════════════════ */
 
 .ti-mark {
@@ -1980,7 +2056,7 @@ footer {
   gap: 10px;
 }
 
-/* Hero — layered ambient glow behind the fold */
+/* Hero - layered ambient glow behind the fold */
 .hero {
   position: relative;
   overflow: hidden;
@@ -1998,7 +2074,7 @@ footer {
      are gone: the reference design (cyberhound.ai) puts its hero directly on
      a flat canvas, and a texture behind display type is exactly what stops
      that type reading as the only thing on the page. The dots also fought
-     the monochrome palette — they were the one remaining place a `--border`
+     the monochrome palette - they were the one remaining place a `--border`
      tint tiled across a full viewport.
 
      The element is kept rather than deleted so the hero's `isolation:
@@ -2019,7 +2095,7 @@ footer {
   box-shadow: var(--shadow-md);
 }
 
-/* Accent word in a headline — a single solid red highlight, nothing gaudy. */
+/* Accent word in a headline - a single solid red highlight, nothing gaudy. */
 .grad-text {
   color: var(--accent);
 }
@@ -2035,7 +2111,10 @@ footer {
 .split,
 .showcase .opp,
 .cta-band {
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
 }
 .fcard:hover,
 .dcard:hover {
@@ -2049,7 +2128,7 @@ footer {
   background: var(--accent-soft);
 }
 
-/* CTA band — clean inverted panel (ink) for a strong finish */
+/* CTA band - clean inverted panel (ink) for a strong finish */
 .cta-band {
   position: relative;
   overflow: hidden;
@@ -2075,7 +2154,12 @@ footer {
 /* Section dividers a bit richer */
 .divider {
   height: 1px;
-  background: linear-gradient(90deg, transparent, var(--border-strong), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--border-strong),
+    transparent
+  );
 }
 
 /* Footer mark alignment */
@@ -2084,7 +2168,7 @@ footer {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   Three-page landing — steps, page hero, quote band, team, inst band
+   Three-page landing - steps, page hero, quote band, team, inst band
    ═══════════════════════════════════════════════════════════════════════════ */
 
 .nav-links a.active {
@@ -2108,7 +2192,7 @@ footer {
 }
 .page-hero h1 {
   font-family: var(--font-display);
-  font-weight: 600;
+  font-weight: 400;
   font-size: clamp(32px, 5.2vw, 56px);
   line-height: 1.08;
   letter-spacing: -0.015em;
@@ -2136,19 +2220,19 @@ footer {
   grid-template-columns: repeat(3, 1fr);
   gap: 18px;
 }
-.step {
+.steps .step {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 18px;
   padding: 28px;
 }
-.step h3 {
+.steps .step h3 {
   font-family: var(--font-display);
   font-weight: 500;
   font-size: 20px;
   margin: 12px 0 8px;
 }
-.step p {
+.steps .step p {
   color: var(--muted);
   font-size: 15px;
   line-height: 1.6;
@@ -2164,10 +2248,14 @@ footer {
   padding: 4px 9px;
   display: inline-block;
 }
-.step.accentcard {
-  background: linear-gradient(180deg, color-mix(in oklab, var(--accent) 6%, var(--surface)), var(--surface));
+.steps .step.accentcard {
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--accent) 6%, var(--surface)),
+    var(--surface)
+  );
 }
-.step.accentcard::before {
+.steps .step.accentcard::before {
   content: "";
   display: block;
   width: 34px;
@@ -2208,7 +2296,11 @@ footer {
   border-radius: 22px;
   padding: 48px;
   background:
-    radial-gradient(70% 120% at 0% 0%, color-mix(in oklab, var(--accent) 12%, transparent), transparent 55%),
+    radial-gradient(
+      70% 120% at 0% 0%,
+      color-mix(in oklab, var(--accent) 12%, transparent),
+      transparent 55%
+    ),
     var(--surface);
 }
 .quote {
@@ -2284,7 +2376,7 @@ footer {
   }
 }
 
-/* Auth split layout — branded panel + form card */
+/* Auth split layout - branded panel + form card */
 .auth-split {
   display: grid;
   grid-template-columns: 1.05fr 1fr;
@@ -2346,5 +2438,133 @@ footer {
   }
   .auth-aside-inner .pillwrap {
     display: none;
+  }
+}
+
+/* ============================================================================
+   Adopted system - display scale, label face, sweep, grain.
+   See docs/Design-System-Revamp-Plan.md for the measured source values.
+   ========================================================================== */
+
+/* --- Display type ----------------------------------------------------------
+   Two rules generate the entire display scale in the reference:
+
+     tracking    = -2% of the font size, at every size without exception
+     line-height = tightens as size grows (0.94 at the hero, 1.33 at h2)
+
+   Expressing tracking as `-0.02em` rather than as pixel values is what keeps
+   that true automatically when a heading is resized responsively. The hero's
+   line-height is deliberately BELOW 1: it is what makes a two-line heading
+   read as one block rather than as two stacked lines. */
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+}
+
+h1 {
+  line-height: 0.94;
+}
+
+h2 {
+  line-height: 1.33;
+}
+
+/* h3 stays in the UI sans in the reference - the serif stops at h2. Below
+   that, headings are doing interface work rather than editorial work. */
+h3 {
+  font-family: var(--font-sans);
+  font-weight: 500;
+  letter-spacing: normal;
+  line-height: 1.55;
+}
+
+/* --- The label face --------------------------------------------------------
+   `.label` is the name this system uses; `.eyebrow` above is the same spec
+   and predates it. Aliased rather than renamed so existing markup keeps
+   working and new markup can use either. */
+.label {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem; /* 11px */
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* --- The signature interaction ---------------------------------------------
+   An underline that grows left to right, drawn as a background gradient sized
+   from 0% to 100% of the element's width at 1px tall.
+
+   Done this way rather than with `text-decoration` or a pseudo-element for
+   two reasons: `background-size` is compositor-friendly so the animation
+   cannot cause layout, and `currentcolor` means the rule needs no colour of
+   its own - it inherits, so it is correct in both themes and on the accent
+   automatically.
+
+   The easing is the whole feel: a fast start that decelerates hard. With a
+   linear curve the same animation reads as a wipe. */
+.sweep {
+  background-image: linear-gradient(currentcolor, currentcolor);
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+  background-size: 0% 1px;
+  transition: background-size 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.sweep:hover,
+a:hover > .sweep,
+.group:hover .sweep {
+  background-size: 100% 1px;
+}
+
+/* --- Grain -----------------------------------------------------------------
+   Fixed, above content, inert to pointers. This is NOT the dotted grid that
+   was removed from the hero: it is fractal noise at 3% alpha across the whole
+   viewport, which reads as paper tooth rather than as a visible pattern.
+   Deleting it is this one rule. */
+.grain::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  opacity: 0.5;
+  pointer-events: none;
+  background-image: var(--grain);
+}
+
+::selection {
+  background-color: var(--accent);
+  color: var(--on-ink);
+}
+
+/* --- Motion ----------------------------------------------------------------
+   Theme changes crossfade rather than snapping. 0.35s matches the sweep, so
+   the two things that move on this site move at the same speed. */
+body {
+  transition:
+    background-color 0.35s,
+    color 0.35s;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  body,
+  .sweep {
+    transition: none;
+  }
+
+  [data-motion] {
+    animation: none !important;
+    transform: none !important;
   }
 }

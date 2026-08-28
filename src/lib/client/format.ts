@@ -70,7 +70,7 @@ export function timeAgo(iso: string): string {
 }
 
 export function ttaLabel(hours: number | null): string {
-  if (hours === null) return "—";
+  if (hours === null) return "-";
   if (hours < 24) return `${hours}h`;
   const days = Math.round(hours / 24);
   return `${days}d`;

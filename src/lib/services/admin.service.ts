@@ -119,7 +119,7 @@ export async function provisionAlumni(admin: Principal, input: AdminProvisionAlu
     throw Errors.conflict("An account with that email already exists.");
   }
 
-  // Unusable password — alumni authenticate via passwordless email-OTP login.
+  // Unusable password - alumni authenticate via passwordless email-OTP login.
   const unusable = await hashPassword(`${crypto.randomUUID()}${crypto.randomUUID()}Aa1!`);
 
   const user = await prisma.$transaction(async (tx) => {

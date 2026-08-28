@@ -4,7 +4,7 @@
  * Client-side API layer for the app screens.
  *
  * Security model (mirrors docs/Security.md):
- * - The refresh token lives ONLY in the HttpOnly cookie (Path=/api/auth) — JS
+ * - The refresh token lives ONLY in the HttpOnly cookie (Path=/api/auth) - JS
  *   never sees it.
  * - The access token is kept in MODULE MEMORY only (never localStorage), so an
  *   XSS can't lift it. On a 401 we silently refresh (cookie rotates) and retry
@@ -95,7 +95,7 @@ async function parseError(res: Response): Promise<ApiError> {
     message = body.error?.message ?? message;
     field = body.error?.field ?? null;
   } catch {
-    // non-JSON error body — keep defaults
+    // non-JSON error body - keep defaults
   }
   return new ApiError(res.status, code, message, field);
 }

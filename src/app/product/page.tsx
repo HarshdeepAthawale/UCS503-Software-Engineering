@@ -9,26 +9,26 @@ const FEATURES = [
   {
     num: "01",
     title: "Ghosting, made accountable",
-    body: "Time-to-Acknowledgement is computed from immutable database timestamps — never self-reported. Posters carry a rolling Responsiveness Badge and pledge an SLA; breaches are flagged, not hidden.",
+    body: "Time-to-Acknowledgement is computed from immutable database timestamps - never self-reported. Posters carry a rolling Responsiveness Badge and pledge an SLA; breaches are flagged, not hidden.",
     tags: ["Immutable event log", "SLA pledge"],
   },
   {
     num: "02",
     title: "Attestations anchored to real work",
-    body: "A skill endorsement can only exist where a completed, Selected application connects the two people. Enforced in the schema — so competency can't be farmed or traded between friends.",
+    body: "A skill endorsement can only exist where a completed, Selected application connects the two people. Enforced in the schema - so competency can't be farmed or traded between friends.",
     tags: ["✔ PyTorch · NLP RA", "Verified"],
     attested: true,
   },
   {
     num: "03",
     title: "An application budget",
-    body: "Hold at most ten live applications at once. One constraint stops spray-and-pray applying and caps every poster's review load — the two-sided load control a feed has no reason to build.",
+    body: "Hold at most ten live applications at once. One constraint stops spray-and-pray applying and caps every poster's review load - the two-sided load control a feed has no reason to build.",
     tags: ["10 active slots", "Withdraw frees one"],
   },
   {
     num: "04",
     title: "Messaging that can't float free",
-    body: "A thread exists only inside an application or a team — never a free-form DM. Safety by design: an entire class of harassment simply has nowhere to live.",
+    body: "A thread exists only inside an application or a team - never a free-form DM. Safety by design: an entire class of harassment simply has nowhere to live.",
     tags: ["Scoped threads", "Explainable matching"],
   },
 ];
@@ -52,7 +52,7 @@ export default function ProductPage() {
             <span className="eyebrow">The product</span>
             <h1>Four things a feed structurally cannot do.</h1>
             <p className="lede">
-              Each depends on the application record existing as a first-class entity — tracked,
+              Each depends on the application record existing as a first-class entity - tracked,
               timestamped, and enforced in the database, not just the UI.
             </p>
           </div>
@@ -111,7 +111,7 @@ export default function ProductPage() {
                   <span className="tag-skill">CUDA</span>
                 </div>
                 <div className="opp-foot">
-                  <span className="meta">2 seats · Stipend · Aug–Nov 2026</span>
+                  <span className="meta">2 seats · Stipend · Aug-Nov 2026</span>
                   <span className="acts">
                     <button type="button" className="mini">Save</button>
                     <Link className="mini solid" href="/register">Apply</Link>
@@ -121,13 +121,13 @@ export default function ProductPage() {
               <div>
                 <p style={{ fontSize: 17, color: "var(--muted)", margin: "0 0 18px" }}>
                   Structured fields, a controlled skill vocabulary, and a visible responsiveness
-                  record. You read a posting in seconds and know exactly what it wants — and how fast
+                  record. You read a posting in seconds and know exactly what it wants - and how fast
                   this poster tends to reply.
                 </p>
                 <ul className="ticklist">
-                  <li>Skills drawn from an admin-curated taxonomy — never free text.</li>
+                  <li>Skills drawn from an admin-curated taxonomy - never free text.</li>
                   <li>Deadlines auto-expire; nothing lingers past its date.</li>
-                  <li>Match results always show <span style={{ color: "var(--text)" }}>why</span> — matched and missing tags, never a bare score.</li>
+                  <li>Match results always show <span style={{ color: "var(--text)" }}>why</span> - matched and missing tags, never a bare score.</li>
                 </ul>
               </div>
             </div>
@@ -139,7 +139,7 @@ export default function ProductPage() {
           <div className="wrap">
             <div className="section-head">
               <span className="eyebrow">Feed vs. pipeline</span>
-              <h2>A feed wants your attention. Nexus wants you gone — with a result.</h2>
+              <h2>A feed wants your attention. Nexus wants you gone - with a result.</h2>
               <p>The difference is structural, visible in what we measure and what we refuse to build.</p>
             </div>
             <Reveal className="split">
@@ -163,7 +163,7 @@ export default function ProductPage() {
               </table>
             </Reveal>
             <p style={{ marginTop: 22, color: "var(--faint)", fontSize: 14 }}>
-              No infinite feed · no likes · no follower counts · no vanity metrics —{" "}
+              No infinite feed · no likes · no follower counts · no vanity metrics -{" "}
               <span style={{ color: "var(--muted)" }}>excluded on purpose.</span>
             </p>
           </div>
@@ -173,7 +173,7 @@ export default function ProductPage() {
           <div className="wrap">
             <Reveal className="cta-band">
               <h2>Ready to see it live?</h2>
-              <p>Create a profile and browse the pilot — every posting is SLA-pledged.</p>
+              <p>Create a profile and browse the pilot - every posting is SLA-pledged.</p>
               <div className="cta-actions">
                 <Link className="btn btn-primary" href="/register">Get started</Link>
                 <Link className="btn btn-ghost" href="/about">Why we built it</Link>

@@ -14,7 +14,7 @@ import type {
  *
  * Postings are structured and SLA-pledged; skills come ONLY from the admin
  * taxonomy (never free text). Poster identity and `seatsFilled`/`status` are
- * never client-supplied — they are set here from the principal and invariants.
+ * never client-supplied - they are set here from the principal and invariants.
  * Edits past `EXPIRED` are refused (TechSpec §5.4).
  */
 
@@ -149,7 +149,7 @@ function decodeCursor(cursor: string): { createdAt: Date; id: string } | null {
  * `websearch_to_tsquery`; facets narrow by type/domain/stipend/skill. Expired &
  * soft-deleted rows are excluded by default. Keyset-paginated on (created_at,id).
  *
- * SAFETY: every user value is a BOUND parameter in a `Prisma.sql` template — no
+ * SAFETY: every user value is a BOUND parameter in a `Prisma.sql` template - no
  * string interpolation ever reaches the SQL text (codeguard-0-input-validation-injection).
  */
 export async function listOpportunities(opts: {
@@ -223,7 +223,7 @@ export async function getOpportunity(id: string) {
 
 /**
  * Resolve the poster of a live opportunity (for the route's ownership-scoped
- * authorize call). Returns null when the row doesn't exist — the route then
+ * authorize call). Returns null when the row doesn't exist - the route then
  * 404s with a generic envelope (no existence leak).
  */
 export async function getOpportunityPosterId(id: string): Promise<string | null> {
@@ -265,7 +265,7 @@ export async function updateOpportunity(
     const opp = await tx.opportunity.update({
       where: { id },
       data: {
-        // `type` is fixed at create (not editable) — deliberately omitted.
+        // `type` is fixed at create (not editable) - deliberately omitted.
         title: input.title,
         description: input.description,
         domain: input.domain,

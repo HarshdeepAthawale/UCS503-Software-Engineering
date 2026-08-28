@@ -5,7 +5,7 @@ import { listSkills } from "@/lib/services/skill.service";
 export const runtime = "nodejs";
 
 /**
- * GET /api/skills — the public skill taxonomy for profile editors and search.
+ * GET /api/skills - the public skill taxonomy for profile editors and search.
  * Requires `skill_taxonomy:read`, granted to every role in the matrix. Skills
  * are admin-curated (NOT free text), so this is a controlled vocabulary.
  */

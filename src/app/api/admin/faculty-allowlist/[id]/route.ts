@@ -5,7 +5,7 @@ import { removeFacultyAllowlist } from "@/lib/services/admin.service";
 
 export const runtime = "nodejs";
 
-/** DELETE /api/admin/faculty-allowlist/:id — remove a roster email (`faculty_allowlist:manage`). */
+/** DELETE /api/admin/faculty-allowlist/:id - remove a roster email (`faculty_allowlist:manage`). */
 export const DELETE = handler(async (req) => {
   const admin = await authorize(req, "faculty_allowlist:manage");
   const id = new URL(req.url).pathname.split("/").filter(Boolean).pop() ?? "";

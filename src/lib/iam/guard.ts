@@ -5,7 +5,7 @@ import { decide, type Principal, type ResourceRef } from "./policy";
 import type { Permission } from "./permissions";
 
 /**
- * Route-level authorization guards — the second enforcement layer after edge
+ * Route-level authorization guards - the second enforcement layer after edge
  * middleware. Every protected handler calls one of these; the matrix and
  * ownership rules are applied uniformly (codeguard-0-authorization: validate
  * permissions on every request via centralized middleware/policies).
@@ -37,7 +37,7 @@ export async function authorize(
       target: permission,
       metadata: { reason: result.reason, role: principal.role },
     });
-    // Generic 403 — do not reveal whether the resource exists.
+    // Generic 403 - do not reveal whether the resource exists.
     throw Errors.forbidden();
   }
   return principal;

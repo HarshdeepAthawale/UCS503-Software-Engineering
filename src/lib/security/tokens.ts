@@ -2,7 +2,7 @@ import { randomBytes, createHash } from "node:crypto";
 import { env } from "@/lib/env";
 
 /**
- * Refresh-token material — Node-only (uses `node:crypto`). Do NOT import this
+ * Refresh-token material - Node-only (uses `node:crypto`). Do NOT import this
  * module from edge code (middleware); use access-token.ts there instead.
  *
  * Refresh tokens are opaque 256-bit CSPRNG strings that act as the server-side
@@ -22,7 +22,7 @@ export function issueRefreshMaterial(): RefreshMaterial {
   return { raw, hash: hashToken(raw), expiresAt };
 }
 
-/** SHA-256 of the token — deterministic lookup key, one-way at rest. */
+/** SHA-256 of the token - deterministic lookup key, one-way at rest. */
 export function hashToken(raw: string): string {
   return createHash("sha256").update(raw).digest("hex");
 }

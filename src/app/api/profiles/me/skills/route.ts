@@ -9,10 +9,10 @@ export const runtime = "nodejs";
 /**
  * Own profile skill assignment (TechSpec §5.3, tracker T-07).
  *
- * PUT  /api/profiles/me/skills — replace the caller's WHOLE skill set:
+ * PUT  /api/profiles/me/skills - replace the caller's WHOLE skill set:
  *      {skills: [{skillId, proficiency}]}. Every skillId is validated against
  *      the live taxonomy; the swap is atomic (one transaction).
- * POST /api/profiles/me/skills — add or upsert ONE skill: {skillId, proficiency}.
+ * POST /api/profiles/me/skills - add or upsert ONE skill: {skillId, proficiency}.
  *
  * Both require `profile:update` AND ownership. For the "me" resource the owner
  * is always the caller, so we resolve the principal first, then authorize with

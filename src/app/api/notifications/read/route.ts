@@ -7,7 +7,7 @@ import { markRead } from "@/lib/services/notification.service";
 export const runtime = "nodejs";
 
 /**
- * POST /api/notifications/read — mark the caller's notifications read (T-17).
+ * POST /api/notifications/read - mark the caller's notifications read (T-17).
  * Body `{ ids? }`; omit to mark all. Always scoped to the principal.
  */
 export const POST = handler(async (req) => {

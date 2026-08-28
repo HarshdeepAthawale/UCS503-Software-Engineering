@@ -7,7 +7,7 @@ import { getProfile, updateOwnProfile } from "@/lib/services/profile.service";
 export const runtime = "nodejs";
 
 /**
- * GET /api/profiles/me — the caller's own profile (owner sees private CGPA).
+ * GET /api/profiles/me - the caller's own profile (owner sees private CGPA).
  * Requires `profile:read`.
  */
 export const GET = handler(async (req) => {
@@ -17,7 +17,7 @@ export const GET = handler(async (req) => {
 });
 
 /**
- * PATCH /api/profiles/me — update own profile via a strict allow-list DTO.
+ * PATCH /api/profiles/me - update own profile via a strict allow-list DTO.
  * Requires `profile:update` AND ownership. For the "me" resource the owner is
  * always the caller, so we resolve the principal first, then run the ownership-
  * scoped authorization with the concrete owner id (fail-closed by design).

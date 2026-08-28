@@ -8,7 +8,7 @@ import ThemeToggle from "@/components/theme-toggle";
 
 /**
  * Shared top navigation for authenticated app screens. Role-aware: only
- * faculty/alumni see "Post". The API still enforces RBAC — this only hides what
+ * faculty/alumni see "Post". The API still enforces RBAC - this only hides what
  * a role cannot do, it is never the security boundary.
  */
 export function AppNav({ user, unread = 0 }: { user: SessionUser | null; unread?: number }) {

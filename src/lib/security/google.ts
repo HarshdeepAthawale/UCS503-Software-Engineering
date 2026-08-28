@@ -3,7 +3,7 @@ import { env } from "@/lib/env";
 import { Errors } from "@/lib/http/errors";
 
 /**
- * Google OAuth 2.0 (Authorization Code flow) — "Sign in with Google".
+ * Google OAuth 2.0 (Authorization Code flow) - "Sign in with Google".
  *
  * The ID token is fetched directly from Google's token endpoint over TLS using
  * our client secret, so it arrives on an authenticated channel. We still assert

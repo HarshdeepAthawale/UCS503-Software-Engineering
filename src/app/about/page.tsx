@@ -40,7 +40,7 @@ export default function AboutPage() {
             <span className="eyebrow">The thesis</span>
             <h1>Opportunities circulate through WhatsApp, noticeboards and word of mouth.</h1>
             <p className="lede">
-              Four failures follow. We rank them — and <b>ghosting</b>, the silence after you apply,
+              Four failures follow. We rank them - and <b>ghosting</b>, the silence after you apply,
               is the one Nexus is built to end first.
             </p>
           </div>
@@ -57,7 +57,7 @@ export default function AboutPage() {
                 <p>
                   Sent by email, they disappear. You can&apos;t tell &quot;rejected&quot; from
                   &quot;still reading&quot; from &quot;never opened.&quot; There is no accountability
-                  for silence — until now.
+                  for silence - until now.
                 </p>
               </Reveal>
               {PROBLEMS.map((p) => (
@@ -77,10 +77,10 @@ export default function AboutPage() {
             <Reveal className="quote-band">
               <p className="quote">
                 &ldquo;A feed measures attention and rewards the most-followed. A pipeline measures
-                resolution and rewards the most-responsive. We optimise for you leaving — with a
+                resolution and rewards the most-responsive. We optimise for you leaving - with a
                 result.&rdquo;
               </p>
-              <p className="quote-by">— The Nexus design principle</p>
+              <p className="quote-by">- The Nexus design principle</p>
             </Reveal>
           </div>
         </section>
@@ -122,7 +122,7 @@ export default function AboutPage() {
           <div className="wrap">
             <Reveal className="cta-band">
               <h2>Apply once. Always know where you stand.</h2>
-              <p>Join the pilot — find a posting in under two minutes and get a real answer within 48 hours.</p>
+              <p>Join the pilot - find a posting in under two minutes and get a real answer within 48 hours.</p>
               <div className="cta-actions">
                 <Link className="btn btn-primary" href="/register">Create your profile</Link>
                 <Link className="btn btn-ghost" href="/product">See the product</Link>

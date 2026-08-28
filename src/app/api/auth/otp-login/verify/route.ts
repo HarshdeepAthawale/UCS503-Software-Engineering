@@ -8,7 +8,7 @@ import { buildRefreshCookie } from "@/lib/security/cookies";
 export const runtime = "nodejs";
 
 /**
- * POST /api/auth/otp-login/verify — passwordless login step 2.
+ * POST /api/auth/otp-login/verify - passwordless login step 2.
  *
  * Verifies the emailed code and issues the SAME rotating session as any login
  * (with faculty-allowlist promotion applied). Reuses VerifyOtpSchema {email, otp}.

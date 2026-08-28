@@ -2,7 +2,7 @@ import { z } from "zod";
 import { env } from "@/lib/env";
 
 /**
- * Shared Zod schemas — the single validation boundary for the API
+ * Shared Zod schemas - the single validation boundary for the API
  * (codeguard-0-input-validation-injection: validate and normalise all input).
  * These are the *only* fields ever accepted; everything else is dropped, which
  * also prevents mass-assignment of privileged fields like `role`/`status`
@@ -92,7 +92,7 @@ export const AlumniClaimDecisionSchema = z
   })
   .strict();
 
-// ── Skill taxonomy (admin-curated, NOT free text — docs/PRD M2) ──────────────
+// ── Skill taxonomy (admin-curated, NOT free text - docs/PRD M2) ──────────────
 
 const proficiency = z.enum(["BEGINNER", "INTERMEDIATE", "ADVANCED", "EXPERT"]);
 const skillName = z

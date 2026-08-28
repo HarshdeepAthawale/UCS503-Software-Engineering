@@ -7,7 +7,7 @@ import { env } from "@/lib/env";
  *
  * Phase 1 ships a fixed-window in-memory limiter so the guard rails exist from
  * day one. It is swapped for a Redis token bucket in Phase 2 by implementing
- * `RateLimiter` — the call sites do not change.
+ * `RateLimiter` - the call sites do not change.
  */
 export interface RateLimiter {
   /** Returns true if the action is allowed, false if the limit is exceeded. */

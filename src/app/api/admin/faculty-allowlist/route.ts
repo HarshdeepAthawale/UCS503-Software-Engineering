@@ -7,8 +7,8 @@ import { addFacultyAllowlist, listFacultyAllowlist } from "@/lib/services/admin.
 export const runtime = "nodejs";
 
 /**
- * GET  /api/admin/faculty-allowlist — list roster emails (`faculty_allowlist:read`).
- * POST /api/admin/faculty-allowlist — add one (`faculty_allowlist:manage`);
+ * GET  /api/admin/faculty-allowlist - list roster emails (`faculty_allowlist:read`).
+ * POST /api/admin/faculty-allowlist - add one (`faculty_allowlist:manage`);
  *      immediately promotes any existing STUDENT with that email to FACULTY.
  */
 export const GET = handler(async (req) => {

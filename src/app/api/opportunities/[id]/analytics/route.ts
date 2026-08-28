@@ -7,9 +7,9 @@ import { getOpportunityAnalytics } from "@/lib/services/analytics.service";
 export const runtime = "nodejs";
 
 /**
- * GET /api/opportunities/:id/analytics — pipeline analytics for one posting
+ * GET /api/opportunities/:id/analytics - pipeline analytics for one posting
  * (T-14): applicant/acknowledged counts, acknowledgement rate, median TTA.
- * Poster-owned or admin only — the counts are more than the public badge.
+ * Poster-owned or admin only - the counts are more than the public badge.
  */
 
 function opportunityIdFromPath(req: Request): string {

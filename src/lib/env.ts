@@ -25,10 +25,10 @@ const EnvSchema = z.object({
   AUTH_RATE_LIMIT_WINDOW_SECONDS: z.coerce.number().int().positive().default(60),
 
   // Shared secret for scheduled-job endpoints (expiry, SLA nudge). When unset,
-  // those endpoints refuse to run — a cron trigger is never left open.
+  // those endpoints refuse to run - a cron trigger is never left open.
   CRON_SECRET: z.string().min(16, "CRON_SECRET must be >= 16 chars").optional(),
 
-  // Google OAuth (Sign in with Google). Optional — when either is unset the
+  // Google OAuth (Sign in with Google). Optional - when either is unset the
   // Google auth routes 404 and the button is hidden. Secret lives ONLY here.
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),

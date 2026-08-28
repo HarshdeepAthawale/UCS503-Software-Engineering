@@ -97,7 +97,7 @@ export default function LoginPage() {
         <p className="sub">
           {mode === "password"
             ? "Sign in to track your applications and opportunities."
-            : "Alumni & passwordless sign-in — we'll email you a one-time code."}
+            : "Alumni & passwordless sign-in - we'll email you a one-time code."}
         </p>
 
         {error && <p className="form-err" role="alert">{error}</p>}

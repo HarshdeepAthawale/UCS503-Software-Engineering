@@ -11,12 +11,12 @@ import {
 export const runtime = "nodejs";
 
 /**
- * POST /api/opportunities/:id/applications — a student applies (T-12).
- * GET  /api/opportunities/:id/applications — the POSTER views applicants (T-13).
+ * POST /api/opportunities/:id/applications - a student applies (T-12).
+ * GET  /api/opportunities/:id/applications - the POSTER views applicants (T-13).
  *
  * The poster view requires `application:read` AND that the caller owns the
  * opportunity (or is admin). `application:read` is not ownership-scoped in the
- * matrix, so ownership is checked explicitly here — a faculty member cannot read
+ * matrix, so ownership is checked explicitly here - a faculty member cannot read
  * another poster's pipeline.
  */
 
@@ -48,7 +48,7 @@ export const GET = handler(async (req) => {
   const opportunityId = opportunityIdFromPath(req);
 
   const posterId = await getOpportunityPosterId(opportunityId);
-  if (!posterId) throw Errors.notFound(); // generic 404 — no existence leak
+  if (!posterId) throw Errors.notFound(); // generic 404 - no existence leak
   if (principal.userId !== posterId && principal.role !== "ADMIN") {
     throw Errors.forbidden();
   }

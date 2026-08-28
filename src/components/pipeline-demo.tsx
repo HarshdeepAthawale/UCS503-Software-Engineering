@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 /**
- * Hero pipeline demo — the product's signature moment. An application advances
+ * Hero pipeline demo - the product's signature moment. An application advances
  * Applied → Acknowledged → Shortlisted → Interview → Selected and its
  * Time-to-Acknowledgement resolves in. Honours prefers-reduced-motion by
  * settling statically at "Acknowledged · 18h 04m".
@@ -79,7 +79,7 @@ export default function PipelineDemo() {
             <span className="pulse-dot" />
             Time-to-Acknowledgement
           </span>
-          <span className="v">{stage >= 1 ? "18h 04m" : "—"}</span>
+          <span className="v">{stage >= 1 ? "18h 04m" : "-"}</span>
         </div>
       </div>
     </div>

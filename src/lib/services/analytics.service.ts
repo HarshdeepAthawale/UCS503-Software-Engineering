@@ -11,7 +11,7 @@ import {
  *
  * All figures derive from the immutable ApplicationEvent log via the denormalised
  * `applied_at` / `first_transition_at` stamps, so they are trustworthy by
- * construction — a poster cannot backdate acknowledgements.
+ * construction - a poster cannot backdate acknowledgements.
  */
 
 function ttaDurations(

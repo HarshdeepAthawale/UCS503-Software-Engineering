@@ -5,7 +5,7 @@ import { listNotifications } from "@/lib/services/notification.service";
 export const runtime = "nodejs";
 
 /**
- * GET /api/notifications — the caller's own notification feed + unread count
+ * GET /api/notifications - the caller's own notification feed + unread count
  * (T-17). Scoped to the principal in the service; `notification:read` gates it.
  */
 export const GET = handler(async (req) => {

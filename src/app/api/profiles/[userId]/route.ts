@@ -6,7 +6,7 @@ import { getProfile } from "@/lib/services/profile.service";
 export const runtime = "nodejs";
 
 /**
- * GET /api/profiles/:userId — view another user's profile.
+ * GET /api/profiles/:userId - view another user's profile.
  * Requires authentication + `profile:read`. Field-level privacy (CGPA) is applied
  * inside the service based on the viewer. Returns a generic 404 when the profile
  * does not exist (no existence leak).

@@ -19,9 +19,9 @@ import type {
  * Application pipeline service (T-12 / T-13; docs/PRD M5, S3).
  *
  * Guarantees, in order of the layer that enforces them:
- *  • one application per student per opportunity — DB partial-unique index;
- *  • application budget — counted inside a SERIALIZABLE tx (no over-budget race);
- *  • seat allocation — a conditional UPDATE that can never exceed seat_count;
+ *  • one application per student per opportunity - DB partial-unique index;
+ *  • application budget - counted inside a SERIALIZABLE tx (no over-budget race);
+ *  • seat allocation - a conditional UPDATE that can never exceed seat_count;
  *  • every state change appends an INSERT-only ApplicationEvent (the TTA source);
  *  • `first_transition_at` is stamped exactly once, on the poster's first action.
  *
@@ -125,7 +125,7 @@ export async function applyToOpportunity(
       throw Errors.conflict("You have already applied to this opportunity.");
     }
     if (isSerializationFailure(e)) {
-      throw Errors.conflict("Please retry — a concurrent update interfered.");
+      throw Errors.conflict("Please retry - a concurrent update interfered.");
     }
     throw e;
   }
@@ -211,7 +211,7 @@ export async function transitionApplication(
     return result.updated;
   } catch (e) {
     if (isSerializationFailure(e)) {
-      throw Errors.conflict("Please retry — a concurrent update interfered.");
+      throw Errors.conflict("Please retry - a concurrent update interfered.");
     }
     throw e;
   }

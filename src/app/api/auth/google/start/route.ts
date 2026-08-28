@@ -5,7 +5,7 @@ import { buildGoogleAuthUrl, buildStateCookie, googleConfigured } from "@/lib/se
 export const runtime = "nodejs";
 
 /**
- * GET /api/auth/google/start — begin the Google OAuth flow.
+ * GET /api/auth/google/start - begin the Google OAuth flow.
  *
  * Mints a CSRF `state`, stores it in a short-lived HttpOnly cookie, and redirects
  * the browser to Google's consent screen. The redirect URI is derived from the

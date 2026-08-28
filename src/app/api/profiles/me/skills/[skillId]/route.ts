@@ -6,7 +6,7 @@ import { removeOwnSkill } from "@/lib/services/skill.service";
 export const runtime = "nodejs";
 
 /**
- * DELETE /api/profiles/me/skills/:skillId — remove one skill from the caller's
+ * DELETE /api/profiles/me/skills/:skillId - remove one skill from the caller's
  * profile. Idempotent (removing an absent skill is a no-op success). Requires
  * `profile:update` + ownership, same fail-closed pattern as profiles/me.
  */

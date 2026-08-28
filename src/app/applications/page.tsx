@@ -52,7 +52,7 @@ export default function ApplicationsPage() {
           <div className="page-head">
             <div>
               <h1>My applications</h1>
-              <p className="sub">Track every application to a decision — and see when a poster goes quiet.</p>
+              <p className="sub">Track every application to a decision - and see when a poster goes quiet.</p>
             </div>
             <Link className="btn btn-ghost btn-sm" href="/opportunities">Browse feed →</Link>
           </div>
@@ -62,7 +62,7 @@ export default function ApplicationsPage() {
           {apps.length === 0 ? (
             <div className="app-empty">
               <h3>No applications yet</h3>
-              <p>Find an opportunity and apply — it'll show up here.</p>
+              <p>Find an opportunity and apply - it'll show up here.</p>
               <Link className="btn btn-primary" href="/opportunities">Explore opportunities</Link>
             </div>
           ) : (

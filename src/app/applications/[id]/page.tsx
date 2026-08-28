@@ -126,7 +126,7 @@ export default function ApplicationConversationPage() {
           <div className="page-head">
             <div>
               <h1>{mine ? mine.opportunity.title : "Conversation"}</h1>
-              <p className="sub">Messages are scoped to this application — only you and the other party can see them.</p>
+              <p className="sub">Messages are scoped to this application - only you and the other party can see them.</p>
             </div>
             {mine && <span className={`pill ${statusClass(mine.status)}`}>{titleCase(mine.status)}</span>}
           </div>

@@ -10,10 +10,10 @@ import { createOpportunity, listOpportunities } from "@/lib/services/opportunity
 export const runtime = "nodejs";
 
 /**
- * GET /api/opportunities — faceted discovery: full-text `q`, type/domain/stipend/
+ * GET /api/opportunities - faceted discovery: full-text `q`, type/domain/stipend/
  * skill facets, keyset-paginated, excludes expired & deleted by default. Requires
  * `opportunity:list` (all roles).
- * POST /api/opportunities — publish a structured, SLA-pledged posting.
+ * POST /api/opportunities - publish a structured, SLA-pledged posting.
  * Requires `opportunity:create` (FACULTY / approved ALUMNI only in the matrix).
  */
 export const GET = handler(async (req) => {

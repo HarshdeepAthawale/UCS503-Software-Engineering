@@ -7,8 +7,8 @@ import { listMessages, sendMessage } from "@/lib/services/message.service";
 export const runtime = "nodejs";
 
 /**
- * GET  /api/applications/:id/messages — read the application's thread (T-16).
- * POST /api/applications/:id/messages — post a message.
+ * GET  /api/applications/:id/messages - read the application's thread (T-16).
+ * POST /api/applications/:id/messages - post a message.
  *
  * Membership (student ↔ poster) is enforced in the service; the matrix only
  * grants the capability. Admins may read (moderation) but not send.

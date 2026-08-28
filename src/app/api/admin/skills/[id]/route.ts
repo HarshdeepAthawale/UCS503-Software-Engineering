@@ -9,8 +9,8 @@ export const runtime = "nodejs";
 /**
  * Admin skill-taxonomy item.
  *
- * PATCH  /api/admin/skills/:id — rename / re-domain a taxonomy entry.
- * DELETE /api/admin/skills/:id — SOFT delete (sets deletedAt); the row and any
+ * PATCH  /api/admin/skills/:id - rename / re-domain a taxonomy entry.
+ * DELETE /api/admin/skills/:id - SOFT delete (sets deletedAt); the row and any
  *        user_skills history survive for analytics (Rules.md: nothing
  *        hard-deleted). Both require `skill_taxonomy:manage` and are audited.
  */

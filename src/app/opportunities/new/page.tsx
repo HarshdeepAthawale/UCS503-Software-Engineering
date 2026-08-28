@@ -127,7 +127,7 @@ export default function NewOpportunityPage() {
           <div className="page-head">
             <div>
               <h1>Post an opportunity</h1>
-              <p className="sub">Structured fields and an SLA pledge — applicants can hold you to it.</p>
+              <p className="sub">Structured fields and an SLA pledge - applicants can hold you to it.</p>
             </div>
           </div>
 
