@@ -36,9 +36,20 @@ export const metadata = {
     "A verified opportunity pipeline for the institute — make sure an application reaches a decision, and make it visible when it doesn't.",
 };
 
+/**
+ * Stamps `data-theme` on <html> BEFORE first paint, so the theme is always
+ * explicit (never left to hydration timing) and there is no flash of the wrong
+ * palette. Light is the default when nothing is stored and the OS has no
+ * dark preference.
+ */
+const THEME_INIT = `(function(){try{var s=localStorage.getItem('nexus-theme');var t=(s==='light'||s==='dark')?s:(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','light');}})();`;
+
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
+      </head>
       <body className={`${newsreader.variable} ${jakarta.variable} ${jetbrains.variable}`}>
         {children}
       </body>

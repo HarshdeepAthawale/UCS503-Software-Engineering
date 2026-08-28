@@ -44,7 +44,10 @@ function securityHeaders(res: NextResponse): NextResponse {
     "Content-Security-Policy",
     [
       "default-src 'self'",
-      "script-src 'self'",
+      // The only inline script is the pre-paint theme stamp in app/layout.tsx,
+      // allow-listed by hash (never 'unsafe-inline'). If that script changes,
+      // recompute: printf '%s' "<script>" | openssl dgst -sha256 -binary | base64
+      "script-src 'self' 'sha256-TXCapHfnc1Rg9+2CwDLblhl7IqeguGmR0YyOIloRlKU='",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data:",
       "font-src 'self'",
