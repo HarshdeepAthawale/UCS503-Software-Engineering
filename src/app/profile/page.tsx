@@ -184,9 +184,13 @@ export default function ProfilePage() {
             <div>
               <span className="role">{user?.role ?? ""}</span>
               <h1>{user?.name ?? "My profile"}</h1>
-              <div className="mono-id">
-                {user?.id ?? ""} · {user?.status ?? ""}
-              </div>
+              {/* The raw account UUID used to be printed here beside the
+                  status. It is an internal identifier: it tells the account
+                  holder nothing they can act on, and it is the kind of value
+                  that ends up in screenshots and support threads. Only the
+                  status is shown now - the id remains available to code via
+                  `user.id`, it is simply never rendered. */}
+              <div className="mono-id">{user?.status ?? ""}</div>
             </div>
           </div>
 

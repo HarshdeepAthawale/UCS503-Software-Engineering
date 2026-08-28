@@ -379,7 +379,13 @@ header.nav {
 /* ============ HERO ============ */
 .hero {
   position: relative;
-  padding: 96px 0 72px;
+  /* 48px, down from 96px. The nav is 64px and sticky, so the hero was opening
+     with 112px of empty canvas once the h1's own 16px margin was added on top
+     - a full screen-inch of nothing between the header and the first word.
+     The reference opens its hero much closer to the header; the breathing room
+     in that design comes from the leading inside the display type, not from
+     padding above it. */
+  padding: 48px 0 72px;
   overflow: hidden;
 }
 /* The hero sits on a flat canvas.
@@ -410,7 +416,11 @@ header.nav {
      single block instead of three stacked lines, and it closes most of the
      dead space that was sitting between the lines. */
   line-height: 0.94;
-  margin: 16px 0 0;
+  /* No top margin. This spaced the headline away from a hero badge that no
+     longer renders - the h1 is now the first child of the hero column, so the
+     margin was collapsing into the section's padding and adding to the gap
+     rather than separating anything. */
+  margin: 0;
 }
 .hero h1 .fade {
   color: var(--muted);
@@ -2044,7 +2054,9 @@ footer {
 .ti-mark {
   display: inline-block;
   vertical-align: middle;
-  color: var(--text); /* monochrome: inherits ink on light, white on dark */
+  /* No `color` here any more. The mark used to be a currentColor SVG that took
+     its ink from this rule; it is now the official red gradient, which carries
+     its own colour and must not be tinted by the theme. */
   transition: opacity 0.2s ease;
 }
 .brand:hover .ti-mark {
