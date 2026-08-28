@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { AppError } from "@/lib/http/errors";
+import { assertTrustedOrigin, resolveOrigin } from "@/lib/http/origin";
 import { readCookie, buildRefreshCookie } from "@/lib/security/cookies";
 import {
   OAUTH_STATE_COOKIE,
@@ -22,12 +23,13 @@ export const runtime = "nodejs";
  */
 export async function GET(req: Request): Promise<NextResponse> {
   const url = new URL(req.url);
-  const origin = url.origin;
+  const origin = resolveOrigin(req);
   const fail = (msg: string) =>
     NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(msg)}`);
 
   try {
     if (!googleConfigured()) return fail("Google sign-in is not enabled.");
+    if (assertTrustedOrigin()) return fail("Google sign-in is misconfigured on this deployment.");
 
     const code = url.searchParams.get("code");
     const state = url.searchParams.get("state");

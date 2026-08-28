@@ -44,3 +44,8 @@ prisma/*.db
 # untracked again (e6b2ead); it is not content.
 *.tmpdir/
 *.md.tmp
+
+# Vercel CLI link + pulled env. Note: do NOT re-add a bare `.env*` here — it
+# would match after the `!.env.example` negation above and re-ignore the
+# committed template. The .env rules at the top of this file already cover it.
+.vercel

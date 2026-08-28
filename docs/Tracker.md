@@ -1,9 +1,11 @@
 <div align="center">
 
 # 📊 Project Tracker
-## Thapar Nexus — Tasks, Traceability, Standups & Decisions
+## Thapar Nexus — Scope Ledger, Traceability, Standups & Decisions
 
-`UCS503 Software Engineering` · **Document 7 of 8** · **Living document — update daily**
+`UCS503 Software Engineering` · **Document 7 of 8** · **Living document — update at every standup**
+
+**Last verified against the codebase:** 2026-08-29 · `main` @ `a6c9c7c`
 
 </div>
 
@@ -11,128 +13,292 @@
 
 ## Table of Contents
 
-1. [Status Legend](#1-status-legend)
-2. [Task Board](#2-task-board)
-3. [Traceability Matrix](#3-traceability-matrix-) ⭐
-4. [Daily Standup Log](#4-daily-standup-log)
-5. [Decision Log](#5-decision-log)
-6. [Bug Register](#6-bug-register)
-7. [Metric Snapshots](#7-metric-snapshots)
+1. [How to Read This Document](#1-how-to-read-this-document)
+2. [Build State at a Glance](#2-build-state-at-a-glance)
+3. [Scope Ledger — PRD Requirement → Build State](#3-scope-ledger--prd-requirement--build-state-) ⭐
+4. [Traceability Matrix](#4-traceability-matrix-) ⭐
+5. [NFR Conformance & Deviations from the PRD](#5-nfr-conformance--deviations-from-the-prd)
+6. [Task Board](#6-task-board)
+7. [Milestone Gates](#7-milestone-gates)
+8. [Daily Standup Log](#8-daily-standup-log)
+9. [Decision Log](#9-decision-log)
+10. [Gap & Bug Register](#10-gap--bug-register)
+11. [Metric Snapshots](#11-metric-snapshots)
 
 ---
 
-## 1. Status Legend
+## 1. How to Read This Document
 
-| Symbol | Meaning |
-|---|---|
-| ⬜ | Not started |
-| 🟦 | In progress |
-| 🟨 | Blocked |
-| ✅ | Done |
-| 🔁 | In review |
+This tracker is subordinate to [`PRD.md`](PRD.md) and [`MasterPlan.md`](MasterPlan.md). **It never introduces a requirement.** Every row here points back to a PRD identifier (`M1`–`M9`, `S1`–`S7`, `C1`–`C9`, `NFR-*`). If work exists that the PRD does not cover, it is recorded in §6 as an **infrastructure or presentation task** with no requirement ID — and that absence is itself the flag to go amend the PRD.
 
-**Owners:** `HA` = Harshdeep Athawale · `AC` = Aakriti Chauhan · `SD` = Sehaj Dhillon
+### Status legend
 
----
+| Symbol | Meaning | Bar for claiming it |
+|---|---|---|
+| ⬜ | Not started | No schema, no service, no route |
+| 🟦 | In progress / **partial** | Some acceptance criteria met, at least one named gap remains |
+| 🟨 | Blocked | Named blocker, named owner of the unblock |
+| 🔁 | In review | Code merged, verification outstanding |
+| ✅ | Done | **All** PRD acceptance criteria met, typecheck + tests + build green |
 
-## 2. Task Board
+> **A requirement is 🟦 and not ✅ if even one acceptance criterion in PRD §6 is unmet.** Partial credit is stated, never rounded up. The gap column exists so a 🟦 is actionable rather than vague.
 
-| ID | Title | Module | Owner | Tier | Status | Blockers | Est → Act |
-|---|---|---|---|---|---|---|---|
-| T-01 | Repo + project scaffold (Next 15 + Prisma) | Infra | Shared | Must | 🟦 | — | 0.5d → — |
-| T-02 | Auth: register/verify/login/refresh | Identity | HA | Must | ✅ | T-01 | 2d → — |
-| T-03 | RBAC: matrix + policy + guard + edge gate | Identity | HA | Must | ✅ | T-02 | 0.5d → — |
-| T-04 | Prisma schema (identity + profile) | Data | Shared | Must | ✅ | T-01 | 1d → — |
-| T-05 | Admin bootstrap (no mock data) | Data | Shared | Must | ✅ | T-04 | 0.5d → — |
-| T-06 | Profile CRUD + field-level privacy | Profile | SD | Must | ✅ | T-02 | 1d → — |
-| T-07 | Skill taxonomy + user_skills (schema) | Profile | SD | Must | ✅ | T-04 | 1d → — |
-| T-08 | Alumni claim flow | Identity | HA | Must | ✅ | T-02 | 1d → — |
-| T-09 | Opportunity CRUD + SLA pledge | Opportunity | AC | Must | ✅ | T-04 | 2d → — |
-| T-10 | Deadline expiry job | Opportunity | AC | Must | ✅ | T-09 | 0.5d → — |
-| T-11 | FTS + GIN + faceted search | Opportunity | AC | Must | ✅ | T-09 | 1d → — |
-| T-12 | Application submit + budget (SERIALIZABLE) | Application | AC | Must | ✅ | T-09 | 1.5d → — |
-| T-13 | Pipeline + immutable event log | Application | AC | Must | ✅ | T-12 | 1d → — |
-| T-14 | TTA + responsiveness badge | Analytics | AC | Must | ✅ | T-13 | 1d → — |
-| T-15 | SLA nudge + AT_RISK job | Opportunity | AC | Must | ✅ | T-14 | 0.5d → — |
-| T-16 | Scoped messaging | Messaging | SD | Must | ✅ | T-13 | 1d → — |
-| T-17 | Notification digest + prefs | Notification | SD | Must | ✅ | T-13 | 1d → — |
-| T-18 | Admin console (users/roles/allowlist/alumni/claims/taxonomy) | Moderation | HA | Must | ✅ | T-08 | 1.5d → — |
-| T-30 | Identity v2: thapar-only signup, faculty allowlist, admin-provisioned alumni, OTP login | Identity | HA | Must | ✅ | T-02 | 1d → — |
-| T-31 | Sign in with Google (OAuth, thapar-only) | Identity | HA | Should | ✅ | T-02 | 0.5d → — |
-| T-19 | Attestations (SELECTED-gated) | Profile | SD | Should | ⬜ | T-13 | 1d → — |
-| T-20 | Rejection reason codes | Application | AC | Should | ⬜ | T-13 | 0.5d → — |
-| T-21 | Explainable matching (Jaccard) | Matching | SD | Should | ⬜ | T-07 | 1d → — |
-| T-22 | Team formation (complementarity) | Teams | SD | Should | ⬜ | T-21 | 1d → — |
-| T-23 | Saved searches + alerts | Opportunity | AC | Should | ⬜ | T-11 | 0.5d → — |
-| T-24 | Verified project artifacts (S7) | Profile | SD | Should | ⬜ | T-06 | 0.5d → — |
-| T-25 | Analytics dashboard | Analytics | AC | Must | ⬜ | T-14 | 1d → — |
-| T-26 | Readiness meter (C1) | Analytics | AC | Could | ⬜ | T-25 | 0.5d → — |
-| T-27 | Interview archive (C2) | Content | SD | Could | ⬜ | T-06 | 0.5d → — |
-| T-28 | A11y + perf + hardening pass | Shared | Shared | Must | ⬜ | all | 1d → — |
-| T-29 | Pilot run + report | Shared | Shared | Must | ⬜ | T-28 | 1d → — |
+**Owners:** `HA` = Harshdeep Athawale (1024031062) · `AC` = Aakriti Chauhan (1024031055) · `SD` = Sehaj Dhillon (1024030620)
 
 ---
 
-## 3. Traceability Matrix ⭐
+## 2. Build State at a Glance
 
-> **Disproportionately valuable for marks relative to effort.** Requirement → user story → module → test case → status. Keep it current.
+Verified by running the toolchain on 2026-08-29, not by reading the task board.
 
-| Req ID | Requirement | User Story | Module | Test Case | Status |
+| Check | Command | Result |
+|---|---|---|
+| Type safety | `npm run typecheck` | ✅ clean (strict mode, no `any`) |
+| Unit tests | `npm test` | ✅ **127 passed** across 8 files |
+| Production build | `npm run build` | ✅ green — 41 routes (38 API), middleware 53.4 kB |
+| Database | Supabase Postgres 16 | ✅ live, **6/6 migrations applied**, 18 tables |
+| Seed state | — | 2 users (1 `ADMIN`, 1 `STUDENT`), all other tables empty — **by design**, see D-06 |
+| CI | GitHub Actions | ❌ **no workflow exists** — see G-01 |
+| Integration / E2E tests | — | ❌ **none exist** — see G-02 |
+
+**Tier completion against the PRD:**
+
+| Tier | ✅ Done | 🟦 Partial | ⬜ Not started | Total |
+|---|---|---|---|---|
+| 🟥 **MUST** (M1–M9) | 5 | 4 | 0 | 9 |
+| 🟨 **SHOULD** (S1–S7) | 2 | 0 | 5 | 7 |
+| 🟩 **COULD** (C1–C9) | 0 | 0 | 9 | 9 |
+
+> **Reading:** the spine is standing and demoable end to end. No Must requirement is untouched, but **four are partial** and each partial has exactly one named gap (§3). Closing those four is the shortest path to a defensible G3.
+
+---
+
+## 3. Scope Ledger — PRD Requirement → Build State ⭐
+
+The authoritative answer to *"what did we actually build?"* — one row per PRD feature ID, with the file that proves it and the gap that blocks it.
+
+### 3.1 🟥 MUST — The Spine (PRD §5.1)
+
+| ID | Requirement (PRD §5.1) | Status | Evidence in repo | Remaining gap |
+|---|---|---|---|---|
+| **M1** | Institutional identity & roles | ✅ | `src/lib/services/auth.service.ts`, `alumni.service.ts`, `src/lib/iam/{policy,guard,permissions}.ts`, `src/middleware.ts`, 10 `/api/auth/*` routes | — |
+| **M2** | Structured profiles + controlled skill vocabulary | 🟦 | `profile.service.ts`, `skill.service.ts`, `Profile`/`Skill`/`UserSkill` models, `cgpaPublic` privacy gate | **No `projects` with repo links.** PRD M2 requires them; no model, no route. Blocks S7. → **T-37** |
+| **M3** | Structured opportunity postings | ✅ | `opportunity.service.ts`, `Opportunity`/`OpportunitySkill`, `SlaPledge` enum, `expirePastDeadline()`, `/api/cron/expire-opportunities` | — |
+| **M4** | Faceted discovery | 🟦 | GIN `tsvector` + `websearch_to_tsquery` in `listOpportunities()`; facets `q`/type/domain/stipend/skill; keyset pagination | **No user-selectable sort** (PRD M4 says "FTS + filters + **sort**"); results are keyset-ordered only. NFR-P1 p95 **unmeasured**. → **T-39** |
+| **M5** | Application pipeline + immutable event log | ✅ | `application.service.ts` (SERIALIZABLE seat allocation, partial-unique one-per-student), `ApplicationEvent` append-only, `src/lib/domain/application-state.ts` | — |
+| **M6** | TTA & SLA pledges | ✅ | `src/lib/domain/responsiveness.ts`, `analytics.service.ts`, `sweepSlaBreaches()` → `AT_RISK`, `/api/cron/sla-sweep`, `first_transition_at` stamp | — |
+| **M7** | Scoped messaging | ✅ | `message.service.ts`, `MessageThread` bound 1:1 to an application, membership-enforced; **no free-form DM surface exists** | — |
+| **M8** | Notification digest | 🟦 | `notification.service.ts`, `src/lib/domain/digest.ts` cadence, `NotificationPreference`, `/api/cron/notification-digest` | **Deadline reminders at T−72h and T−24h are not implemented** — PRD M8 names them explicitly. Email delivery is a seam, no provider wired. → **T-35** |
+| **M9** | Admin console | 🟦 | `admin.service.ts` + 8 `/api/admin/*` routes + `src/app/admin/page.tsx`: users, roles, faculty allowlist, alumni provisioning, claim queue, taxonomy, overview | **No flag queue with reason codes** (no `Flag` model at all) and **no institute-wide analytics** — both named in PRD M9. → **T-36**, **T-25** |
+
+### 3.2 🟨 SHOULD — The Differentiators (PRD §5.2)
+
+| ID | Requirement (PRD §5.2) | Status | Evidence / blocker |
+|---|---|---|---|
+| **S1** | Skill attestations anchored to `SELECTED` work | ⬜ | **Not started.** No `Attestation` model. PRD §3.3 and §5.2 both say *"lead with this"* — it is the single highest-value unbuilt item. The DB `CHECK` constraint (US-S1.1) is the whole point and must live in the migration, not the service. → **T-19** |
+| **S2** | Structured rejection feedback | ✅ | `RejectionCode` enum in schema, carried through `/api/applications/[id]` transition, rendered in `applications/page.tsx` and `opportunities/[id]/applicants/page.tsx`. *(Previously mis-tracked as not started.)* |
+| **S3** | Application budget (default 10 non-terminal) | ✅ | Enforced in `application.service.ts` inside the SERIALIZABLE transaction; `APPLICATION_BUDGET` env. *(Previously mis-tracked as not started.)* |
+| **S4** | Saved searches & alerts | ⬜ | Not started. No `SavedSearch` model. → **T-23** |
+| **S5** | Explainable matching (Jaccard) | ⬜ | Not started. Depends on M2 skill tags (present) — unblocked. → **T-21** |
+| **S6** | Team formation (complementarity) | ⬜ | Not started. Depends on S5. → **T-22** |
+| **S7** | Verified project artifacts | ⬜ | **Blocked on M2** — cannot verify a repo link that the profile has no field for. → **T-24** after **T-37** |
+
+### 3.3 🟩 COULD — Stretch (PRD §5.3)
+
+| ID | Requirement | Status | Note |
+|---|---|---|---|
+| **C1** | Readiness meter | ⬜ | Only C-tier item with a written user story (US-C1.1). Cheap once S5 exists. → **T-26** |
+| **C2** | Interview experience archive | ⬜ | → **T-27** |
+| **C3**–**C9** | Referral tokens · transparency board · blind screening · waitlist auto-fill · `.ics` export · QR bridge · rec-letter workflow | ⬜ | Not scheduled. Per PRD §5.3 these are attempted **only if the spine is stable** — i.e. only after every 🟦 in §3.1 is ✅. |
+
+### 3.4 ⬜ WON'T — Boundary Held (PRD §5.4 / §3.2)
+
+Confirmed by inspection of all 14 pages and 38 API routes: **no feed, no likes, no follower counts, no stories, no public comment threads, no unattached DMs, no profile-visit counters.** Messaging exists only bound to an application record. The hard exclusions in PRD §3.2 are intact — this is a **structural** claim, verifiable in the schema, not a stylistic one.
+
+---
+
+## 4. Traceability Matrix ⭐
+
+> Requirement → user story → module → **evidence** → test → status. Disproportionately valuable for marks relative to effort. The **Test** column names real files only; where the PRD or ImplementationPlan promises a test that does not exist, the row says so.
+
+| Req | User story (PRD §6) | Module | Implementation evidence | Test file (real) | Status |
 |---|---|---|---|---|---|
-| M1 | Institutional identity & roles | US-M1.1 | Identity | IT-01, E2E-3 | ⬜ |
-| M2 | Structured profiles + taxonomy | US-M2.1 | Profile | UT-profile, IT-profile | ⬜ |
-| M3 | Structured opportunity postings | US-M3.1 | Opportunity | IT-07, UT-opp | 🔁 |
-| M4 | Faceted discovery (<2 min) | US-M4.1 | Opportunity | UT-search, perf-p95 | 🔁 |
-| M5 | Application pipeline + event log | US-M5.1 | Application | IT-02, IT-04 | 🔁 |
-| M6 | TTA & SLA pledges | US-M6.1 | Analytics | UT-tta, IT-05 | 🔁 |
-| M7 | Scoped messaging | US-M7.1 | Messaging | IT-06 | 🔁 |
-| M8 | Notification digest | US-M8.1 | Notification | UT-digest | 🔁 |
-| M9 | Admin console | US-M9.1 | Moderation | E2E-3 | ⬜ |
-| S1 | Attestations anchored to work | US-S1.1 | Profile | IT-03 | ⬜ |
-| S2 | Structured rejection feedback | US-S2.1 | Application | UT-reject | ⬜ |
-| S3 | Application budget | US-S3.1 | Application | IT-02 | ⬜ |
-| S4 | Saved searches & alerts | US-S4.1 | Opportunity | UT-saved | ⬜ |
-| S5 | Explainable matching | US-S5.1 | Matching | UT-jaccard | ⬜ |
-| S6 | Team formation | US-S6.1 | Teams | UT-team | ⬜ |
-| S7 | Verified project artifacts | US-S7.1 | Profile | UT-repo-verify | ⬜ |
-| C1 | Readiness meter | US-C1.1 | Analytics | UT-readiness | ⬜ |
-| C2 | Interview archive | US-C2.1 | Content | UT-archive | ⬜ |
+| **M1** | US-M1.1 ✔ defined | Identity | `auth.service.ts`, `iam/policy.ts`, `middleware.ts` | `tests/iam/authorization-matrix.test.ts` (55) · `tests/security/otp.test.ts` (4) | ✅ |
+| **M2** | ⚠ *no story in PRD §6* | Profile | `profile.service.ts`, `skill.service.ts` | `tests/validation/skill-taxonomy.test.ts` (13) | 🟦 |
+| **M3** | US-M3.1 ✔ defined | Opportunity | `opportunity.service.ts`, `SlaPledge` | `tests/validation/opportunity.test.ts` (17) | ✅ |
+| **M4** | ⚠ *no story in PRD §6* | Opportunity | `listOpportunities()` FTS + facets | `tests/validation/opportunity.test.ts` (query schema) | 🟦 |
+| **M5** | US-M5.1 ✔ defined | Application | `application.service.ts`, `ApplicationEvent` | `tests/domain/application-state.test.ts` (9) · `tests/validation/application.test.ts` (9) | ✅ |
+| **M6** | US-M6.1 ✔ defined | Analytics | `domain/responsiveness.ts`, `sweepSlaBreaches()` | `tests/domain/responsiveness.test.ts` (8) | ✅ |
+| **M7** | ⚠ *no story in PRD §6* | Messaging | `message.service.ts`, `MessageThread` | `tests/validation/messaging-notification.test.ts` (12) | ✅ |
+| **M8** | ⚠ *no story in PRD §6* | Notification | `notification.service.ts`, `domain/digest.ts` | `tests/validation/messaging-notification.test.ts` (cadence) | 🟦 |
+| **M9** | ⚠ *no story in PRD §6* | Moderation | `admin.service.ts`, `/api/admin/*` | ⚠ **no dedicated test** — covered only incidentally by the RBAC matrix | 🟦 |
+| **S1** | US-S1.1 ✔ defined | Profile | — | ⚠ **none** | ⬜ |
+| **S2** | ⚠ *no story in PRD §6* | Application | `RejectionCode` enum + transition API | ⚠ **no dedicated test** | ✅ |
+| **S3** | ⚠ *no story in PRD §6* | Application | budget check in SERIALIZABLE txn | ⚠ **no dedicated test** | ✅ |
+| **S4** | ⚠ *no story in PRD §6* | Opportunity | — | ⚠ **none** | ⬜ |
+| **S5** | US-S5.1 ✔ defined | Matching | — | ⚠ **none** | ⬜ |
+| **S6** | ⚠ *no story in PRD §6* | Teams | — | ⚠ **none** | ⬜ |
+| **S7** | ⚠ *no story in PRD §6* | Profile | — | ⚠ **none** | ⬜ |
+| **C1** | US-C1.1 ✔ defined | Analytics | — | ⚠ **none** | ⬜ |
+
+### 4.1 Two honest gaps in traceability
+
+**(a) Missing user stories.** Of the **17** requirements tracked above, PRD §6 writes acceptance criteria for only **7** (US-M1.1, M3.1, M5.1, M6.1, S1.1, S5.1, C1.1). The other **ten** — **M2, M4, M7, M8, M9, S2, S3, S4, S6, S7** — have **no Given/When/Then in the PRD**, which means their status is asserted against no written acceptance bar. → **T-40: back-fill user stories into PRD §6** for every Must-tier requirement at minimum. This is a documentation defect, not a code defect, and it is cheap to fix.
+
+**(b) Missing test levels.** `ImplementationPlan.md` §7 defines integration scenarios (IT-01…IT-07) and E2E happy paths (E2E-1…E2E-3); `README.md` advertises **Supertest** and **Playwright**. Neither package is installed and **not one integration or E2E test exists**. All 127 passing tests are unit tests over pure functions and Zod schemas. The earlier version of this matrix cited `IT-01`, `IT-04`, `E2E-3` and similar as if they were real — **those identifiers referred to nothing**. They have been removed rather than restated. → **G-02 / T-38**.
 
 ---
 
-## 4. Daily Standup Log
+## 5. NFR Conformance & Deviations from the PRD
 
-> Format: **Done / Next / Blocked**, per member, dated. (Convert relative dates to absolute.)
+Every non-functional requirement in PRD §7, checked against the code. **Where the build deliberately differs from the PRD's wording, it is recorded as a deviation with a rationale — not silently ignored, and not pretended to be conformant.**
 
-### 2026-08-26 (Kickoff)
+| ID | PRD §7 requirement | Status | Evidence / note |
+|---|---|---|---|
+| **NFR-P1** | Search p95 ≤ 300 ms | 🔁 | GIN `tsvector` index in place (the mechanism that makes the target reachable) but **latency has never been measured**. Cannot claim conformance. → **T-39** |
+| **NFR-P2** | Discovery < 2 min | 🔁 | Measurable only during the pilot (T-29) |
+| **NFR-S1** | Argon2/bcrypt hashing; secrets never committed | ✅ **with deviation** | **Deviation D-17:** uses **scrypt** (`src/lib/security/password.ts`), not Argon2. Node built-in, memory-hard, OWASP-listed; Argon2 requires native compilation unavailable on the build machine. Secrets: `.env` is git-ignored, `.env.example` holds placeholders only. |
+| **NFR-S2** | HTTPS only; JWT 15m access + 7d rotating refresh | ✅ | `access-token.ts`, `tokens.ts` with rotation + reuse detection; `ALLOW_INSECURE_COOKIES` fails closed in production (`src/lib/env.ts:93`) |
+| **NFR-S3** | Zod at every boundary; parameterised queries only | ✅ | `src/lib/validation/schemas.ts`; raw SQL uses `Prisma.sql` bound params throughout `listOpportunities()` |
+| **NFR-S4** | **Redis** token bucket per user & per IP | 🟦 **deviation** | **In-memory fixed-window limiter only** (`src/lib/security/rate-limit.ts`). The `RateLimiter` interface exists so the swap is call-site-free, but as shipped the limit is **per-instance** — on serverless it does not hold across invocations. Redis is not installed. → **G-03 / T-41** |
+| **NFR-A1** | ≥ 99% uptime on login + submission | 🔁 | Pilot-measured (T-29) |
+| **NFR-AC1** | WCAG 2.1 AA; never colour-only status | 🟦 | Status is conveyed by label text as well as colour (the design system is monochrome, which forces this). **No axe/Lighthouse audit has been run.** → **T-28** |
+| **NFR-PR1** | CGPA + contact private by default | ✅ | `Profile.cgpaPublic` defaults `false`; `profile.service.ts` gates exposure |
+| **NFR-PR2** | No personal data in URLs; soft-delete everywhere | ✅ | `deletedAt` on all soft-deletable models; routes key on opaque UUIDs |
+| **NFR-M1** | TypeScript strict, no `any`, shared Zod schemas | ✅ | `npm run typecheck` clean; one schema module shared client/server |
+| **NFR-O1** | Append-only `audit_log` on every privileged action | ✅ | `src/lib/security/audit.ts`, `AuditLog` model, called from every admin/service mutation |
+
+### 5.1 Stack deviations from the documented architecture
+
+`README.md` and `TechSpecifications.md` describe a stack the repo does not currently install. Stated plainly so the viva answer is honest:
+
+| Documented | Actually shipped | Why it is defensible |
+|---|---|---|
+| **Redis + BullMQ** for jobs | HTTP cron endpoints under `/api/cron/*`, authed by a constant-time `CRON_SECRET` | No queue infra in the pilot; jobs are idempotent, so at-least-once HTTP triggering is safe (D-09) |
+| **Redis** rate limiting | In-memory fixed window | See NFR-S4 — a known, interface-isolated gap, **not** a claim of conformance |
+| **Neon/Railway** Postgres | **Supabase** Postgres 16 via `@prisma/adapter-pg` + WASM query compiler | Native Prisma engine unavailable on Windows-ARM64 (D-18) |
+| **Supertest + Playwright** | Vitest only | See §4.1(b) — the levels are missing, not the intent |
+| Email provider for OTP | No provider wired; OTP surfaced through the dev channel | Blocks the pilot's real-user flow → **T-42** |
+
+> **Action:** either install these dependencies or amend `README.md` §Stack and `TechSpecifications.md` to describe what is real. A spec that overstates the build is the more damaging of the two errors. → **T-43**
+
+---
+
+## 6. Task Board
+
+Tasks carry a `Req` column tying them to §3. A task with **no requirement ID** is infrastructure or presentation work — legitimate, but it must not be mistaken for scope progress.
+
+### 6.1 Complete
+
+| ID | Title | Req | Module | Owner | Tier | Status |
+|---|---|---|---|---|---|---|
+| T-01 | Repo + project scaffold (Next 15 + Prisma) | — | Infra | Shared | Must | ✅ |
+| T-02 | Auth: register / verify / login / refresh | M1 | Identity | HA | Must | ✅ |
+| T-03 | RBAC: matrix + policy + guard + edge gate | M1 | Identity | HA | Must | ✅ |
+| T-04 | Prisma schema (identity + profile) | M1, M2 | Data | Shared | Must | ✅ |
+| T-05 | Admin bootstrap (no mock data) | M9 | Data | Shared | Must | ✅ |
+| T-06 | Profile CRUD + field-level privacy | M2 | Profile | SD | Must | ✅ |
+| T-07 | Skill taxonomy + `user_skills` | M2 | Profile | SD | Must | ✅ |
+| T-08 | Alumni claim flow | M1 | Identity | HA | Must | ✅ |
+| T-09 | Opportunity CRUD + SLA pledge | M3 | Opportunity | AC | Must | ✅ |
+| T-10 | Deadline expiry job | M3 | Opportunity | AC | Must | ✅ |
+| T-11 | FTS + GIN + faceted search | M4 | Opportunity | AC | Must | ✅ |
+| T-12 | Application submit + budget (SERIALIZABLE) | M5, **S3** | Application | AC | Must | ✅ |
+| T-13 | Pipeline + immutable event log | M5 | Application | AC | Must | ✅ |
+| T-14 | TTA + responsiveness badge | M6 | Analytics | AC | Must | ✅ |
+| T-15 | SLA nudge + `AT_RISK` job | M6 | Opportunity | AC | Must | ✅ |
+| T-16 | Scoped messaging | M7 | Messaging | SD | Must | ✅ |
+| T-17 | Notification feed + prefs + digest | M8 | Notification | SD | Must | ✅ |
+| T-18 | Admin console (users/roles/allowlist/alumni/claims/taxonomy) | M9 | Moderation | HA | Must | ✅ |
+| T-20 | Rejection reason codes | **S2** | Application | AC | Should | ✅ |
+| T-30 | Identity v2: thapar-only signup, faculty allowlist, admin-provisioned alumni, OTP login | M1 | Identity | HA | Must | ✅ |
+| T-31 | Sign in with Google (OAuth, thapar-only) | M1 | Identity | HA | Should | ✅ |
+| T-32 | Design system — warm editorial, monochrome light/dark, CSP-safe theme stamp | — | UI | HA | — | ✅ |
+| T-33 | 3-page marketing site + split-layout auth pages + floating nav dock | — | UI | HA | — | ✅ |
+
+### 6.2 Open — ordered by what unblocks the most
+
+| ID | Title | Req | Module | Owner | Tier | Status | Blocked by | Est |
+|---|---|---|---|---|---|---|---|---|
+| **T-34** | **CI workflow** (lint → typecheck → test → `db:deploy`) | — | Infra | HA | Must | 🟨 | GitHub Actions billing (G-01) | 0.5d |
+| **T-19** | **Attestations, `SELECTED`-gated by DB `CHECK`** | **S1** | Profile | SD | Should | ⬜ | T-13 ✅ | 1d |
+| T-35 | Deadline reminders at T−72h / T−24h | M8 | Notification | SD | Must | ⬜ | T-17 ✅ | 0.5d |
+| T-36 | Flag queue + moderation reason codes | M9 | Moderation | HA | Must | ⬜ | T-18 ✅ | 1d |
+| T-37 | Profile projects + repo links | M2 | Profile | SD | Must | ⬜ | T-06 ✅ | 0.5d |
+| T-25 | Institute-wide analytics dashboard | M9 | Analytics | AC | Must | ⬜ | T-14 ✅ | 1d |
+| T-39 | Search sort control + p95 latency measurement | M4, NFR-P1 | Opportunity | AC | Must | ⬜ | T-11 ✅ | 0.5d |
+| T-38 | Integration + E2E harness (Supertest / Playwright) | — | QA | Shared | Must | ⬜ | T-34 | 1d |
+| T-40 | Back-fill user stories into PRD §6 for M2, M4, M7, M8, M9 | — | Docs | HA | Must | ⬜ | — | 0.5d |
+| T-43 | Reconcile README / TechSpec stack claims with reality | — | Docs | HA | Must | ⬜ | — | 0.25d |
+| T-41 | Redis token-bucket rate limiter | NFR-S4 | Infra | HA | Should | ⬜ | Redis instance | 0.5d |
+| T-42 | Email provider for OTP + digest delivery | M1, M8 | Infra | HA | Must | 🟨 | provider account | 0.5d |
+| T-21 | Explainable matching (Jaccard) | S5 | Matching | SD | Should | ⬜ | T-07 ✅ | 1d |
+| T-23 | Saved searches + alerts | S4 | Opportunity | AC | Should | ⬜ | T-11 ✅ | 0.5d |
+| T-24 | Verified project artifacts | S7 | Profile | SD | Should | ⬜ | **T-37** | 0.5d |
+| T-22 | Team formation (complementarity) | S6 | Teams | SD | Should | ⬜ | T-21 | 1d |
+| T-26 | Readiness meter | C1 | Analytics | AC | Could | ⬜ | T-25 | 0.5d |
+| T-27 | Interview archive | C2 | Content | SD | Could | ⬜ | T-06 ✅ | 0.5d |
+| T-28 | A11y (WCAG 2.1 AA audit) + perf + hardening pass | NFR-AC1 | Shared | Shared | Must | ⬜ | all | 1d |
+| T-29 | Pilot run + report | §8 metrics | Shared | Shared | Must | ⬜ | T-28, T-42 | 1d |
+
+> **Critical path to G3:** `T-42 (email)` → seed taxonomy → `T-19 (attestations)` → `T-28 (a11y/perf)` → `T-29 (pilot)`. Everything else is parallelisable. **T-42 is the true long pole** — without OTP delivery no pilot participant can log in, and the primary metric (median TTA) cannot be collected at all.
+
+---
+
+## 7. Milestone Gates
+
+Go/No-Go conditions from `ImplementationPlan.md` §5, assessed honestly.
+
+| Gate | Go condition | Assessment |
+|---|---|---|
+| **G1** (end W1) | Verified registration + profile live on staging | ✅ **Passed.** Auth, RBAC, profile and taxonomy complete; DB live |
+| **G2** (end W2) | End-to-end loop demoable; immutable events + TTA correct | ✅ **Passed.** Discover → apply → track → resolve works end to end; `ApplicationEvent` is append-only; TTA computed from `first_transition_at − applied_at` |
+| **G3** (end W3) | Pilot ran, metrics collected | 🟨 **At risk.** No pilot data, no email delivery (T-42), no CI (T-34), four Must requirements still 🟦. **No-Go action per the plan:** ship the recorded fallback demo and report on partial data |
+
+> Per the G2 no-go rule — *"stop all Should/Could work; harden the spine only"* — G2 **passed**, so Should-tier work (S1 attestations) is legitimately unblocked. But the four 🟦 Must items in §3.1 outrank every Should item. **Finish M2, M4, M8, M9 before starting S4/S5/S6.**
+
+---
+
+## 8. Daily Standup Log
+
+> Format: **Done / Next / Blocked**, per member, dated. Absolute dates only.
+
+### 2026-08-26 — Kickoff
 | Member | Done | Next | Blocked |
 |---|---|---|---|
 | HA | Baselined 8 docs; repo created | CI skeleton, auth scaffold | — |
 | AC | Reviewed opportunity/application scope | Prisma schema for opportunities | — |
 | SD | Reviewed profile/matching scope | Wireframes for profile + search | — |
 
-### 2026-08-26 (Phase 1 — IAM foundation)
+### 2026-08-26 — Phase 1, IAM foundation
 | Member | Done | Next | Blocked |
 |---|---|---|---|
-| HA | Scaffolded Next 15 + Prisma; built auth (register/OTP/login/refresh w/ rotation+reuse detection), deny-by-default RBAC (matrix→policy→guard→edge middleware), profile + alumni-claim routes, audit log, security headers; matrix + OTP tests; `docs/Security.md`. Removed all mock data — admin bootstraps from env only. | CI workflow (lint→typecheck→test→migrate); wire skill-taxonomy admin routes | Prisma migration needs a live Postgres URL |
+| HA | Scaffolded Next 15 + Prisma; auth (register/OTP/login/refresh with rotation + reuse detection); deny-by-default RBAC across 4 layers (matrix → policy → guard → edge middleware); profile + alumni-claim routes; audit log; security headers; matrix + OTP tests; `docs/Security.md`. Removed all mock data — admin bootstraps from env only | CI workflow; wire skill-taxonomy admin routes | Prisma migration needs a live Postgres URL |
 | AC | — | Opportunity schema (Phase 2) | — |
 | SD | — | Profile UI + skill assignment endpoint | — |
 
-### 2026-08-27 (Phase 1 — skill taxonomy complete)
+### 2026-08-27 — Phase 1, skill taxonomy complete
 | Member | Done | Next | Blocked |
 |---|---|---|---|
-| HA | Wired T-07 end to end: `Skill.updatedAt/deletedAt` + `UserSkill.updatedAt` (soft delete per Rules.md), strict Zod DTOs (no free-text skills, no mass assignment), `skill.service.ts` (taxonomy CRUD + replace/add/remove own skills, all audited), routes: `GET /api/skills` (any role), `GET/POST /api/admin/skills` + `PATCH/DELETE /api/admin/skills/:id` (ADMIN), `PUT/POST /api/profiles/me/skills` + `DELETE /api/profiles/me/skills/:skillId` (self, ownership-scoped); matrix + validation tests (48 total); vitest env setup so tests run without a live DB. | Phase 2 — Opportunity CRUD (T-09) | Postgres URL still needed for `db:migrate` |
-| AC | — | Opportunity schema (Phase 2) | — |
-| SD | — | Profile UI in warm-dark style (Fable/Figma) + wire skill assignment endpoint | — |
+| HA | Wired **T-07 (M2)** end to end: soft-delete columns per `Rules.md`; strict Zod DTOs (no free-text skills, no mass assignment); `skill.service.ts` taxonomy CRUD, all audited; `GET /api/skills`, admin taxonomy routes, self-scoped `/api/profiles/me/skills`; 48 tests; vitest env setup so tests run without a live DB | Phase 2 — Opportunity CRUD (T-09) | Postgres URL still needed |
+| AC | — | Opportunity schema | — |
+| SD | — | Profile UI + skill assignment | — |
 
-### 2026-08-28 (Phase 2 — The Spine complete, G2 gate)
+### 2026-08-28 — Phase 2, The Spine complete → G2 passed
 | Member | Done | Next | Blocked |
 |---|---|---|---|
-| HA | Closed the entire Phase 2 loop end to end. **T-10** cron expiry (`/api/cron/*` guarded by `CRON_SECRET`, constant-time). **T-11** FTS discovery: GIN tsvector index + injection-safe `Prisma.sql` keyset query with `q`/type/domain/stipend/skill facets. **T-12/T-13** application pipeline: race-safe budget + partial-unique one-per-student, SERIALIZABLE seat allocation that can't exceed `seat_count`, immutable `ApplicationEvent` log, `first_transition_at` stamp, poster/student views, state-machine module. **T-14** TTA + responsiveness badge (public on postings; poster/admin analytics). **T-15** SLA sweep → `AT_RISK` + poster nudge. **T-16** scoped messaging (thread bound to an application; membership-enforced). **T-17** notifications feed + prefs + cadence digest job, wired into every lifecycle event. 118 tests green; prod build clean (26 API routes, middleware 53.2 kB edge). | Phase 3 (attestations, matching, admin console, analytics dashboard) | `db:migrate` still needs a live Postgres URL |
-| AC | (covered under HA this cycle) | Saved searches + alerts (T-23) | — |
-| SD | (covered under HA this cycle) | Attestations UI + messaging UI in warm-dark style | — |
+| HA | Closed the Phase 2 loop. **T-10 (M3)** cron expiry behind a constant-time `CRON_SECRET`. **T-11 (M4)** GIN tsvector + injection-safe `Prisma.sql` keyset query with facets. **T-12/T-13 (M5, S3)** race-safe budget, partial-unique one-per-student, SERIALIZABLE seat allocation that cannot exceed `seat_count`, immutable event log, `first_transition_at`. **T-14/T-15 (M6)** TTA, responsiveness badge, SLA sweep → `AT_RISK`. **T-16 (M7)** scoped messaging. **T-17 (M8)** notifications + prefs + digest. **T-30/T-31 (M1)** identity v2 + Google OAuth. **T-18 (M9)** admin console. Supabase wired via `@prisma/adapter-pg`; all 6 migrations applied. 118 tests green; prod build clean | Phase 3 | `db:migrate` needed a live Postgres URL *(resolved same day)* |
+| AC | (covered under HA this cycle) | Saved searches (T-23) | — |
+| SD | (covered under HA this cycle) | Attestations UI + messaging UI | — |
 
-### _(Template for future days)_
+### 2026-08-29 — Design system + landing; tracker reconciled with the PRD
+| Member | Done | Next | Blocked |
+|---|---|---|---|
+| HA | **T-32/T-33** — adopted the warm editorial design system, pure monochrome light/dark palette with a CSP-hash-allowlisted pre-paint theme stamp (fixes the theme flash), official `ti` lettermark, translucent floating nav dock, 3-page marketing site (`/`, `/product`, `/about`), split-layout auth pages, hero headline balancing. Fixed the `.reveal` bug that left landing cards at `opacity:0` (B-03). Hardened `env.ts` to treat a blank env var as unset. **Audited the whole repo against the PRD and rewrote this tracker**: found T-20 (S2) and T-12's budget (S3) shipped but recorded as not started; found M2/M4/M8/M9 recorded as done while each carried a real gap; found the traceability matrix citing `IT-*`/`E2E-*` test IDs that refer to nothing | T-34 (CI) · T-42 (email) · close the four 🟦 Musts | Actions billing (G-01) |
+| AC | — | T-25 institute analytics · T-39 search sort + p95 | — |
+| SD | — | **T-19 attestations (S1 — the flagship differentiator)** · T-37 profile projects | — |
+
+### _(Template)_
 ```
 ### YYYY-MM-DD
 | Member | Done | Next | Blocked |
@@ -144,49 +310,77 @@
 
 ---
 
-## 5. Decision Log
+## 9. Decision Log
 
-| Date | Decision | Alternatives considered | Rationale |
-|---|---|---|---|
-| 2026-08-26 | Postgres FTS + pg_trgm over Elasticsearch | Elasticsearch, Meilisearch | Pilot scale; avoids sync/ops failure mode; documented 300ms/50k migration trigger |
-| 2026-08-26 | Polling/SSE over WebSockets (v1) | Socket.io | Low message volume, high latency tolerance; behind an interface for later swap |
-| 2026-08-26 | Custom JWT over managed auth | Auth0, Clerk | Course expects auth built, not delegated |
-| 2026-08-26 | Attestation gated by SELECTED in DB CHECK | Service-layer enforcement | Makes competency unfarmable at the strongest layer |
-| 2026-08-26 | Alumni claim-and-approve flow | `@thapar.edu`-only signup | Alumni lose institute email; naive rule makes role unreachable |
-| 2026-08-26 | No mock data/accounts; admin bootstraps from env only | Seeded demo users/skills | Keeps pilot TTA/analytics honest; avoids committed credentials |
-| 2026-08-26 | Authoritative role/status re-loaded from DB each request | Trust JWT claims | A stolen/stale token cannot outrun a suspension or role change |
-| 2026-08-26 | Deny-by-default RBAC enforced at 4 layers | Single middleware check | Defense-in-depth; matrix-driven CI tests block widening access |
-| 2026-08-28 | Scheduled jobs authed by `CRON_SECRET` (constant-time), not the RBAC matrix | A privileged service account | Jobs have no user principal; fail-closed when the secret is unset (endpoint 404s) |
-| 2026-08-28 | FTS via Postgres GIN tsvector + `websearch_to_tsquery` | `ILIKE`, Elasticsearch | Sub-linear keyword search inside the DB; injection-safe bound params; matches the M4 <300ms budget |
-| 2026-08-28 | Application budget + seat allocation in SERIALIZABLE txns; seats via conditional UPDATE | Advisory locks, app-level mutex | DB is the arbiter: partial-unique blocks double-apply, conditional increment can't exceed `seat_count` |
-| 2026-08-28 | Messaging threads bound 1:1 to an application; membership-checked | Open DM inbox | Scoping prevents cold-contact; admin may read (moderation) but not post |
-| 2026-08-28 | Notifications delivered via in-app feed + cadence digest; email is a future seam | Immediate email only | No email infra in pilot; `deliveredAt` makes the digest idempotent and email pluggable |
-| 2026-08-28 | Registration is @thapar.edu-only; default role STUDENT | Open registration | Institutional identity; no impersonation; alumni are the sole non-thapar accounts |
-| 2026-08-28 | Faculty via admin-curated allowlist (auto-promote on login) + manual panel toggle | Self-select faculty, email-domain heuristic | Finite known roster; auditable; pre-loadable before deployment |
-| 2026-08-28 | Alumni are admin-provisioned (personal email + proof), sign in via passwordless OTP | Alumni self-register with any email | Thapar email is revoked; keeps identity human-verified and under the single admin |
-| 2026-08-28 | Exactly one ADMIN; panel can set STUDENT/FACULTY/ALUMNI but never ADMIN; admin account immutable in-panel | Multiple admins | Single operator model; prevents privilege-escalation via the console |
-
----
-
-## 6. Bug Register
-
-| ID | Severity | Title | Module | Found | Status | Resolution |
-|---|---|---|---|---|---|---|
-| B-01 | S1 | CI blocked: account billing — Actions never start ("recent account payments have failed…") | Infra | 2026-08-27 | 🟨 | **External** — fix in GitHub Settings → Billing & plans; not a repo issue |
-| B-02 | S1 | CI `db:deploy` would fail: no `prisma/migrations` and missing `citext` extension for `@db.Citext` | Infra | 2026-08-27 | ✅ | Added initial migration `20260826191437_init` (patched `CREATE EXTENSION citext`); verified deploy against postgres:16 |
-
-**Severity scale:** S1 Blocker · S2 Major · S3 Minor · S4 Cosmetic.
+| # | Date | Decision | Alternatives | Rationale |
+|---|---|---|---|---|
+| D-01 | 2026-08-26 | Postgres FTS + `pg_trgm` over Elasticsearch | Elasticsearch, Meilisearch | Pilot scale; avoids the sync/ops failure mode; documented 300 ms / 50k migration trigger |
+| D-02 | 2026-08-26 | Polling/SSE over WebSockets (v1) | Socket.io | Low message volume, high latency tolerance; behind an interface for a later swap |
+| D-03 | 2026-08-26 | Custom JWT over managed auth | Auth0, Clerk | The course expects auth built, not delegated |
+| D-04 | 2026-08-26 | Attestation gated by `SELECTED` in a DB `CHECK` | Service-layer enforcement | Makes competency unfarmable at the strongest layer (PRD US-S1.1) |
+| D-05 | 2026-08-26 | Alumni claim-and-approve flow | `@thapar.edu`-only signup | Alumni lose the institute address; the naive rule makes the role unreachable (PRD §4.5) |
+| D-06 | 2026-08-26 | No mock data or accounts; admin bootstraps from env only | Seeded demo users/skills | Keeps pilot TTA honest; avoids committed credentials |
+| D-07 | 2026-08-26 | Role/status re-loaded from the DB each request | Trust JWT claims | A stolen or stale token cannot outrun a suspension or role change |
+| D-08 | 2026-08-26 | Deny-by-default RBAC at 4 layers | A single middleware check | Defense in depth; matrix-driven tests block accidental widening |
+| D-09 | 2026-08-28 | Scheduled jobs authed by a constant-time `CRON_SECRET`, not the RBAC matrix | A privileged service account | Jobs have no user principal; fail closed when the secret is unset (the endpoint 404s) |
+| D-10 | 2026-08-28 | FTS via GIN tsvector + `websearch_to_tsquery` | `ILIKE`, Elasticsearch | Sub-linear keyword search inside the DB; bound params; meets the NFR-P1 budget |
+| D-11 | 2026-08-28 | Budget + seat allocation in SERIALIZABLE txns; seats via a conditional `UPDATE` | Advisory locks, app-level mutex | The DB is the arbiter: partial-unique blocks a double-apply, a conditional increment cannot exceed `seat_count` |
+| D-12 | 2026-08-28 | Message threads bound 1:1 to an application, membership-checked | An open DM inbox | Scoping prevents cold contact; an admin may read for moderation but never post |
+| D-13 | 2026-08-28 | Notifications via in-app feed + cadence digest; email is a future seam | Immediate email only | No email infra in the pilot; `deliveredAt` makes the digest idempotent and email pluggable |
+| D-14 | 2026-08-28 | Registration is `@thapar.edu`-only; default role `STUDENT` | Open registration | Institutional identity; alumni are the sole non-Thapar accounts |
+| D-15 | 2026-08-28 | Faculty via an admin-curated allowlist (auto-promote on login) + a manual toggle | Self-select, email heuristic | A finite known roster; auditable; pre-loadable before deployment |
+| D-16 | 2026-08-28 | Exactly one `ADMIN`; the panel can set STUDENT/FACULTY/ALUMNI but never ADMIN | Multiple admins | Single-operator model; prevents privilege escalation through the console |
+| **D-17** | 2026-08-28 | **scrypt** for password hashing, not Argon2 | Argon2, bcrypt | Memory-hard and OWASP-listed, built into Node — Argon2 needs native compilation unavailable on the build machine. **Deviates from PRD NFR-S1 wording; recorded rather than hidden** |
+| **D-18** | 2026-08-28 | **Supabase** Postgres via `@prisma/adapter-pg` + WASM query compiler | Neon, Railway, the native Prisma engine | The native Prisma engine has no Windows-ARM64 build. Deviates from the PRD §9 dependency list |
+| **D-19** | 2026-08-29 | The marketing site is 3 focused pages with a shared nav/footer | One long landing page | The single page had dead vertical space; three pages each stay full and purposeful |
+| **D-20** | 2026-08-29 | **A partial requirement is recorded as 🟦 with a named gap, never rounded up to ✅** | Mark the parent task done once the main path works | Four Must requirements were sitting at ✅ with real gaps behind them. A tracker that overstates completion is worse than no tracker — it hides the work remaining before G3 |
 
 ---
 
-## 7. Metric Snapshots
+## 10. Gap & Bug Register
 
-> Populated once the pilot starts (see `ImplementationPlan.md` §10). Targets from `PRD.md` §8.
+**Severity:** S1 Blocker · S2 Major · S3 Minor · S4 Cosmetic
 
-| Date | Median TTA | Discovery time | Resolution rate | Status clarity | Attestation adoption | Uptime |
+| ID | Sev | Title | Module | Found | Status | Resolution / next step |
 |---|---|---|---|---|---|---|
-| _target_ | ≤ 48h | < 2 min | ≥ 80% | ≥ 4.0 | ≥ 25% | ≥ 99% |
-| _(pilot day)_ | — | — | — | — | — | — |
+| B-01 | S1 | CI blocked: account billing — Actions never start | Infra | 2026-08-27 | 🟨 | **External** — GitHub Settings → Billing & plans. Not a repo issue |
+| B-02 | S1 | `db:deploy` would fail: no migrations dir, missing `citext` extension | Infra | 2026-08-27 | ✅ | Added `20260826191437_init` with `CREATE EXTENSION citext`; verified against postgres:16 |
+| B-03 | S3 | Landing cards invisible — `.reveal` stuck at `opacity:0` when the IntersectionObserver never fired | UI | 2026-08-29 | ✅ | `.reveal` is now visible by default with a guaranteed-terminating entrance animation |
+| B-04 | S3 | Inline scripts blocked by CSP after the theme-stamp change | UI | 2026-08-29 | ✅ | Nonced the inline scripts (`c03fef9`) |
+| **B-05** | **S2** | **`npm run build` fails from a clean checkout** — `.env` carries `ALLOW_INSECURE_COOKIES="true"` for dev, `next build` forces `NODE_ENV=production`, tripping the guard at `src/lib/env.ts:93` | Infra | 2026-08-29 | ⬜ | Not a code defect — the guard is correct and should stay. Document it in `.env.example` and set the flag `false` in the Vercel/CI environment. It will break T-34 on day one otherwise |
+| **G-01** | **S1** | **No CI workflow exists** — `.github/` is absent entirely. `Rules.md` §1 requires "green before merge (lint → typecheck → test → migrate)"; nothing enforces it | Infra | 2026-08-29 | 🟨 | Blamed on B-01 billing, but the workflow file was never authored either. Write it now so it runs the moment billing clears → **T-34** |
+| **G-02** | **S2** | **No integration or E2E tests.** `ImplementationPlan.md` §7 defines IT-01…IT-07 and E2E-1…E2E-3; `README.md` advertises Supertest + Playwright. Neither is installed. All 127 tests are unit tests | QA | 2026-08-29 | ⬜ | The SERIALIZABLE budget/seat logic and the RBAC route guards are exactly the code that unit tests cannot cover → **T-38** |
+| **G-03** | **S2** | **Rate limiting is in-memory, not Redis (NFR-S4).** Per-instance only — on serverless it does not hold across invocations, so the auth brute-force guard is weaker than the PRD claims | Security | 2026-08-29 | ⬜ | The `RateLimiter` interface already isolates the swap → **T-41** |
+| **G-04** | **S1** | **No email provider wired.** OTP is the only login path for alumni and the verification step for everyone. Without delivery, **no external pilot participant can sign in** | Infra | 2026-08-29 | 🟨 | Blocks T-29 and therefore the primary success metric → **T-42** |
+| **G-05** | S2 | **The traceability matrix cited test IDs that do not exist** (`IT-01`, `IT-04`, `E2E-3`, `UT-*`) | Docs | 2026-08-29 | ✅ | Fixed in this rewrite — §4 names real files only, and §4.1(b) states the gap plainly |
+| **G-06** | S2 | **The task board disagreed with the code in both directions** — T-20 (S2) and the S3 budget shipped but were marked ⬜; M2/M4/M8/M9 were marked ✅ with real gaps | Docs | 2026-08-29 | ✅ | Fixed in this rewrite; **D-20** sets the rule that prevents a recurrence |
+| **G-07** | S3 | **10 of the 17 requirements tracked in §4 have no user story or acceptance criteria** in PRD §6 — including five Must-tier (M2, M4, M7, M8, M9) | Docs | 2026-08-29 | ⬜ | Their status is asserted against no written bar → **T-40** |
+| **G-08** | S3 | **Empty skill taxonomy** — the `skills` table has 0 rows, so matching (S5), the readiness meter (C1) and faceted skill search have nothing to operate on | Data | 2026-08-29 | ⬜ | Not seeded, by design (D-06), but the admin must curate a starter taxonomy through the console before T-29 |
+
+---
+
+## 11. Metric Snapshots
+
+Targets from `PRD.md` §8. Populated once the pilot starts (`ImplementationPlan.md` §10).
+
+| Date | Median TTA | Discovery time | Resolution rate | Match relevance | Status clarity | Attestation adoption | Uptime |
+|---|---|---|---|---|---|---|---|
+| **_target_** | **≤ 48 h** | < 2 min | ≥ 80% | ≥ 30% | ≥ 4.0 | ≥ 25% | ≥ 99% |
+| _(pilot day)_ | — | — | — | — | — | — | — |
+
+**Instrumentation readiness:**
+
+| Metric | Can we compute it today? |
+|---|---|
+| Median TTA (**primary**) | ✅ Yes — `first_transition_at − applied_at`, straight from `application_events`. Fully attributable, never self-reported |
+| Resolution rate | ✅ Yes — terminal-state count over `application_events` |
+| Uptime | ✅ Yes — `/api/health` |
+| Discovery time | 🟦 Needs session-start → first-detail-view instrumentation |
+| Attestation adoption | ❌ **Blocked on S1** — the entity does not exist yet |
+| Match relevance | ❌ **Blocked on S5** |
+| Status clarity | ❌ A survey instrument — collect at the T-29 debrief |
+
+> PRD §8.3 warns that instrumenting analytics late "never works". Three of seven metrics are currently uncomputable, and two of those are blocked on unbuilt Should-tier features. **The gap between _perceived_ wait and _measured_ TTA is itself a reportable finding** — the pre-pilot interview baseline must be captured before any participant touches the platform.
 
 ---
 
@@ -194,6 +388,6 @@
 
 [← ImplementationPlan](ImplementationPlan.md) &nbsp;·&nbsp; **Tracker** &nbsp;·&nbsp; [Rules →](Rules.md)
 
-_Update this file at every standup — the traceability matrix is where the marks hide._
+_Every row traces to a PRD identifier. A partial is written as a partial — that is where the marks, and the remaining work, actually live._
 
 </div>
