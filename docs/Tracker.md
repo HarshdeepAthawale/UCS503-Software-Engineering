@@ -56,7 +56,9 @@
 | T-15 | SLA nudge + AT_RISK job | Opportunity | AC | Must | ✅ | T-14 | 0.5d → — |
 | T-16 | Scoped messaging | Messaging | SD | Must | ✅ | T-13 | 1d → — |
 | T-17 | Notification digest + prefs | Notification | SD | Must | ✅ | T-13 | 1d → — |
-| T-18 | Admin console (claims/flags/taxonomy) | Moderation | HA | Must | ⬜ | T-08 | 1.5d → — |
+| T-18 | Admin console (users/roles/allowlist/alumni/claims/taxonomy) | Moderation | HA | Must | ✅ | T-08 | 1.5d → — |
+| T-30 | Identity v2: thapar-only signup, faculty allowlist, admin-provisioned alumni, OTP login | Identity | HA | Must | ✅ | T-02 | 1d → — |
+| T-31 | Sign in with Google (OAuth, thapar-only) | Identity | HA | Should | ✅ | T-02 | 0.5d → — |
 | T-19 | Attestations (SELECTED-gated) | Profile | SD | Should | ⬜ | T-13 | 1d → — |
 | T-20 | Rejection reason codes | Application | AC | Should | ⬜ | T-13 | 0.5d → — |
 | T-21 | Explainable matching (Jaccard) | Matching | SD | Should | ⬜ | T-07 | 1d → — |
@@ -159,6 +161,10 @@
 | 2026-08-28 | Application budget + seat allocation in SERIALIZABLE txns; seats via conditional UPDATE | Advisory locks, app-level mutex | DB is the arbiter: partial-unique blocks double-apply, conditional increment can't exceed `seat_count` |
 | 2026-08-28 | Messaging threads bound 1:1 to an application; membership-checked | Open DM inbox | Scoping prevents cold-contact; admin may read (moderation) but not post |
 | 2026-08-28 | Notifications delivered via in-app feed + cadence digest; email is a future seam | Immediate email only | No email infra in pilot; `deliveredAt` makes the digest idempotent and email pluggable |
+| 2026-08-28 | Registration is @thapar.edu-only; default role STUDENT | Open registration | Institutional identity; no impersonation; alumni are the sole non-thapar accounts |
+| 2026-08-28 | Faculty via admin-curated allowlist (auto-promote on login) + manual panel toggle | Self-select faculty, email-domain heuristic | Finite known roster; auditable; pre-loadable before deployment |
+| 2026-08-28 | Alumni are admin-provisioned (personal email + proof), sign in via passwordless OTP | Alumni self-register with any email | Thapar email is revoked; keeps identity human-verified and under the single admin |
+| 2026-08-28 | Exactly one ADMIN; panel can set STUDENT/FACULTY/ALUMNI but never ADMIN; admin account immutable in-panel | Multiple admins | Single operator model; prevents privilege-escalation via the console |
 
 ---
 
