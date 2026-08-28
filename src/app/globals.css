@@ -1008,13 +1008,16 @@ section {
   border-radius: 20px;
   padding: 56px 40px;
   text-align: center;
-  background:
-    radial-gradient(700px 300px at 50% 0%, var(--accent-glow), transparent 70%),
-    var(--surface);
+  /* No accent wash. There were three `.cta-band` rules in this file and this
+     one's background was overridden by the last of them, so the gradient never
+     painted - it was dead code that read as live. The panel's own colour is
+     set once, further down. */
+  background: var(--surface);
 }
 .cta-band h2 {
   font-family: var(--font-display);
-  font-weight: 600;
+  /* 400, like every other display heading. */
+  font-weight: 400;
   font-size: clamp(28px, 4vw, 42px);
   letter-spacing: -0.02em;
   line-height: 1.05;
@@ -2140,27 +2143,35 @@ footer {
   background: var(--accent-soft);
 }
 
-/* CTA band - clean inverted panel (ink) for a strong finish */
+/* CTA band - a raised panel, not an inverted one.
+
+   This used to flip to `background: var(--ink); color: var(--on-ink)`, which
+   painted a near-black slab on the light theme and a full-bleed cream slab on
+   the dark one. It was deliberate ("a strong finish") and it is being changed
+   deliberately: the reference design never inverts a panel. Measured across
+   its landing page, every section resolves to a transparent background - the
+   whole page is one sheet of paper - and emphasis comes from a raised surface,
+   a hairline, and the single accent.
+
+   The dark theme is the case that made this worth changing. A large light
+   panel on a near-black page is the one thing in a dark UI that reads as
+   glare, and it arrives at the bottom of the page where the reader's eyes have
+   already adapted.
+
+   To restore the inverted treatment, set `background: var(--ink)` and
+   `color: var(--on-ink)` here again; the button rules below follow from it. */
 .cta-band {
   position: relative;
   overflow: hidden;
-  background: var(--ink);
-  color: var(--on-ink);
+  background: var(--surface);
   border: 1px solid var(--border-strong);
 }
-.cta-band h2 {
-  color: var(--on-ink);
-}
-.cta-band p {
-  color: color-mix(in oklab, var(--on-ink) 72%, transparent);
-}
 .cta-band .btn-primary {
-  background: var(--on-ink);
-  color: var(--ink);
+  background: var(--accent);
+  color: #fff;
 }
-.cta-band .btn-ghost {
-  color: var(--on-ink);
-  border-color: color-mix(in oklab, var(--on-ink) 40%, transparent);
+.cta-band .btn-primary:hover {
+  background: var(--accent-hover);
 }
 
 /* Section dividers a bit richer */
