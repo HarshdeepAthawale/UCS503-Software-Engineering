@@ -49,6 +49,13 @@ const CASES: Array<[Role, Permission, boolean]> = [
   ["FACULTY", "skill_taxonomy:manage", false],
   ["ALUMNI", "skill_taxonomy:read", true],
   ["ALUMNI", "skill_taxonomy:manage", false],
+  // Opportunities (T-09): everyone can read/list; only faculty/alumni post.
+  // `opportunity:update` is ownership-scoped and asserted in the ownership suite.
+  ["STUDENT", "opportunity:list", true],
+  ["STUDENT", "opportunity:update", false],
+  ["FACULTY", "opportunity:list", true],
+  ["ALUMNI", "opportunity:create", true],
+  ["ADMIN", "opportunity:update", false], // admins govern, they don't post
 ];
 
 describe("RBAC matrix (deny-by-default)", () => {
@@ -83,6 +90,18 @@ describe("Ownership scoping (prevents IDOR / horizontal escalation)", () => {
     const r = decide(me, "profile:update", {});
     expect(r.allowed).toBe(false);
     if (!r.allowed) expect(r.reason).toBe("ownership_unresolved");
+  });
+
+  it("allows a faculty member to update their OWN posting (T-09)", () => {
+    const poster = P("FACULTY");
+    expect(can(poster, "opportunity:update", { ownerId: poster.userId })).toBe(true);
+  });
+
+  it("denies a faculty member updating ANOTHER poster's posting", () => {
+    const poster = P("FACULTY");
+    const r = decide(poster, "opportunity:update", { ownerId: "another-poster" });
+    expect(r.allowed).toBe(false);
+    if (!r.allowed) expect(r.reason).toBe("not_owner");
   });
 });
 

@@ -47,7 +47,7 @@
 | T-06 | Profile CRUD + field-level privacy | Profile | SD | Must | ✅ | T-02 | 1d → — |
 | T-07 | Skill taxonomy + user_skills (schema) | Profile | SD | Must | ✅ | T-04 | 1d → — |
 | T-08 | Alumni claim flow | Identity | HA | Must | ✅ | T-02 | 1d → — |
-| T-09 | Opportunity CRUD + SLA pledge | Opportunity | AC | Must | ⬜ | T-04 | 2d → — |
+| T-09 | Opportunity CRUD + SLA pledge | Opportunity | AC | Must | ✅ | T-04 | 2d → — |
 | T-10 | Deadline expiry job | Opportunity | AC | Must | ⬜ | T-09 | 0.5d → — |
 | T-11 | FTS + GIN + faceted search | Opportunity | AC | Must | ⬜ | T-09 | 1d → — |
 | T-12 | Application submit + budget (SERIALIZABLE) | Application | AC | Must | ⬜ | T-09 | 1.5d → — |

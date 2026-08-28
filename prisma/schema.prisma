@@ -50,6 +50,56 @@ enum AlumniClaimDecision {
   REJECTED
 }
 
+// ── Phase 2 (The Spine) — Opportunity pipeline enums (docs/Schema.md §4) ─────
+
+enum OppType {
+  RESEARCH
+  INTERNSHIP
+  TA
+  HACKATHON_TEAM
+  MICRO_TASK
+  REFERRAL
+}
+
+enum OppStatus {
+  DRAFT
+  LIVE
+  AT_RISK // SLA pledge breached (T-15)
+  EXPIRED // deadline passed (T-10)
+  CLOSED
+}
+
+enum SlaPledge {
+  H24
+  H48
+  WEEK
+}
+
+enum AppState {
+  APPLIED
+  RECEIVED
+  SHORTLISTED
+  INTERVIEW
+  SELECTED
+  REJECTED
+  WITHDRAWN
+}
+
+enum RejectionCode {
+  SKILL_MISMATCH
+  SEATS_FILLED
+  TIMING_CONFLICT
+  PROFILE_INCOMPLETE
+  STRONGER_APPLICANTS
+  OTHER
+}
+
+enum NotifFreq {
+  IMMEDIATE
+  DAILY
+  WEEKLY
+}
+
 // ── Identity ─────────────────────────────────────────────────────────────────
 
 model User {
@@ -69,6 +119,9 @@ model User {
   otpChallenges OtpChallenge[]
   alumniClaim   AlumniClaim?
   auditEvents   AuditLog[]     @relation("actor")
+  opportunities Opportunity[]  @relation("poster")
+  applications  Application[]  @relation("student")
+  events        ApplicationEvent[] @relation("event_actor")
 
   @@index([role])
   @@index([status])
@@ -170,6 +223,7 @@ model Skill {
   deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
 
   userSkills UserSkill[]
+  opportunitySkills OpportunitySkill[]
 
   @@index([domain])
   @@index([deletedAt])
@@ -190,6 +244,97 @@ model UserSkill {
   // Composite PK prevents duplicate skill rows (docs/Schema.md §6, constraint 6).
   @@id([userId, skillId])
   @@map("user_skills")
+}
+
+// ── Opportunity (T-09; docs/Schema.md §5.5) ──────────────────────────────────
+
+// Structured posting with typed fields, an SLA pledge and auto-expiry.
+// `seats_filled` can never exceed `seat_count` (constraint 4, docs/Schema.md §6).
+model Opportunity {
+  id         String    @id @default(uuid()) @db.Uuid
+  posterId   String    @map("poster_id") @db.Uuid
+  type       OppType
+  title      String
+  description String
+  domain     String
+  duration   String?
+  stipend    Boolean   @default(false)
+  seatCount  Int       @default(1) @map("seat_count")
+  seatsFilled Int      @default(0) @map("seats_filled")
+  deadline   DateTime  @db.Timestamptz(6)
+  slaPledge  SlaPledge @map("sla_pledge")
+  status     OppStatus @default(LIVE)
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  poster            User                @relation("poster", fields: [posterId], references: [id], onDelete: Cascade)
+  opportunitySkills OpportunitySkill[]
+  applications      Application[]
+
+  @@index([posterId])
+  @@index([status])
+  @@index([deadline])
+  @@index([type, domain, stipend])
+  @@map("opportunities")
+}
+
+// Required/preferred skill tags for an opportunity (admin-curated taxonomy).
+model OpportunitySkill {
+  opportunityId String          @map("opportunity_id") @db.Uuid
+  skillId       String          @map("skill_id") @db.Uuid
+  requirement   SkillRequirement
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  opportunity Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  skill       Skill       @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@id([opportunityId, skillId])
+  @@map("opportunity_skills")
+}
+
+// ── Application pipeline (T-12/T-13; docs/Schema.md §5.6) ─────────────────────
+
+// One application per student per opportunity (unique index on non-deleted
+// rows, constraint 3). `first_transition_at` is stamped once and drives TTA.
+model Application {
+  id               String    @id @default(uuid()) @db.Uuid
+  opportunityId    String    @map("opportunity_id") @db.Uuid
+  studentId        String    @map("student_id") @db.Uuid
+  status           AppState  @default(APPLIED)
+  appliedAt        DateTime  @default(now()) @map("applied_at") @db.Timestamptz(6)
+  firstTransitionAt DateTime? @map("first_transition_at") @db.Timestamptz(6)
+  rejectionCode    RejectionCode? @map("rejection_code")
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  opportunity Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  student     User        @relation("student", fields: [studentId], references: [id], onDelete: Cascade)
+  events      ApplicationEvent[]
+
+  @@index([opportunityId])
+  @@index([studentId])
+  @@map("applications")
+}
+
+// INSERT-ONLY append log (constraint 2) — the basis of trustworthy TTA.
+model ApplicationEvent {
+  id            String   @id @default(uuid()) @db.Uuid
+  applicationId String   @map("application_id") @db.Uuid
+  actorId       String   @map("actor_id") @db.Uuid
+  fromState     AppState? @map("from_state")
+  toState       AppState @map("to_state")
+  note          String?
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  actor       User        @relation("event_actor", fields: [actorId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId])
+  @@map("application_events")
 }
 
 // ── Governance ───────────────────────────────────────────────────────────────

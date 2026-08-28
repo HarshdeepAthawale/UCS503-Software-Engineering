@@ -136,6 +136,77 @@ export type SkillUpdateInput = z.infer<typeof SkillUpdateSchema>;
 export type UserSkillAddInput = z.infer<typeof UserSkillAddSchema>;
 export type UserSkillsReplaceInput = z.infer<typeof UserSkillsReplaceSchema>;
 
+// ── Opportunity (T-09; docs/PRD M3, TechSpec §5.4) ───────────────────────────
+
+const oppType = z.enum([
+  "RESEARCH",
+  "INTERNSHIP",
+  "TA",
+  "HACKATHON_TEAM",
+  "MICRO_TASK",
+  "REFERRAL",
+]);
+const slaPledge = z.enum(["H24", "H48", "WEEK"]);
+const skillRequirement = z.enum(["REQUIRED", "PREFERRED"]);
+
+export const OpportunityCreateSchema = z
+  .object({
+    type: oppType,
+    title: z.string().trim().min(3, "Title must be at least 3 characters.").max(140),
+    description: z.string().trim().min(20, "Description must be at least 20 characters.").max(5000),
+    domain: z.string().trim().min(1, "Domain is required.").max(80),
+    duration: z.string().trim().max(80).nullable().optional(),
+    stipend: z.boolean().optional(),
+    seatCount: z.coerce.number().int().gte(1).lte(500).default(1),
+    deadline: z.coerce.date().refine((d) => d > new Date(), {
+      message: "Deadline must be in the future.",
+    }),
+    slaPledge,
+    skills: z
+      .array(
+        z
+          .object({
+            skillId: z.string().trim().uuid("Invalid skill id."),
+            requirement: skillRequirement,
+          })
+          .strict(),
+      )
+      .max(30)
+      .optional(),
+  })
+  .strict(); // no mass assignment of posterId/status/seatsFilled
+
+export const OpportunityUpdateSchema = z
+  .object({
+    title: z.string().trim().min(3).max(140).optional(),
+    description: z.string().trim().min(20).max(5000).optional(),
+    domain: z.string().trim().min(1).max(80).optional(),
+    duration: z.string().trim().max(80).nullable().optional(),
+    stipend: z.boolean().optional(),
+    seatCount: z.coerce.number().int().gte(1).lte(500).optional(),
+    deadline: z.coerce
+      .date()
+      .refine((d) => d > new Date(), { message: "Deadline must be in the future." })
+      .optional(),
+    slaPledge: slaPledge.optional(),
+    skills: z
+      .array(
+        z
+          .object({
+            skillId: z.string().trim().uuid("Invalid skill id."),
+            requirement: skillRequirement,
+          })
+          .strict(),
+      )
+      .max(30)
+      .optional(),
+  })
+  .strict()
+  .refine((v) => Object.keys(v).length > 0, { message: "Provide at least one field to update." });
+
+export type OpportunityCreateInput = z.infer<typeof OpportunityCreateSchema>;
+export type OpportunityUpdateInput = z.infer<typeof OpportunityUpdateSchema>;
+
 export type RegisterInput = z.infer<typeof RegisterSchema>;
 export type LoginInput = z.infer<typeof LoginSchema>;
 export type ProfileUpdateInput = z.infer<typeof ProfileUpdateSchema>;

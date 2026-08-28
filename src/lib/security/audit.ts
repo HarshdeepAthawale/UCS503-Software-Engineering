@@ -20,6 +20,10 @@ export type AuditAction =
   | "skill.created"
   | "skill.updated"
   | "skill.deleted"
+  | "opportunity.created"
+  | "opportunity.updated"
+  | "opportunity.closed"
+  | "opportunity.expired"
   | "authz.denied";
 
 export async function audit(params: {
