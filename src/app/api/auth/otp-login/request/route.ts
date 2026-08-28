@@ -1,6 +1,8 @@
 import { handler, ok } from "@/lib/http/respond";
 import { Errors } from "@/lib/http/errors";
 import { env } from "@/lib/env";
+import { mailer } from "@/lib/email/mailer";
+import { loginCodeEmail } from "@/lib/email/templates";
 import { OtpLoginRequestSchema } from "@/lib/validation/schemas";
 import { authRateLimiter, clientIp } from "@/lib/security/rate-limit";
 import { requestLoginOtp } from "@/lib/services/auth.service";
@@ -24,6 +26,17 @@ export const POST = handler(async (req) => {
   if (!ipOk || !emailOk) throw Errors.rateLimited();
 
   const otp = await requestLoginOtp(parsed.data.email);
+
+  // Awaited (the function freezes at response time), and failures are logged
+  // rather than returned: an unknown account never reaches a send, so an error
+  // response here would disclose which addresses exist.
+  if (otp) {
+    try {
+      await mailer.send({ to: parsed.data.email, ...loginCodeEmail(otp) });
+    } catch (e) {
+      console.error("[auth/otp-login] sign-in code failed to send", e);
+    }
+  }
 
   const devOtp =
     env.NODE_ENV !== "production" && otp ? { devOtp: otp } : {};
