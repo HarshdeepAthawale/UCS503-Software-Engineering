@@ -172,6 +172,63 @@ export async function login(params: {
   return issueSession(user, params.userAgent);
 }
 
+// ── Google sign-in (OAuth) ───────────────────────────────────────────────────
+
+/**
+ * Sign in (or provision) a user from a Google-verified profile. Google has
+ * proven email ownership, so no OTP is needed — the account is ACTIVE. Restricted
+ * to the institutional domain; alumni (non-institute email) use the claim flow.
+ *
+ * If the email already exists, this LINKS to it (issues a session) rather than
+ * creating a duplicate. A newly provisioned Google user gets an unusable random
+ * password hash — they authenticate via Google, not a password.
+ */
+export async function loginWithGoogle(params: {
+  email: string;
+  name: string;
+  userAgent: string | null;
+}): Promise<IssuedSession> {
+  const email = params.email.toLowerCase();
+  if (!email.endsWith(`@${env.ALLOWED_EMAIL_DOMAIN}`)) {
+    throw Errors.forbidden(
+      `Google sign-in is restricted to @${env.ALLOWED_EMAIL_DOMAIN} accounts. Alumni: please register and submit an alumni claim.`,
+    );
+  }
+
+  let user = await prisma.user.findFirst({
+    where: { email, deletedAt: null },
+    select: { id: true, role: true, status: true, name: true },
+  });
+
+  if (user) {
+    if (user.status === "SUSPENDED") throw Errors.forbidden("This account has been suspended.");
+    // Google proves ownership — promote an unverified account to ACTIVE.
+    if (user.status === "UNVERIFIED") {
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: { status: "ACTIVE" },
+        select: { id: true, role: true, status: true, name: true },
+      });
+    }
+  } else {
+    const unusable = await hashPassword(`${crypto.randomUUID()}${crypto.randomUUID()}Aa1!`);
+    user = await prisma.user.create({
+      data: {
+        email,
+        name: params.name.trim() || email.split("@")[0] || email,
+        passwordHash: unusable,
+        role: "STUDENT",
+        status: "ACTIVE",
+      },
+      select: { id: true, role: true, status: true, name: true },
+    });
+    await audit({ action: "auth.register", actorId: user.id, metadata: { via: "google" } });
+  }
+
+  await audit({ action: "auth.login.success", actorId: user.id, metadata: { via: "google" } });
+  return issueSession(user, params.userAgent);
+}
+
 // ── Refresh (rotation + reuse detection) ─────────────────────────────────────
 
 export async function refresh(params: {

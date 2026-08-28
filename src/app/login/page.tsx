@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { apiLogin, ApiError } from "@/lib/client/api";
+import { GoogleButton } from "@/components/google-button";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -11,6 +12,12 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  // Surface an error passed back by the Google OAuth callback (?error=…).
+  useEffect(() => {
+    const err = new URLSearchParams(window.location.search).get("error");
+    if (err) setError(err);
+  }, []);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -65,6 +72,8 @@ export default function LoginPage() {
             {busy ? "Signing in…" : "Sign in"}
           </button>
         </form>
+
+        <GoogleButton />
 
         <p className="auth-alt">
           New to Nexus? <Link href="/register">Create an account</Link>

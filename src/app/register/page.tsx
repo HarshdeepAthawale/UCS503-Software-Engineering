@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { apiRegister, apiVerifyOtp, ApiError } from "@/lib/client/api";
+import { GoogleButton } from "@/components/google-button";
 
 type Stage = "form" | "otp";
 
@@ -143,6 +144,8 @@ export default function RegisterPage() {
             </button>
           </form>
         )}
+
+        {stage === "form" && <GoogleButton label="Sign up with Google" />}
 
         <p className="auth-alt">
           Already have an account? <Link href="/login">Sign in</Link>
