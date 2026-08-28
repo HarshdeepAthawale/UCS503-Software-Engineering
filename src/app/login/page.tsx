@@ -11,6 +11,7 @@ import {
 } from "@/lib/client/api";
 import { GoogleButton } from "@/components/google-button";
 import { TiLogo } from "@/components/ti-logo";
+import { AuthShell } from "@/components/auth-shell";
 
 type Mode = "password" | "code";
 
@@ -87,10 +88,10 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="auth-shell">
+    <AuthShell>
       <div className="auth-card">
-        <Link className="brand" href="/">
-          <TiLogo size={30} className="ti-mark" /> Thapar&nbsp;Nexus
+        <Link className="brand auth-card-brand" href="/">
+          <TiLogo size={28} className="ti-mark" /> Thapar&nbsp;Nexus
         </Link>
         <h1>Welcome back</h1>
         <p className="sub">
@@ -166,6 +167,6 @@ export default function LoginPage() {
           New to Nexus? <Link href="/register">Create an account</Link>
         </p>
       </div>
-    </main>
+    </AuthShell>
   );
 }

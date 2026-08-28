@@ -1,42 +1,30 @@
 import Link from "next/link";
-import ThemeToggle from "@/components/theme-toggle";
 import PipelineDemo from "@/components/pipeline-demo";
 import Reveal from "@/components/reveal";
-import { TiLogo } from "@/components/ti-logo";
+import { SiteNav } from "@/components/site-nav";
+import { SiteFooter } from "@/components/site-footer";
 
 /**
- * Thapar Nexus landing page — port of the approved warm-dark editorial artifact
- * (claude.ai/code/artifact/25ed0a0f) into the Next.js app. Fully themed
- * (dark-first, light fallback + toggle), status-legible, reduced-motion safe.
+ * Home — page 1 of the three-page landing. Hook, proof, how-it-works, and a
+ * funnel to sign-up. Content is visible by default (no fragile scroll-reveal).
  */
 
-const PROBLEMS = [
+const STEPS = [
   {
-    tag: "F1 · Discovery",
-    title: "Postings are missed",
-    body: "Circulation is channel-dependent. Not in the right group? You never see the opening.",
-    muted: true,
+    n: "01",
+    title: "Discover in under 2 minutes",
+    body: "Full-text search and typed facets — role, domain, stipend, skill. No WhatsApp forwards, no missed noticeboards.",
   },
   {
-    tag: "F2 · Authenticity",
-    title: "Details drift",
-    body: "Forwarded messages lose provenance. Deadlines mutate; nobody can confirm who posted.",
-    muted: true,
+    n: "02",
+    title: "Apply — with a budget",
+    body: "Hold at most ten live applications. One constraint kills spray-and-pray and caps every poster's review load.",
   },
   {
-    tag: "F4 · Competency",
-    title: "Every skill is self-claimed",
-    body: "A poster has no way to verify a claimed skill maps to real work.",
-    muted: true,
+    n: "03",
+    title: "Get a real answer",
+    body: "Every state change is timestamped and immutable. Posters pledge an SLA; silence becomes visible, not normal.",
   },
-];
-
-const SPLIT = [
-  ["Atomic unit", "A post", "An opportunity + application"],
-  ["Success metric", "Engagement, time-on-app", "Time-to-Acknowledgement, decision rate"],
-  ["Content lifetime", "Permanent, accumulating", "Deadline-bound, auto-expiring"],
-  ["Who holds power", "The most-followed", "The most-responsive"],
-  ["Optimal behaviour", "Use it more", "Use it less, get a result faster"],
 ];
 
 const PILLS = [
@@ -50,69 +38,32 @@ const PILLS = [
   ["⚠", "At Risk", "p-atrisk"],
 ] as const;
 
-const FEATURES = [
+const HIGHLIGHTS = [
   {
-    num: "01",
-    title: "Ghosting, made accountable",
-    body: "Time-to-Acknowledgement is computed from immutable database timestamps — never self-reported. Posters carry a rolling Responsiveness Badge and pledge an SLA; breaches are flagged, not hidden.",
-    tags: ["Immutable event log", "SLA pledge"],
+    title: "Accountable, not optional",
+    body: "Time-to-Acknowledgement is computed from the event log — never self-reported. Posters carry a rolling Responsiveness Badge.",
   },
   {
-    num: "02",
-    title: "Attestations anchored to real work",
-    body: "A skill endorsement can only exist where a completed, Selected application connects the two people. Enforced in the schema — so competency can't be farmed or traded between friends.",
-    tags: ["✔ PyTorch · NLP RA", "Verified"],
-    attested: true,
+    title: "Competency you can trust",
+    body: "Skill attestations exist only where a Selected application connects two people. Enforced in the schema — unfarmable.",
   },
   {
-    num: "03",
-    title: "An application budget",
-    body: "Hold at most ten live applications at once. One constraint stops spray-and-pray applying and caps every poster's review load — the two-sided load control a feed has no reason to build.",
-    tags: ["10 active slots", "Withdraw frees one"],
-  },
-  {
-    num: "04",
-    title: "Messaging that can't float free",
-    body: "A thread exists only inside an application or a team — never a free-form DM. Safety by design: an entire class of harassment simply has nowhere to live.",
-    tags: ["Scoped threads", "Explainable matching"],
+    title: "Safe by design",
+    body: "Messaging lives only inside an application or team — never a free-form DM. An entire class of harassment has nowhere to live.",
   },
 ];
 
 export default function Home() {
   return (
     <>
-      <header className="nav">
-        <div className="wrap nav-inner">
-          <a className="brand" href="#top">
-            <TiLogo size={30} className="ti-mark" /> Thapar&nbsp;Nexus
-          </a>
-          <nav className="nav-links">
-            <a href="#problem">The problem</a>
-            <a href="#difference">Why different</a>
-            <a href="#pipeline">Pipeline</a>
-            <a href="#features">Features</a>
-          </nav>
-          <div className="nav-cta">
-            <ThemeToggle />
-            <Link className="btn btn-primary" href="/register">
-              Get started
-            </Link>
-          </div>
-        </div>
-      </header>
-
+      <SiteNav />
       <main id="top">
         {/* ── HERO ── */}
         <section className="hero">
           <div className="hero-glow" aria-hidden="true" />
           <div className="wrap hero-grid">
             <div>
-              <div className="hero-badge">
-                <TiLogo size={22} />
-                <span className="eyebrow" style={{ margin: 0 }}>
-                  Thapar Institute · Opportunity Pipeline
-                </span>
-              </div>
+              <span className="eyebrow">Thapar Institute · Opportunity Pipeline</span>
               <h1>
                 Make sure an application
                 <br />
@@ -129,9 +80,9 @@ export default function Home() {
                 <Link className="btn btn-primary" href="/register">
                   Explore opportunities →
                 </Link>
-                <a className="btn btn-ghost" href="#difference">
-                  For faculty &amp; alumni
-                </a>
+                <Link className="btn btn-ghost" href="/product">
+                  See how it works
+                </Link>
               </div>
               <div className="hero-meta">
                 <div className="stat">
@@ -148,96 +99,37 @@ export default function Home() {
                 </div>
               </div>
             </div>
-
             <PipelineDemo />
           </div>
         </section>
 
-        <div className="wrap">
-          <div className="divider" />
-        </div>
-
-        {/* ── PROBLEM ── */}
-        <section id="problem">
+        {/* ── HOW IT WORKS ── */}
+        <section id="how">
           <div className="wrap">
             <div className="section-head">
-              <span className="eyebrow">The problem</span>
-              <h2>
-                Opportunities circulate through WhatsApp, noticeboards and word of mouth. Four
-                failures follow.
-              </h2>
-              <p>
-                We rank them. Ghosting — the silence after you apply — is the one Nexus is built to
-                end first.
-              </p>
+              <span className="eyebrow">How it works</span>
+              <h2>Three steps from opening to outcome.</h2>
+              <p>Discovery that respects your time, applying with intent, and an answer you can rely on.</p>
             </div>
-            <div className="fgrid">
-              <Reveal className="fcard primary">
-                <span className="tag">F3 · Resolution failure</span>
-                <span className="badge-primary">Primary target</span>
-                <h3>Applications vanish into silence</h3>
-                <p>
-                  Sent by email, they disappear. You can&apos;t tell &quot;rejected&quot; from
-                  &quot;still reading&quot; from &quot;never opened.&quot; There is no accountability
-                  for silence — until now.
-                </p>
-              </Reveal>
-              {PROBLEMS.map((p) => (
-                <Reveal key={p.tag} className="fcard muted">
-                  <span className="tag">{p.tag}</span>
-                  <h3>{p.title}</h3>
-                  <p>{p.body}</p>
+            <div className="steps">
+              {STEPS.map((s) => (
+                <Reveal key={s.n} className="step">
+                  <span className="step-n">{s.n}</span>
+                  <h3>{s.title}</h3>
+                  <p>{s.body}</p>
                 </Reveal>
               ))}
             </div>
           </div>
         </section>
 
-        {/* ── DIFFERENCE ── */}
-        <section id="difference">
-          <div className="wrap">
-            <div className="section-head">
-              <span className="eyebrow">Why it&apos;s different</span>
-              <h2>A feed wants your attention. Nexus wants you gone — with a result.</h2>
-              <p>The difference is structural, visible in what we measure and what we refuse to build.</p>
-            </div>
-            <Reveal className="split">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Dimension</th>
-                    <th>A social / feed app</th>
-                    <th className="n">Thapar Nexus</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {SPLIT.map(([dim, soc, nex]) => (
-                    <tr key={dim}>
-                      <td>{dim}</td>
-                      <td className="soc">{soc}</td>
-                      <td className="nex">{nex}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </Reveal>
-            <p style={{ marginTop: 22, color: "var(--faint)", fontSize: 14 }}>
-              No infinite feed · no likes · no follower counts · no vanity metrics —{" "}
-              <span style={{ color: "var(--muted)" }}>excluded on purpose.</span>
-            </p>
-          </div>
-        </section>
-
-        {/* ── PIPELINE / STATUS ── */}
-        <section id="pipeline">
+        {/* ── STATUS LEGIBILITY ── */}
+        <section id="status">
           <div className="wrap">
             <div className="section-head">
               <span className="eyebrow">Status legibility</span>
               <h2>Every application has one unambiguous state.</h2>
-              <p>
-                Colour, icon and label together — so where you stand is never a guess, and never a
-                colour alone.
-              </p>
+              <p>Colour, icon and label together — so where you stand is never a guess, and never a colour alone.</p>
             </div>
             <Reveal className="pillwrap">
               {PILLS.map(([g, label, cls]) => (
@@ -249,103 +141,23 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ── FEATURES ── */}
-        <section id="features">
+        {/* ── HIGHLIGHTS ── */}
+        <section id="why">
           <div className="wrap">
             <div className="section-head">
-              <span className="eyebrow">What only Nexus can do</span>
-              <h2>Four things a feed structurally cannot.</h2>
-              <p>Each depends on the application record existing as a first-class entity.</p>
+              <span className="eyebrow">Why Nexus</span>
+              <h2>Three guarantees a feed structurally can&apos;t make.</h2>
+              <p>
+                Each depends on the application record existing as a first-class entity. <Link href="/product" className="inline-link">See all four →</Link>
+              </p>
             </div>
-            <div className="dgrid">
-              {FEATURES.map((f) => (
-                <Reveal key={f.num} className="dcard">
-                  <span className="num">{f.num}</span>
-                  <h3>{f.title}</h3>
-                  <p>{f.body}</p>
-                  <div className="pillline">
-                    {f.tags.map((t) => (
-                      <span key={t} className={`tag-skill ${f.attested ? "att" : "req"}`}>
-                        {t}
-                      </span>
-                    ))}
-                  </div>
+            <div className="steps">
+              {HIGHLIGHTS.map((h) => (
+                <Reveal key={h.title} className="step accentcard">
+                  <h3>{h.title}</h3>
+                  <p>{h.body}</p>
                 </Reveal>
               ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ── SAMPLE CARD ── */}
-        <section>
-          <div className="wrap">
-            <div className="section-head">
-              <span className="eyebrow">The unit of work</span>
-              <h2>A posting tells you everything, and answers you on time.</h2>
-            </div>
-            <div className="showcase">
-              <Reveal className="opp">
-                <div className="opp-top">
-                  <span className="opp-type">Research · ML</span>
-                  <span className="opp-dl">⏳ 4 days left</span>
-                </div>
-                <h3>NLP Research Assistant</h3>
-                <div className="prof">
-                  <span>Dr. A. Rao · CSED</span>
-                  <span className="resp">
-                    <span className="rdot" />
-                    Responsive · 18h median TTA
-                  </span>
-                </div>
-                <div className="opp-hr" />
-                <div className="skills">
-                  <span className="lbl">Required</span>
-                  <span className="tag-skill req">Python</span>
-                  <span className="tag-skill req">PyTorch</span>
-                  <span className="tag-skill req">NLP</span>
-                  <span className="lbl" style={{ marginLeft: 6 }}>
-                    Preferred
-                  </span>
-                  <span className="tag-skill">CUDA</span>
-                </div>
-                <div className="opp-foot">
-                  <span className="meta">2 seats · Stipend · Aug–Nov 2026</span>
-                  <span className="acts">
-                    <button type="button" className="mini">
-                      Save
-                    </button>
-                    <Link className="mini solid" href="/register">
-                      Apply
-                    </Link>
-                  </span>
-                </div>
-              </Reveal>
-              <div>
-                <p style={{ fontSize: 17, color: "var(--muted)", margin: "0 0 18px" }}>
-                  Structured fields, a controlled skill vocabulary, and a visible responsiveness
-                  record. You read a posting in seconds and know exactly what it wants — and how
-                  fast this poster tends to reply.
-                </p>
-                <ul
-                  style={{
-                    listStyle: "none",
-                    padding: 0,
-                    margin: 0,
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 12,
-                    color: "var(--muted)",
-                    fontSize: 15,
-                  }}
-                >
-                  <li>◦ &nbsp;Skills drawn from an admin-curated taxonomy — never free text.</li>
-                  <li>◦ &nbsp;Deadlines auto-expire; nothing lingers past its date.</li>
-                  <li>
-                    ◦ &nbsp;Match results always show <span style={{ color: "var(--text)" }}>why</span>{" "}
-                    — matched and missing tags, never a bare score.
-                  </li>
-                </ul>
-              </div>
             </div>
           </div>
         </section>
@@ -363,57 +175,15 @@ export default function Home() {
                 <Link className="btn btn-primary" href="/register">
                   Create your profile
                 </Link>
-                <a
-                  className="btn btn-ghost"
-                  href="https://github.com/HarshdeepAthawale/UCS503-Software-Engineering"
-                  target="_blank"
-                  rel="noopener"
-                >
-                  View the project ↗
-                </a>
+                <Link className="btn btn-ghost" href="/about">
+                  Read the thesis
+                </Link>
               </div>
             </Reveal>
           </div>
         </section>
       </main>
-
-      <footer>
-        <div className="wrap">
-          <div className="foot-grid">
-            <div className="foot-brand">
-              <a className="brand" href="#top">
-                <TiLogo size={30} className="ti-mark" /> Thapar&nbsp;Nexus
-              </a>
-              <p>
-                A verified opportunity pipeline for the institute — built to make sure an
-                application reaches a decision, and to make it visible when it doesn&apos;t.
-              </p>
-            </div>
-            <div className="foot-team">
-              <div className="h">Team · UCS503</div>
-              <div>Harshdeep Athawale · 1024031062</div>
-              <div>Aakriti Chauhan · 1024031055</div>
-              <div>Sehaj Dhillon · 1024030620</div>
-            </div>
-            <div className="foot-team">
-              <div className="h">Institute</div>
-              <div>Thapar Institute of</div>
-              <div>Engineering &amp; Technology</div>
-              <div>Patiala, Punjab</div>
-            </div>
-          </div>
-          <div className="foot-bottom">
-            <span>© 2026 Thapar Nexus · Software Engineering course project</span>
-            <a
-              href="https://github.com/HarshdeepAthawale/UCS503-Software-Engineering"
-              target="_blank"
-              rel="noopener"
-            >
-              github.com/HarshdeepAthawale/UCS503-Software-Engineering ↗
-            </a>
-          </div>
-        </div>
-      </footer>
+      <SiteFooter />
     </>
   );
 }
