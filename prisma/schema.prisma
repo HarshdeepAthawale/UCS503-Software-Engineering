@@ -5,16 +5,17 @@
 
 generator client {
   provider = "prisma-client-js"
-  // Prisma 6.19.3 ships no Windows-ARM64 engine (issue prisma/prisma#15306),
-  // so "native" on this ARM64 dev box resolves to the x64 "windows" engine.
-  // That engine only loads under x64 Node — see .node-version / README note
-  // about running this repo with x64 Node.js on Windows on ARM.
-  binaryTargets = ["native"]
+  // Windows-on-ARM64 has no native Prisma query engine (prisma/prisma#15306).
+  // We use the pure-WASM query compiler + a JS `pg` driver adapter instead, so
+  // there is NO native binary to load — architecture-independent. See src/lib/db.ts.
+  // driverAdapters + queryCompiler are GA in 6.19 (auto-enabled with an adapter).
+  engineType = "client"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL") // Supabase transaction pooler (6543)
+  directUrl = env("DIRECT_URL") // Supabase session pooler (5432) for migrations
 }
 
 // ── Enumerations ─────────────────────────────────────────────────────────────
