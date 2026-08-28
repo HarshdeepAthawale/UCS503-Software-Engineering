@@ -39,6 +39,7 @@ export function AppNav({ user, unread = 0 }: { user: SessionUser | null; unread?
           {link("/opportunities", "Feed")}
           {user?.role === "STUDENT" && link("/applications", "Applications")}
           {link("/notifications", "Notifications", unread)}
+          {user?.role === "ADMIN" && link("/admin", "Admin")}
           {link("/profile", "Profile")}
         </nav>
         <div className="appnav-cta">

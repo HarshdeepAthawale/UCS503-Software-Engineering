@@ -489,3 +489,106 @@ export async function apiSetNotificationPref(frequency: NotifFreq): Promise<Noti
   );
   return body.preference.frequency;
 }
+
+// ── Passwordless OTP login (alumni + convenience) ────────────────────────────
+
+export async function apiRequestLoginOtp(email: string): Promise<{ devOtp?: string }> {
+  return request<{ devOtp?: string }>("/api/auth/otp-login/request", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+}
+
+export async function apiVerifyLoginOtp(email: string, otp: string): Promise<SessionUser> {
+  const body = await request<{ accessToken: string; user: SessionUser }>(
+    "/api/auth/otp-login/verify",
+    { method: "POST", body: JSON.stringify({ email, otp }) },
+  );
+  setSession(body.accessToken, body.user);
+  return body.user;
+}
+
+// ── Admin console (Identity v2) ──────────────────────────────────────────────
+
+export interface AdminOverview {
+  users: Record<string, number>;
+  opportunities: { live: number; atRisk: number };
+  applications: number;
+  pendingClaims: number;
+}
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  name: string;
+  role: "STUDENT" | "FACULTY" | "ALUMNI" | "ADMIN";
+  status: string;
+  createdAt: string;
+}
+
+export interface AllowlistEntry {
+  id: string;
+  email: string;
+  note: string | null;
+  createdAt: string;
+}
+
+export async function apiAdminOverview(): Promise<AdminOverview> {
+  const body = await request<{ overview: AdminOverview }>("/api/admin/overview");
+  return body.overview;
+}
+
+export async function apiAdminListUsers(params: {
+  q?: string;
+  role?: string;
+  status?: string;
+} = {}): Promise<AdminUser[]> {
+  const qs = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) if (v) qs.set(k, String(v));
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  const body = await request<{ users: AdminUser[] }>(`/api/admin/users${suffix}`);
+  return body.users;
+}
+
+export async function apiAdminUpdateUser(
+  id: string,
+  input: { role?: "STUDENT" | "FACULTY" | "ALUMNI"; status?: "ACTIVE" | "SUSPENDED" },
+): Promise<AdminUser> {
+  const body = await request<{ user: AdminUser }>(`/api/admin/users/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+  return body.user;
+}
+
+export async function apiAdminProvisionAlumni(input: {
+  name: string;
+  email: string;
+  rollNo?: string;
+  gradYear?: number;
+  degree?: string;
+  proofUrl?: string;
+}): Promise<AdminUser> {
+  const body = await request<{ user: AdminUser }>("/api/admin/users", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+  return body.user;
+}
+
+export async function apiAdminListAllowlist(): Promise<AllowlistEntry[]> {
+  const body = await request<{ entries: AllowlistEntry[] }>("/api/admin/faculty-allowlist");
+  return body.entries;
+}
+
+export async function apiAdminAddAllowlist(email: string, note?: string): Promise<AllowlistEntry> {
+  const body = await request<{ entry: AllowlistEntry }>("/api/admin/faculty-allowlist", {
+    method: "POST",
+    body: JSON.stringify(note ? { email, note } : { email }),
+  });
+  return body.entry;
+}
+
+export async function apiAdminRemoveAllowlist(id: string): Promise<void> {
+  await request<{ id: string }>(`/api/admin/faculty-allowlist/${id}`, { method: "DELETE" });
+}
