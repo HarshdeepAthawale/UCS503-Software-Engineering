@@ -31,6 +31,10 @@ export function buildGoogleAuthUrl(opts: { redirectUri: string; state: string })
     state: opts.state,
     access_type: "online",
     prompt: "select_account",
+    // Pre-filters the account chooser to the institute domain. A CONVENIENCE
+    // ONLY - `hd` is client-supplied and trivially removed, so the real check
+    // stays server-side in loginWithGoogle() against ALLOWED_EMAIL_DOMAIN.
+    hd: env.ALLOWED_EMAIL_DOMAIN,
   });
   return `${AUTH_ENDPOINT}?${params.toString()}`;
 }

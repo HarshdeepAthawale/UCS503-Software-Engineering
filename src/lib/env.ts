@@ -36,6 +36,16 @@ const EnvSchema = z.object({
   // those endpoints refuse to run - a cron trigger is never left open.
   CRON_SECRET: z.string().min(16, "CRON_SECRET must be >= 16 chars").optional(),
 
+  // Canonical public origin, e.g. "https://nexus.thapar.edu". Set this in every
+  // deployed environment: the Google OAuth redirect_uri must match what is
+  // registered in the Google Cloud client BYTE FOR BYTE, and deriving it from
+  // the request Host header is both proxy-dependent and attacker-influenced.
+  // Optional so local dev and `next build` work without it (see resolveOrigin).
+  APP_ORIGIN: z
+    .string()
+    .url("APP_ORIGIN must be an absolute URL, e.g. https://nexus.example.edu")
+    .optional(),
+
   // Google OAuth (Sign in with Google). Optional - when either is unset the
   // Google auth routes 404 and the button is hidden. Secret lives ONLY here.
   GOOGLE_CLIENT_ID: z.string().optional(),
