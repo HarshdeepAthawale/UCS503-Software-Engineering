@@ -94,22 +94,34 @@ export default function Home() {
                   See how it works
                 </Link>
               </div>
-              <div className="hero-meta">
-                <div className="stat">
-                  <div className="n mono">≤48h</div>
-                  <div className="l">Median acknowledgement</div>
-                </div>
-                <div className="stat">
-                  <div className="n mono">&lt;2min</div>
-                  <div className="l">To a relevant posting</div>
-                </div>
-                <div className="stat">
-                  <div className="n mono">100%</div>
-                  <div className="l">Timestamped, immutable</div>
-                </div>
-              </div>
             </div>
             <PipelineDemo />
+          </div>
+
+          {/* The three proof stats sit BELOW the two-column grid, not inside the
+              left one. Two things were wrong while they lived in the column:
+              the column became tall enough (headline + lede + actions + stats)
+              that `align-items: center` parked the demo card down beside the
+              lede instead of beside the headline, and the stats themselves had
+              only ~550px to work with, so they wrapped 2-then-1 and left a hole
+              under the card. Full width fixes both at once - the column shrinks
+              so the card centres on the headline, and the stats run three
+              across as one band. */}
+          <div className="wrap">
+            <div className="hero-meta">
+              <div className="stat">
+                <div className="n mono">≤48h</div>
+                <div className="l">Median acknowledgement</div>
+              </div>
+              <div className="stat">
+                <div className="n mono">&lt;2min</div>
+                <div className="l">To a relevant posting</div>
+              </div>
+              <div className="stat">
+                <div className="n mono">100%</div>
+                <div className="l">Timestamped, immutable</div>
+              </div>
+            </div>
           </div>
         </section>
 
