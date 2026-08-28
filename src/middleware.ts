@@ -16,7 +16,9 @@ import { verifyAccessToken } from "@/lib/security/access-token";
  * no database lookups happen here by design.
  */
 
-// Paths under /api that DO NOT require authentication.
+// Paths under /api that skip the edge USER-JWT gate. Public auth endpoints, plus
+// scheduled-job endpoints under /api/cron (authenticated by CRON_SECRET at the
+// route layer, not by a user token — see http/cron-auth.ts).
 const PUBLIC_API = [
   "/api/health",
   "/api/auth/register",
@@ -25,6 +27,7 @@ const PUBLIC_API = [
   "/api/auth/refresh",
   "/api/auth/logout",
   "/api/auth/alumni-claim",
+  "/api/cron",
 ];
 
 function securityHeaders(res: NextResponse): NextResponse {

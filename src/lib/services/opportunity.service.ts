@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { Errors } from "@/lib/http/errors";
 import { audit } from "@/lib/security/audit";
@@ -122,37 +123,91 @@ export async function createOpportunity(principal: Principal, input: Opportunity
 
 // ── Read ─────────────────────────────────────────────────────────────────────
 
-/** Faceted list — type/domain/stipend filters; excludes expired/deleted by default. */
+/** Opaque keyset cursor over (created_at DESC, id DESC). Encodes both parts so
+ *  pagination is stable and needs no extra lookup. Malformed cursors are ignored. */
+function encodeCursor(createdAt: Date, id: string): string {
+  return Buffer.from(`${createdAt.toISOString()}|${id}`, "utf8").toString("base64url");
+}
+function decodeCursor(cursor: string): { createdAt: Date; id: string } | null {
+  try {
+    const [iso, id] = Buffer.from(cursor, "base64url").toString("utf8").split("|");
+    if (!iso || !id) return null;
+    const createdAt = new Date(iso);
+    if (Number.isNaN(createdAt.getTime())) return null;
+    if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
+    return { createdAt, id };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Faceted discovery (T-11; docs/ImplementationPlan §3, M4).
+ *
+ * Full-text keyword search (`q`) runs against the GIN tsvector index via
+ * `websearch_to_tsquery`; facets narrow by type/domain/stipend/skill. Expired &
+ * soft-deleted rows are excluded by default. Keyset-paginated on (created_at,id).
+ *
+ * SAFETY: every user value is a BOUND parameter in a `Prisma.sql` template — no
+ * string interpolation ever reaches the SQL text (codeguard-0-input-validation-injection).
+ */
 export async function listOpportunities(opts: {
+  q?: string;
   type?: string;
   domain?: string;
   stipend?: string;
+  skillId?: string;
   includeExpired?: boolean;
   cursor?: string;
   limit?: number;
 }) {
   const take = Math.min(Math.max(opts.limit ?? 20, 1), 100);
-  const where: Record<string, unknown> = { deletedAt: null };
-  if (!opts.includeExpired) where.status = { not: "EXPIRED" };
-  if (opts.type) where.type = opts.type;
-  if (opts.domain) where.domain = { contains: opts.domain, mode: "insensitive" };
-  if (opts.stipend === "true") where.stipend = true;
-  if (opts.stipend === "false") where.stipend = false;
 
-  const rows = await prisma.opportunity.findMany({
-    where,
-    orderBy: { createdAt: "desc" },
-    take: take + 1,
-    ...(opts.cursor ? { cursor: { id: opts.cursor } } : {}),
-    select: OPP_SELECT,
-  });
+  const conds: Prisma.Sql[] = [Prisma.sql`o.deleted_at IS NULL`];
+  if (!opts.includeExpired) conds.push(Prisma.sql`o.status <> 'EXPIRED'::"OppStatus"`);
+  if (opts.type) conds.push(Prisma.sql`o.type = ${opts.type}::"OppType"`);
+  if (opts.domain) conds.push(Prisma.sql`o.domain ILIKE ${"%" + opts.domain + "%"}`);
+  if (opts.stipend === "true") conds.push(Prisma.sql`o.stipend = true`);
+  if (opts.stipend === "false") conds.push(Prisma.sql`o.stipend = false`);
+  if (opts.skillId) {
+    conds.push(
+      Prisma.sql`EXISTS (SELECT 1 FROM opportunity_skills os WHERE os.opportunity_id = o.id AND os.skill_id = ${opts.skillId}::uuid)`,
+    );
+  }
+  if (opts.q) {
+    conds.push(
+      Prisma.sql`to_tsvector('english', coalesce(o.title, '') || ' ' || coalesce(o.description, '')) @@ websearch_to_tsquery('english', ${opts.q})`,
+    );
+  }
+
+  const decoded = opts.cursor ? decodeCursor(opts.cursor) : null;
+  const cursorClause = decoded
+    ? Prisma.sql`AND (o.created_at, o.id) < (${decoded.createdAt}, ${decoded.id}::uuid)`
+    : Prisma.empty;
+
+  const rows = await prisma.$queryRaw<{ id: string; created_at: Date }[]>(Prisma.sql`
+    SELECT o.id, o.created_at
+    FROM opportunities o
+    WHERE ${Prisma.join(conds, " AND ")} ${cursorClause}
+    ORDER BY o.created_at DESC, o.id DESC
+    LIMIT ${take + 1}
+  `);
 
   const hasMore = rows.length > take;
   const page = hasMore ? rows.slice(0, take) : rows;
+
+  // Hydrate full DTOs (poster + skills) preserving the ranked order.
+  const ids = page.map((r) => r.id);
+  const full = ids.length
+    ? await prisma.opportunity.findMany({ where: { id: { in: ids } }, select: OPP_SELECT })
+    : [];
+  const byId = new Map(full.map((r) => [r.id, r]));
+  const ordered = ids.map((id) => byId.get(id)).filter(Boolean);
+
   const last = page[page.length - 1];
   return {
-    opportunities: page.map((r) => toDto(r as unknown as OppRow)),
-    nextCursor: hasMore && last ? last.id : null,
+    opportunities: ordered.map((r) => toDto(r as unknown as OppRow)),
+    nextCursor: hasMore && last ? encodeCursor(last.created_at, last.id) : null,
   };
 }
 

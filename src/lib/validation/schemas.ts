@@ -204,8 +204,23 @@ export const OpportunityUpdateSchema = z
   .strict()
   .refine((v) => Object.keys(v).length > 0, { message: "Provide at least one field to update." });
 
+// Faceted discovery query (T-11). Parsed from URL search params; unknown params
+// are ignored (clients may append cache-busters). All values are validated and
+// then passed to the service as bound parameters (never string-interpolated).
+export const OpportunityListQuerySchema = z.object({
+  q: z.string().trim().min(1).max(120).optional(),
+  type: oppType.optional(),
+  domain: z.string().trim().min(1).max(80).optional(),
+  stipend: z.enum(["true", "false"]).optional(),
+  skillId: z.string().trim().uuid("Invalid skill id.").optional(),
+  includeExpired: z.enum(["true", "false"]).optional(),
+  cursor: z.string().trim().max(300).optional(),
+  limit: z.coerce.number().int().gte(1).lte(100).optional(),
+});
+
 export type OpportunityCreateInput = z.infer<typeof OpportunityCreateSchema>;
 export type OpportunityUpdateInput = z.infer<typeof OpportunityUpdateSchema>;
+export type OpportunityListQuery = z.infer<typeof OpportunityListQuerySchema>;
 
 export type RegisterInput = z.infer<typeof RegisterSchema>;
 export type LoginInput = z.infer<typeof LoginSchema>;

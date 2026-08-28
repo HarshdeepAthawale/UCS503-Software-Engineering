@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   OpportunityCreateSchema,
   OpportunityUpdateSchema,
+  OpportunityListQuerySchema,
 } from "@/lib/validation/schemas";
 
 /**
@@ -93,5 +94,42 @@ describe("OpportunityUpdateSchema (T-09)", () => {
   it("rejects unknown keys", () => {
     const r = OpportunityUpdateSchema.safeParse({ title: "x", posterId: UUID });
     expect(r.success).toBe(false);
+  });
+});
+
+describe("OpportunityListQuerySchema (T-11 discovery)", () => {
+  it("accepts an empty query (browse all)", () => {
+    expect(OpportunityListQuerySchema.safeParse({}).success).toBe(true);
+  });
+
+  it("accepts full-text + facet params", () => {
+    const r = OpportunityListQuerySchema.safeParse({
+      q: "machine learning",
+      type: "RESEARCH",
+      domain: "ML",
+      stipend: "true",
+      skillId: UUID,
+      limit: "20",
+    });
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data.limit).toBe(20); // coerced to number
+  });
+
+  it("rejects an out-of-range limit", () => {
+    expect(OpportunityListQuerySchema.safeParse({ limit: "5000" }).success).toBe(false);
+  });
+
+  it("rejects an invalid type facet", () => {
+    expect(OpportunityListQuerySchema.safeParse({ type: "BOGUS" }).success).toBe(false);
+  });
+
+  it("rejects a non-uuid skill facet", () => {
+    expect(OpportunityListQuerySchema.safeParse({ skillId: "nope" }).success).toBe(false);
+  });
+
+  it("ignores unknown params (cache-busters)", () => {
+    const r = OpportunityListQuerySchema.safeParse({ q: "x", _t: "12345" });
+    expect(r.success).toBe(true);
+    if (r.success) expect("_t" in r.data).toBe(false);
   });
 });

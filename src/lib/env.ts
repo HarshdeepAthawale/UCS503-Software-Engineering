@@ -24,6 +24,10 @@ const EnvSchema = z.object({
   AUTH_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(10),
   AUTH_RATE_LIMIT_WINDOW_SECONDS: z.coerce.number().int().positive().default(60),
 
+  // Shared secret for scheduled-job endpoints (expiry, SLA nudge). When unset,
+  // those endpoints refuse to run — a cron trigger is never left open.
+  CRON_SECRET: z.string().min(16, "CRON_SECRET must be >= 16 chars").optional(),
+
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   ALLOW_INSECURE_COOKIES: z
     .enum(["true", "false"])
