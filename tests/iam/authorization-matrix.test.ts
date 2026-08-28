@@ -67,6 +67,16 @@ const CASES: Array<[Role, Permission, boolean]> = [
   ["STUDENT", "notification:read", true],
   ["STUDENT", "notification:manage", true],
   ["FACULTY", "notification:manage", true],
+  // Admin console (Identity v2): governance is ADMIN-only.
+  ["ADMIN", "user:read", true],
+  ["ADMIN", "user:manage", true],
+  ["ADMIN", "faculty_allowlist:read", true],
+  ["ADMIN", "faculty_allowlist:manage", true],
+  ["STUDENT", "user:read", false],
+  ["STUDENT", "user:manage", false],
+  ["FACULTY", "user:manage", false],
+  ["FACULTY", "faculty_allowlist:manage", false],
+  ["ALUMNI", "user:manage", false],
 ];
 
 describe("RBAC matrix (deny-by-default)", () => {

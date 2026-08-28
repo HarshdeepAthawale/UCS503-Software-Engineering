@@ -129,7 +129,8 @@ export async function verifyRegistrationOtp(params: {
   });
 
   await audit({ action: "auth.verify_otp", actorId: user.id });
-  return issueSession(updated, params.userAgent);
+  const role = await resolveRoleWithAllowlist(updated.id, params.email, updated.role);
+  return issueSession({ ...updated, role }, params.userAgent);
 }
 
 // ── Login ────────────────────────────────────────────────────────────────────
@@ -169,7 +170,8 @@ export async function login(params: {
   }
 
   await audit({ action: "auth.login.success", actorId: user.id });
-  return issueSession(user, params.userAgent);
+  const role = await resolveRoleWithAllowlist(user.id, params.email, user.role);
+  return issueSession({ ...user, role }, params.userAgent);
 }
 
 // ── Google sign-in (OAuth) ───────────────────────────────────────────────────
@@ -226,7 +228,8 @@ export async function loginWithGoogle(params: {
   }
 
   await audit({ action: "auth.login.success", actorId: user.id, metadata: { via: "google" } });
-  return issueSession(user, params.userAgent);
+  const role = await resolveRoleWithAllowlist(user.id, email, user.role);
+  return issueSession({ ...user, role }, params.userAgent);
 }
 
 // ── Refresh (rotation + reuse detection) ─────────────────────────────────────
@@ -313,6 +316,101 @@ export async function logout(rawToken: string | null): Promise<void> {
     data: { revokedAt: new Date() },
   });
   await audit({ action: "auth.logout", actorId: record.userId });
+}
+
+// ── Faculty allowlist promotion (Identity v2) ────────────────────────────────
+
+/**
+ * If a STUDENT's email is on the admin-curated faculty allowlist, promote them to
+ * FACULTY and audit it. Runs on every login path, so adding an email to the
+ * allowlist takes effect the next time that professor signs in. Never demotes.
+ */
+async function resolveRoleWithAllowlist(
+  userId: string,
+  email: string,
+  currentRole: Role,
+): Promise<Role> {
+  if (currentRole !== "STUDENT") return currentRole;
+  const listed = await prisma.facultyAllowlist.findUnique({
+    where: { email },
+    select: { id: true },
+  });
+  if (!listed) return currentRole;
+  await prisma.user.update({ where: { id: userId }, data: { role: "FACULTY" } });
+  await audit({
+    action: "user.role_changed",
+    actorId: userId,
+    metadata: { to: "FACULTY", via: "allowlist" },
+  });
+  return "FACULTY";
+}
+
+// ── Passwordless email-OTP login (alumni + convenience) ──────────────────────
+
+/**
+ * Request a one-time login code for an ACTIVE account. Returns the code for the
+ * caller to deliver (email in prod; dev returns it). Uniform behaviour when the
+ * account is missing/inactive is handled by the route — no enumeration.
+ */
+export async function requestLoginOtp(email: string): Promise<string | null> {
+  const user = await prisma.user.findFirst({
+    where: { email, deletedAt: null },
+    select: { id: true, status: true },
+  });
+  if (!user || user.status !== "ACTIVE") return null;
+
+  const otp = generateOtp();
+  await prisma.otpChallenge.create({
+    data: {
+      userId: user.id,
+      codeHash: hashOtp(otp),
+      purpose: "LOGIN",
+      expiresAt: new Date(Date.now() + env.OTP_TTL_MINUTES * 60 * 1000),
+    },
+  });
+  await audit({ action: "auth.login_otp.requested", actorId: user.id });
+  return otp;
+}
+
+export async function verifyLoginOtp(params: {
+  email: string;
+  otp: string;
+  userAgent: string | null;
+}): Promise<IssuedSession> {
+  const user = await prisma.user.findFirst({
+    where: { email: params.email, deletedAt: null },
+    select: { id: true, role: true, status: true, name: true },
+  });
+  const genericFail = Errors.validation("Invalid or expired code.");
+  if (!user) throw genericFail;
+  if (user.status === "SUSPENDED") throw Errors.forbidden("This account has been suspended.");
+  if (user.status !== "ACTIVE") throw genericFail;
+
+  const challenge = await prisma.otpChallenge.findFirst({
+    where: { userId: user.id, purpose: "LOGIN", consumedAt: null },
+    orderBy: { createdAt: "desc" },
+  });
+  if (!challenge) throw genericFail;
+  if (challenge.expiresAt <= new Date()) throw Errors.gone("Code expired. Request a new one.");
+  if (challenge.attempts >= env.OTP_MAX_ATTEMPTS) {
+    throw Errors.rateLimited("Too many attempts. Request a new code.");
+  }
+  if (!verifyOtp(params.otp, challenge.codeHash)) {
+    await prisma.otpChallenge.update({
+      where: { id: challenge.id },
+      data: { attempts: { increment: 1 } },
+    });
+    throw genericFail;
+  }
+
+  await prisma.otpChallenge.update({
+    where: { id: challenge.id },
+    data: { consumedAt: new Date() },
+  });
+  await audit({ action: "auth.login.success", actorId: user.id, metadata: { via: "otp" } });
+
+  const role = await resolveRoleWithAllowlist(user.id, params.email, user.role);
+  return issueSession({ ...user, role }, params.userAgent);
 }
 
 // ── Session minting (shared) ─────────────────────────────────────────────────

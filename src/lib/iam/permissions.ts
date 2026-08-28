@@ -27,6 +27,7 @@ export const RESOURCES = [
   "flag",
   "analytics",
   "user",
+  "faculty_allowlist",
 ] as const;
 export type Resource = (typeof RESOURCES)[number];
 
@@ -101,7 +102,10 @@ const ADMIN: Permission[] = [
   "flag:read",
   "flag:resolve",
   "analytics:read",
-  "user:manage",
+  "user:read", // admin console: list/search users
+  "user:manage", // admin console: role/status changes, provisioning
+  "faculty_allowlist:read",
+  "faculty_allowlist:manage",
 ];
 
 export const ROLE_PERMISSIONS: Record<Role, ReadonlySet<Permission>> = {

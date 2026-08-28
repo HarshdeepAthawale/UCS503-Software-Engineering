@@ -346,6 +346,20 @@ model ApplicationEvent {
   @@map("application_events")
 }
 
+// ── Governance: faculty roster (Identity v2) ─────────────────────────────────
+
+// Emails that should hold the FACULTY role. On any login, a STUDENT whose email
+// is listed here is promoted to FACULTY (admin-curated). Lets the operator load
+// the finite professor roster before deployment. See docs/Identity-and-Admin-Plan.md.
+model FacultyAllowlist {
+  id        String   @id @default(uuid()) @db.Uuid
+  email     String   @unique @db.Citext
+  note      String?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("faculty_allowlist")
+}
+
 // ── Scoped messaging (T-16; docs/PRD M7) ─────────────────────────────────────
 
 // A thread is bound 1:1 to an application. Only that application's student and

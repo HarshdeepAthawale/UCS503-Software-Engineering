@@ -55,6 +55,12 @@ export const LoginSchema = z.object({
   password: z.string().min(1).max(200),
 });
 
+// Passwordless login (alumni + convenience). Any valid email; the service only
+// issues a code to an ACTIVE account and responds uniformly otherwise.
+export const OtpLoginRequestSchema = z.object({
+  email: z.string().trim().toLowerCase().email("Enter a valid email address."),
+});
+
 export const AlumniClaimSchema = z.object({
   rollNo: z.string().trim().min(3).max(30),
   gradYear: z.coerce
@@ -278,6 +284,48 @@ export const NotificationPrefSchema = z
 export type MessageSendInput = z.infer<typeof MessageSendSchema>;
 export type NotificationsReadInput = z.infer<typeof NotificationsReadSchema>;
 export type NotificationPrefInput = z.infer<typeof NotificationPrefSchema>;
+
+// ── Admin console (Identity v2) ──────────────────────────────────────────────
+
+// Change a user's role/status. ADMIN is never a settable role, and the admin's
+// own account is protected in the service. Both fields optional (partial update).
+export const AdminUserUpdateSchema = z
+  .object({
+    role: z.enum(["STUDENT", "FACULTY", "ALUMNI"]).optional(),
+    status: z.enum(["ACTIVE", "SUSPENDED"]).optional(),
+  })
+  .strict()
+  .refine((v) => v.role !== undefined || v.status !== undefined, {
+    message: "Provide a role or status to change.",
+  });
+
+// Provision an alumni account (admin only). Personal email allowed (alumni have
+// no institute address). Optional proof-of-graduation is stored as a claim.
+export const AdminProvisionAlumniSchema = z
+  .object({
+    name: z.string().trim().min(2).max(120),
+    email: z.string().trim().toLowerCase().email("Enter a valid email address."),
+    rollNo: z.string().trim().min(3).max(30).optional(),
+    gradYear: z.coerce.number().int().gte(1960).lte(new Date().getFullYear()).optional(),
+    degree: z.string().trim().min(2).max(120).optional(),
+    proofUrl: z.string().trim().url().max(500).optional(),
+  })
+  .strict();
+
+export const FacultyAllowlistAddSchema = z
+  .object({
+    email: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .email("Enter a valid email address."),
+    note: z.string().trim().max(200).optional(),
+  })
+  .strict();
+
+export type AdminUserUpdateInput = z.infer<typeof AdminUserUpdateSchema>;
+export type AdminProvisionAlumniInput = z.infer<typeof AdminProvisionAlumniSchema>;
+export type FacultyAllowlistAddInput = z.infer<typeof FacultyAllowlistAddSchema>;
 
 export type RegisterInput = z.infer<typeof RegisterSchema>;
 export type LoginInput = z.infer<typeof LoginSchema>;

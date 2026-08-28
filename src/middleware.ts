@@ -26,7 +26,7 @@ const PUBLIC_API = [
   "/api/auth/login",
   "/api/auth/refresh",
   "/api/auth/logout",
-  "/api/auth/alumni-claim",
+  "/api/auth/otp-login",
   "/api/auth/google",
   "/api/cron",
 ];
