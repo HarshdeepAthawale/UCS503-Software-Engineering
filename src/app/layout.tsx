@@ -1,24 +1,25 @@
 import type { ReactNode } from "react";
-import { Fraunces, Inter, JetBrains_Mono } from "next/font/google";
+import { Newsreader, Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
 /**
- * Root layout — loads the warm-dark editorial type stack via next/font/google.
- * Fonts are self-hosted at build time, which keeps them compatible with the
- * strict CSP (`font-src 'self'`) set in src/middleware.ts.
+ * Root layout — Newsreader (editorial serif display) + Plus Jakarta Sans
+ * (geometric sans for all UI/body). Fonts are self-hosted at build time, which
+ * keeps them compatible with the strict CSP (`font-src 'self'`) in middleware.
  */
 
-const fraunces = Fraunces({
+const newsreader = Newsreader({
   subsets: ["latin"],
-  weight: ["400", "500"],
-  variable: "--font-fraunces",
+  weight: ["300", "400", "500", "600"],
+  style: ["normal", "italic"],
+  variable: "--font-newsreader",
   display: "swap",
 });
 
-const inter = Inter({
+const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-inter",
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-jakarta",
   display: "swap",
 });
 
@@ -38,7 +39,7 @@ export const metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${fraunces.variable} ${inter.variable} ${jetbrains.variable}`}>
+      <body className={`${newsreader.variable} ${jakarta.variable} ${jetbrains.variable}`}>
         {children}
       </body>
     </html>

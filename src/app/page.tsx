@@ -63,7 +63,6 @@ export default function Home() {
           <div className="hero-glow" aria-hidden="true" />
           <div className="wrap hero-grid">
             <div>
-              <span className="eyebrow">Thapar Institute · Opportunity Pipeline</span>
               <h1>
                 Make sure an application
                 <br />

@@ -1,42 +1,34 @@
 /**
  * Thapar "ti" lettermark (mark only — no wordmark), recreated as a self-contained
- * SVG so it scales crisply, respects the CSP, and needs no external asset. Bold
- * rounded strokes in the institute's red→maroon gradient, with the signature
- * swoosh foot on the "t".
+ * SVG so it scales crisply, respects the CSP, and needs no external asset.
+ * Monochrome: strokes use `currentColor`, so it renders ink on light and white
+ * on dark automatically — matching the black-and-white design system.
  */
 export function TiLogo({ size = 34, className }: { size?: number; className?: string }) {
-  // Unique gradient id per instance so multiple logos on a page don't collide.
-  const gid = `ti-grad-${size}`;
   return (
     <svg
       width={size}
-      height={(size * 140) / 120}
-      viewBox="0 0 120 140"
+      height={(size * 140) / 130}
+      viewBox="0 0 130 140"
       className={className}
       role="img"
       aria-label="Thapar Institute"
       fill="none"
     >
-      <defs>
-        <linearGradient id={gid} x1="12" y1="6" x2="104" y2="128" gradientUnits="userSpaceOnUse">
-          <stop offset="0" stopColor="#ff5a45" />
-          <stop offset="0.45" stopColor="#e11d2a" />
-          <stop offset="1" stopColor="#7a1f2b" />
-        </linearGradient>
-      </defs>
-      {/* t — stem with the swoosh foot curving right */}
+      {/* t — heavy stem curving into a wide J-hook foot */}
       <path
-        d="M47 15 V92 Q47 116 71 116"
-        stroke={`url(#${gid})`}
-        strokeWidth="17"
+        d="M42 14 V96 Q42 122 68 122 Q80 122 86 116"
+        stroke="currentColor"
+        strokeWidth="22"
         strokeLinecap="round"
+        strokeLinejoin="round"
       />
-      {/* t — crossbar */}
-      <path d="M24 50 H71" stroke={`url(#${gid})`} strokeWidth="15" strokeLinecap="round" />
+      {/* t — crossbar, extending to the right of the stem only */}
+      <path d="M42 52 H82" stroke="currentColor" strokeWidth="20" strokeLinecap="round" />
       {/* i — stem */}
-      <path d="M93 55 V116" stroke={`url(#${gid})`} strokeWidth="17" strokeLinecap="round" />
-      {/* i — tittle (dot) */}
-      <circle cx="93" cy="28" r="10.5" fill={`url(#${gid})`} />
+      <path d="M104 60 V112" stroke="currentColor" strokeWidth="21" strokeLinecap="round" />
+      {/* i — tittle (dot), clearly separated */}
+      <circle cx="104" cy="26" r="12" fill="currentColor" />
     </svg>
   );
 }

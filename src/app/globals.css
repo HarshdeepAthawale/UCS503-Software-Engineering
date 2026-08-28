@@ -1,126 +1,146 @@
 /* ============================================================================
-   Thapar Nexus — warm-dark editorial design system
-   Source: docs/Design.md + the approved landing artifact (claude.ai/code/artifact/
-   25ed0a0f). Dark-first: tokens are defined on :root, overridden for light via
-   `[data-theme="light"]` and `@media (prefers-color-scheme: light)` guarded so
-   an explicit choice always wins. Every colour lives on a token — never defined
-   only inside a theme block.
+   Thapar Nexus — clean editorial design system (light-first + dark toggle)
+   Warm off-white / near-black surfaces with a single orange-red accent, an
+   editorial serif for display (Newsreader) and a geometric sans for UI
+   (Plus Jakarta Sans). Tokens live on :root (light); dark is applied via
+   prefers-color-scheme and [data-theme="dark"]. Every colour is a token.
    ========================================================================== */
 
 :root {
-  --bg: #0f0d0b;
-  --surface: #17140f;
-  --surface-alt: #1f1b16;
-  --border: #2a2620;
-  --border-strong: #3a342b;
-  --text: #f4efe6;
-  --muted: rgba(244, 239, 230, 0.68);
-  --faint: rgba(244, 239, 230, 0.42);
-  --accent: #e2694a;
-  --accent-hover: #ef7a5b;
-  --accent-press: #cb583b;
-  --accent-glow: rgba(255, 77, 42, 0.12);
-  --accent-ring: rgba(226, 105, 74, 0.55);
-  --maroon: #7a1f2b;
-  --st-applied: #a8a29e;
-  --st-received: #38bdf8;
-  --st-shortlisted: #60a5fa;
-  --st-interview: #a78bfa;
-  --st-selected: #4ade80;
-  --st-rejected: #f87171;
-  --st-withdrawn: #78716c;
-  --st-atrisk: #f5a524;
-  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45);
-  --shadow-lg: 0 20px 48px rgba(0, 0, 0, 0.6);
-  --maxw: 1152px;
-  --font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
-  --font-sans: var(--font-inter), system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* Light: warm paper ground, near-black ink, orange-red accent. */
+  --bg: #f5f5f0;
+  --surface: #eaeae5;
+  --surface-alt: #efefea;
+  --surface-2: #e4e4de;
+  --border: #d5d5cd;
+  --border-strong: #c4c4ba;
+  --text: #141413;
+  --muted: #6b6b66;
+  --faint: #8a8a82;
+  --accent: #e63312;
+  --accent-hover: #cf2c0e;
+  --accent-press: #b8250c;
+  --accent-soft: #fbeae6;
+  --accent-glow: rgba(230, 51, 18, 0.12);
+  --accent-ring: rgba(230, 51, 18, 0.4);
+  --ink: #141413;
+  --on-ink: #f5f5f0;
+  --maroon: #b8250c;
+  --st-applied: #8a8a82;
+  --st-received: #6b6b66;
+  --st-shortlisted: #4a4a45;
+  --st-interview: #2a2a26;
+  --st-selected: #16a34a;
+  --st-rejected: #e63312;
+  --st-withdrawn: #a8a8a0;
+  --st-atrisk: #c2710c;
+  --shadow-sm: 0 1px 2px rgba(20, 20, 19, 0.05), 0 1px 3px rgba(20, 20, 19, 0.07);
+  --shadow-md: 0 6px 22px -6px rgba(20, 20, 19, 0.12);
+  --shadow-lg: 0 26px 64px -18px rgba(20, 20, 19, 0.18);
+  --maxw: 1180px;
+  --font-display: var(--font-newsreader), Georgia, 'Times New Roman', serif;
+  --font-sans: var(--font-jakarta), system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: var(--font-jetbrains), "SF Mono", Consolas, monospace;
 }
 
-/* Light palette when the OS asks for light and no explicit dark stamp. */
-@media (prefers-color-scheme: light) {
-  :root:not([data-theme="dark"]) {
-    --bg: #fbf9f4;
-    --surface: #ffffff;
-    --surface-alt: #f3eee4;
-    --border: #e7e0d2;
-    --border-strong: #d8cebb;
-    --text: #1a1712;
-    --muted: #5b5346;
-    --faint: #8a7f6e;
-    --accent: #c6512f;
-    --accent-hover: #b0472a;
-    --accent-press: #9c3e24;
-    --accent-glow: rgba(198, 81, 47, 0.1);
-    --accent-ring: rgba(198, 81, 47, 0.5);
-    --maroon: #7a1f2b;
-    --st-applied: #78716c;
-    --st-received: #0369a1;
-    --st-shortlisted: #2563eb;
-    --st-interview: #7c3aed;
-    --st-selected: #15803d;
-    --st-rejected: #b91c1c;
-    --st-withdrawn: #78716c;
-    --st-atrisk: #b45309;
-    --shadow-md: 0 8px 24px rgba(60, 40, 20, 0.1);
-    --shadow-lg: 0 20px 48px rgba(60, 40, 20, 0.16);
+/* Dark palette when the OS asks for dark and no explicit light stamp. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0c0c0a;
+    --surface: #191917;
+    --surface-alt: #141413;
+    --surface-2: #211f1d;
+    --border: #2a2a26;
+    --border-strong: #3a3a34;
+    --text: #e8e8e3;
+    --muted: #8a8a82;
+    --faint: #6b6b66;
+    --accent: #ff4d2a;
+    --accent-hover: #ff6647;
+    --accent-press: #e63312;
+    --accent-soft: rgba(255, 77, 42, 0.12);
+    --accent-glow: rgba(255, 77, 42, 0.2);
+    --accent-ring: rgba(255, 77, 42, 0.45);
+    --ink: #e8e8e3;
+    --on-ink: #0c0c0a;
+    --maroon: #ff4d2a;
+    --st-applied: #6b6b66;
+    --st-received: #8a8a82;
+    --st-shortlisted: #a8a8a0;
+    --st-interview: #c8c8c0;
+    --st-selected: #4ade80;
+    --st-rejected: #ff4d2a;
+    --st-withdrawn: #57574f;
+    --st-atrisk: #f5a524;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45);
+    --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
   }
 }
 
 /* Explicit toggles win in both directions. */
 :root[data-theme="light"] {
-  --bg: #fbf9f4;
-  --surface: #ffffff;
-  --surface-alt: #f3eee4;
-  --border: #e7e0d2;
-  --border-strong: #d8cebb;
-  --text: #1a1712;
-  --muted: #5b5346;
-  --faint: #8a7f6e;
-  --accent: #c6512f;
-  --accent-hover: #b0472a;
-  --accent-press: #9c3e24;
-  --accent-glow: rgba(198, 81, 47, 0.1);
-  --accent-ring: rgba(198, 81, 47, 0.5);
-  --maroon: #7a1f2b;
-  --st-applied: #78716c;
-  --st-received: #0369a1;
-  --st-shortlisted: #2563eb;
-  --st-interview: #7c3aed;
-  --st-selected: #15803d;
-  --st-rejected: #b91c1c;
-  --st-withdrawn: #78716c;
-  --st-atrisk: #b45309;
-  --shadow-md: 0 8px 24px rgba(60, 40, 20, 0.1);
-  --shadow-lg: 0 20px 48px rgba(60, 40, 20, 0.16);
+  --bg: #f5f5f0;
+  --surface: #eaeae5;
+  --surface-alt: #efefea;
+  --surface-2: #e4e4de;
+  --border: #d5d5cd;
+  --border-strong: #c4c4ba;
+  --text: #141413;
+  --muted: #6b6b66;
+  --faint: #8a8a82;
+  --accent: #e63312;
+  --accent-hover: #cf2c0e;
+  --accent-press: #b8250c;
+  --accent-soft: #fbeae6;
+  --accent-glow: rgba(230, 51, 18, 0.12);
+  --accent-ring: rgba(230, 51, 18, 0.4);
+  --ink: #141413;
+  --on-ink: #f5f5f0;
+  --maroon: #b8250c;
+  --st-applied: #8a8a82;
+  --st-received: #6b6b66;
+  --st-shortlisted: #4a4a45;
+  --st-interview: #2a2a26;
+  --st-selected: #16a34a;
+  --st-rejected: #e63312;
+  --st-withdrawn: #a8a8a0;
+  --st-atrisk: #c2710c;
+  --shadow-sm: 0 1px 2px rgba(20, 20, 19, 0.05), 0 1px 3px rgba(20, 20, 19, 0.07);
+  --shadow-md: 0 6px 22px -6px rgba(20, 20, 19, 0.12);
+  --shadow-lg: 0 26px 64px -18px rgba(20, 20, 19, 0.18);
 }
 
 :root[data-theme="dark"] {
-  --bg: #0f0d0b;
-  --surface: #17140f;
-  --surface-alt: #1f1b16;
-  --border: #2a2620;
-  --border-strong: #3a342b;
-  --text: #f4efe6;
-  --muted: rgba(244, 239, 230, 0.68);
-  --faint: rgba(244, 239, 230, 0.42);
-  --accent: #e2694a;
-  --accent-hover: #ef7a5b;
-  --accent-press: #cb583b;
-  --accent-glow: rgba(255, 77, 42, 0.12);
-  --accent-ring: rgba(226, 105, 74, 0.55);
-  --maroon: #8a3541;
-  --st-applied: #a8a29e;
-  --st-received: #38bdf8;
-  --st-shortlisted: #60a5fa;
-  --st-interview: #a78bfa;
+  --bg: #0c0c0a;
+  --surface: #191917;
+  --surface-alt: #141413;
+  --surface-2: #211f1d;
+  --border: #2a2a26;
+  --border-strong: #3a3a34;
+  --text: #e8e8e3;
+  --muted: #8a8a82;
+  --faint: #6b6b66;
+  --accent: #ff4d2a;
+  --accent-hover: #ff6647;
+  --accent-press: #e63312;
+  --accent-soft: rgba(255, 77, 42, 0.12);
+  --accent-glow: rgba(255, 77, 42, 0.2);
+  --accent-ring: rgba(255, 77, 42, 0.45);
+  --ink: #e8e8e3;
+  --on-ink: #0c0c0a;
+  --maroon: #ff4d2a;
+  --st-applied: #6b6b66;
+  --st-received: #8a8a82;
+  --st-shortlisted: #a8a8a0;
+  --st-interview: #c8c8c0;
   --st-selected: #4ade80;
-  --st-rejected: #f87171;
-  --st-withdrawn: #78716c;
+  --st-rejected: #ff4d2a;
+  --st-withdrawn: #57574f;
   --st-atrisk: #f5a524;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45);
-  --shadow-lg: 0 20px 48px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
 }
 
 * {
@@ -236,28 +256,32 @@ header.nav {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  height: 42px;
-  padding: 0 18px;
-  border-radius: 8px;
+  height: 44px;
+  padding: 0 20px;
+  border-radius: 10px;
   font-size: 14px;
   font-weight: 600;
+  letter-spacing: -0.01em;
   cursor: pointer;
   border: 1px solid transparent;
   transition: 0.16s ease;
   white-space: nowrap;
   font-family: var(--font-sans);
-  min-height: 42px;
+  min-height: 44px;
 }
 .btn:focus-visible {
   outline: 2px solid var(--accent-ring);
   outline-offset: 2px;
 }
+/* Primary = the accent (orange-red), white label — the single loud element. */
 .btn-primary {
   background: var(--accent);
   color: #fff;
+  box-shadow: var(--shadow-sm);
 }
 .btn-primary:hover {
   background: var(--accent-hover);
+  transform: translateY(-1px);
 }
 .btn-primary:disabled {
   opacity: 0.55;
@@ -322,7 +346,7 @@ header.nav {
 }
 .hero h1 {
   font-family: var(--font-display);
-  font-weight: 400;
+  font-weight: 600;
   letter-spacing: -0.03em;
   font-size: clamp(40px, 5.6vw, 64px);
   line-height: 1.02;
@@ -537,7 +561,7 @@ section {
 }
 .section-head h2 {
   font-family: var(--font-display);
-  font-weight: 400;
+  font-weight: 600;
   letter-spacing: -0.02em;
   font-size: clamp(28px, 3.6vw, 40px);
   line-height: 1.08;
@@ -685,7 +709,7 @@ section {
 }
 .dcard h3 {
   font-family: var(--font-display);
-  font-weight: 400;
+  font-weight: 600;
   font-size: 23px;
   letter-spacing: -0.01em;
   margin: 12px 0 8px;
@@ -908,7 +932,7 @@ section {
 }
 .cta-band h2 {
   font-family: var(--font-display);
-  font-weight: 400;
+  font-weight: 600;
   font-size: clamp(28px, 4vw, 42px);
   letter-spacing: -0.02em;
   line-height: 1.05;
@@ -1018,7 +1042,7 @@ footer {
 }
 .auth-card h1 {
   font-family: var(--font-display);
-  font-weight: 400;
+  font-weight: 600;
   font-size: 30px;
   letter-spacing: -0.02em;
   margin: 16px 0 6px;
@@ -1144,7 +1168,7 @@ footer {
 }
 .profile-head h1 {
   font-family: var(--font-display);
-  font-weight: 400;
+  font-weight: 600;
   font-size: clamp(28px, 3.4vw, 38px);
   letter-spacing: -0.02em;
   margin: 6px 0 4px;
@@ -1175,7 +1199,7 @@ footer {
 }
 .panel-card h2 {
   font-family: var(--font-display);
-  font-weight: 400;
+  font-weight: 600;
   font-size: 22px;
   letter-spacing: -0.01em;
   margin: 0 0 18px;
@@ -1390,7 +1414,7 @@ footer {
 }
 .page-head h1 {
   font-family: var(--font-display);
-  font-weight: 400;
+  font-weight: 600;
   font-size: clamp(26px, 4vw, 38px);
   letter-spacing: -0.01em;
   margin: 0;
@@ -1573,7 +1597,7 @@ footer {
 }
 .detail-body h1 {
   font-family: var(--font-display);
-  font-weight: 400;
+  font-weight: 600;
   font-size: clamp(24px, 4vw, 34px);
   margin: 6px 0 10px;
 }
@@ -1789,7 +1813,7 @@ footer {
 }
 .app-empty h3 {
   font-family: var(--font-display);
-  font-weight: 400;
+  font-weight: 600;
   font-size: 22px;
   color: var(--text);
   margin: 0 0 8px;
@@ -1941,11 +1965,11 @@ footer {
 .ti-mark {
   display: inline-block;
   vertical-align: middle;
-  filter: drop-shadow(0 3px 10px color-mix(in oklab, #e11d2a 30%, transparent));
-  transition: transform 0.25s ease;
+  color: var(--text); /* monochrome: inherits ink on light, white on dark */
+  transition: opacity 0.2s ease;
 }
 .brand:hover .ti-mark {
-  transform: rotate(-4deg) scale(1.05);
+  opacity: 0.7;
 }
 .brand {
   display: inline-flex;
@@ -1961,21 +1985,16 @@ footer {
 }
 .hero-glow {
   position: absolute;
-  inset: -20% -10% auto -10%;
-  height: 620px;
+  inset: 0 0 auto 0;
+  height: 100%;
   z-index: -1;
   pointer-events: none;
-  background:
-    radial-gradient(46% 55% at 82% 18%, color-mix(in oklab, var(--accent) 26%, transparent), transparent 70%),
-    radial-gradient(40% 48% at 12% 8%, color-mix(in oklab, #e11d2a 20%, transparent), transparent 70%),
-    radial-gradient(60% 60% at 50% -10%, color-mix(in oklab, var(--maroon) 22%, transparent), transparent 75%);
-  filter: blur(8px);
-  opacity: 0.9;
-  animation: glowdrift 18s ease-in-out infinite alternate;
-}
-@keyframes glowdrift {
-  from { transform: translate3d(0, 0, 0) scale(1); }
-  to { transform: translate3d(-3%, 2%, 0) scale(1.08); }
+  /* Subtle dotted grid + a faint accent wash — clean, not a colored blob. */
+  background-image:
+    radial-gradient(circle at 1px 1px, var(--border) 1px, transparent 0),
+    radial-gradient(60% 55% at 80% 0%, var(--accent-soft), transparent 70%);
+  background-size: 26px 26px, 100% 100%;
+  opacity: 0.6;
 }
 
 .hero-badge {
@@ -1991,31 +2010,17 @@ footer {
   box-shadow: var(--shadow-md);
 }
 
-/* Gradient headline accent */
+/* Accent word in a headline — a single solid red highlight, nothing gaudy. */
 .grad-text {
-  background: linear-gradient(100deg, #ff6a4d 0%, var(--accent) 30%, #e11d2a 65%, var(--maroon) 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
+  color: var(--accent);
 }
 
-/* Buttons — a touch more depth + a gradient primary */
-.btn-primary {
-  background: linear-gradient(135deg, var(--accent), var(--accent-press));
-  box-shadow: 0 6px 20px -6px color-mix(in oklab, var(--accent) 60%, transparent);
-}
-.btn-primary:hover {
-  background: linear-gradient(135deg, var(--accent-hover), var(--accent));
-  transform: translateY(-1px);
-}
-
-/* Stat numbers glow subtly */
+/* Stat numbers */
 .hero-meta .stat .n {
   color: var(--text);
 }
 
-/* Feature / difference cards — gentle gradient border + lift on hover */
+/* Cards lift subtly on hover (soft shadow, no gradients) */
 .fcard,
 .dcard,
 .split,
@@ -2031,19 +2036,31 @@ footer {
 }
 .fcard.primary {
   position: relative;
-  border-color: color-mix(in oklab, var(--accent) 40%, var(--border));
-  background:
-    linear-gradient(180deg, color-mix(in oklab, var(--accent) 7%, var(--surface)), var(--surface));
+  border-color: color-mix(in oklab, var(--accent) 32%, var(--border));
+  background: var(--accent-soft);
 }
 
-/* CTA band — bold gradient wash */
+/* CTA band — clean inverted panel (ink) for a strong finish */
 .cta-band {
   position: relative;
   overflow: hidden;
-  background:
-    radial-gradient(80% 140% at 100% 0%, color-mix(in oklab, var(--accent) 22%, transparent), transparent 60%),
-    linear-gradient(180deg, var(--surface), var(--surface-alt));
+  background: var(--ink);
+  color: var(--on-ink);
   border: 1px solid var(--border-strong);
+}
+.cta-band h2 {
+  color: var(--on-ink);
+}
+.cta-band p {
+  color: color-mix(in oklab, var(--on-ink) 72%, transparent);
+}
+.cta-band .btn-primary {
+  background: var(--on-ink);
+  color: var(--ink);
+}
+.cta-band .btn-ghost {
+  color: var(--on-ink);
+  border-color: color-mix(in oklab, var(--on-ink) 40%, transparent);
 }
 
 /* Section dividers a bit richer */
@@ -2082,7 +2099,7 @@ footer {
 }
 .page-hero h1 {
   font-family: var(--font-display);
-  font-weight: 400;
+  font-weight: 600;
   font-size: clamp(32px, 5.2vw, 56px);
   line-height: 1.08;
   letter-spacing: -0.015em;
@@ -2187,7 +2204,7 @@ footer {
 }
 .quote {
   font-family: var(--font-display);
-  font-weight: 400;
+  font-weight: 600;
   font-size: clamp(21px, 3vw, 30px);
   line-height: 1.4;
   margin: 0 0 16px;
@@ -2287,7 +2304,7 @@ footer {
 }
 .auth-aside-inner h2 {
   font-family: var(--font-display);
-  font-weight: 400;
+  font-weight: 600;
   font-size: clamp(26px, 3.2vw, 38px);
   line-height: 1.18;
   letter-spacing: -0.01em;
