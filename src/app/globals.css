@@ -2591,3 +2591,150 @@ html {
     transform: none !important;
   }
 }
+
+/* ============================================================================
+   Floating dock navigation (landing pages)
+   Structure after owasptiet.vercel.app; surfaces per this design system.
+   ========================================================================== */
+
+.dock {
+  /* Sticky rather than fixed: the wrapper stays in flow and reserves its own
+     height, so no page below needs a hand-tuned top clearance. */
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  display: flex;
+  justify-content: center;
+  padding: 12px 16px;
+  /* Transparent: the pill is the only painted surface, so content scrolling
+     past is visible either side of it. */
+  background: transparent;
+  pointer-events: none;
+}
+
+.dock-pill {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 16px;
+  /* The reference uses bg-black/30 + backdrop-blur-xl. Opaque surface plus a
+     hairline instead - see the note in site-nav.tsx. */
+  background: var(--surface);
+  border: 1px solid var(--border);
+  max-width: 100%;
+}
+
+.dock-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 6px 0 4px;
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.dock-rule {
+  width: 1px;
+  align-self: stretch;
+  margin: 4px 2px;
+  background: var(--border);
+}
+
+.dock-links {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dock-item {
+  position: relative;
+  display: grid;
+  place-items: center;
+  /* 44px is the reference's target size and the accessibility floor for a
+     touch target, so it is kept even though the icon inside is 20px. */
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  color: var(--muted);
+  transition:
+    color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.dock-item svg {
+  width: 20px;
+  height: 20px;
+}
+
+.dock-item:hover {
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+.dock-item.active {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* The hover label, sitting below the dock like the reference's. Positioned
+   against the pill rather than the item so it cannot be clipped, and
+   pointer-events:none so it never eats a click meant for the icon. */
+.dock-tip {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 3px 8px;
+  border-radius: 7px;
+  background: var(--text);
+  color: var(--bg);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dock-item:hover .dock-tip,
+.dock-item:focus-visible .dock-tip {
+  opacity: 1;
+}
+
+.dock-cta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Below ~720px the wordmark and the secondary action are the first things to
+   go: the icons and the primary CTA are what the dock exists for. */
+@media (max-width: 720px) {
+  .dock-wordmark,
+  .dock .nav-signin {
+    display: none;
+  }
+
+  .dock-pill {
+    gap: 4px;
+    padding: 6px 8px;
+  }
+
+  .dock-item {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dock-item,
+  .dock-tip {
+    transition: none;
+  }
+}
