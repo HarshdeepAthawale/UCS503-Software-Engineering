@@ -485,6 +485,14 @@ header.nav {
 }
 .demo {
   padding: 22px;
+  /* The card is a fixed-content panel, not a fluid one: at full column width
+     the stepper's five captions spread until the connectors read as gaps
+     rather than a single run. Capping it and centring in the column keeps the
+     pipeline compact and sits it on the hero's optical centre-right, instead
+     of stretching to whatever the 0.85fr track happens to be. */
+  width: 100%;
+  max-width: 460px;
+  margin-inline: auto;
 }
 .demo-head {
   display: flex;
