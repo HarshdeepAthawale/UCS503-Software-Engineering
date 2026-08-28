@@ -9,8 +9,12 @@ const EnvSchema = z.object({
   DATABASE_URL: z.string().url(),
 
   // Signing secrets must be long enough to resist brute force. 32 bytes minimum.
-  JWT_ACCESS_SECRET: z.string().min(32, "JWT_ACCESS_SECRET must be >= 32 chars"),
-  JWT_REFRESH_SECRET: z.string().min(32, "JWT_REFRESH_SECRET must be >= 32 chars"),
+  JWT_ACCESS_SECRET: z
+    .string()
+    .min(32, "JWT_ACCESS_SECRET must be >= 32 chars"),
+  JWT_REFRESH_SECRET: z
+    .string()
+    .min(32, "JWT_REFRESH_SECRET must be >= 32 chars"),
 
   ACCESS_TOKEN_TTL: z.string().default("15m"),
   REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(7),
@@ -22,7 +26,11 @@ const EnvSchema = z.object({
   OTP_MAX_ATTEMPTS: z.coerce.number().int().positive().default(5),
 
   AUTH_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(10),
-  AUTH_RATE_LIMIT_WINDOW_SECONDS: z.coerce.number().int().positive().default(60),
+  AUTH_RATE_LIMIT_WINDOW_SECONDS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(60),
 
   // Shared secret for scheduled-job endpoints (expiry, SLA nudge). When unset,
   // those endpoints refuse to run - a cron trigger is never left open.
@@ -33,25 +41,55 @@ const EnvSchema = z.object({
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
 
-  NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+  NODE_ENV: z
+    .enum(["development", "test", "production"])
+    .default("development"),
   ALLOW_INSECURE_COOKIES: z
     .enum(["true", "false"])
     .default("false")
     .transform((v) => v === "true"),
 });
 
+/**
+ * An environment variable that exists but is BLANK counts as unset.
+ *
+ * Zod applies `.default()` only when the value is `undefined`, so a variable
+ * present with an empty string skips the default and then fails validation.
+ * That is not hypothetical: a Vercel build failed on REFRESH_TOKEN_TTL_DAYS,
+ * APPLICATION_BUDGET, OTP_TTL_MINUTES, OTP_MAX_ATTEMPTS, AUTH_RATE_LIMIT_MAX,
+ * AUTH_RATE_LIMIT_WINDOW_SECONDS, CRON_SECRET and ALLOW_INSECURE_COOKIES -
+ * every one of which HAS a default and none of which needed to be set at all.
+ * They had been created in the dashboard with blank values.
+ *
+ * Verified: parsing `{}` passes; parsing `{ FIELD: "" }` fails on exactly
+ * those fields.
+ *
+ * This does not weaken anything. DATABASE_URL and the two signing secrets have
+ * no defaults, so a blank value still fails - which is correct, and is the
+ * build refusing to ship a misconfigured deployment.
+ */
+const withBlanksAsUnset = Object.fromEntries(
+  Object.entries(process.env).map(([k, v]) => [k, v === "" ? undefined : v]),
+);
+
 // Cross-field invariant: the two signing secrets must differ, or one token type
 // could be forged with the other's key.
-const parsed = EnvSchema.safeParse(process.env);
+const parsed = EnvSchema.safeParse(withBlanksAsUnset);
 if (!parsed.success) {
   // Do not print secret values; only the field names that failed.
-  const issues = parsed.error.issues.map((i) => i.path.join(".")).join(", ");
+  // Field names and the reason only - never the value, which is the secret.
+  const issues = parsed.error.issues
+    .map((i) => `${i.path.join(".")} (${i.message})`)
+    .join(", ");
   throw new Error(`Invalid environment configuration: ${issues}`);
 }
 if (parsed.data.JWT_ACCESS_SECRET === parsed.data.JWT_REFRESH_SECRET) {
   throw new Error("JWT_ACCESS_SECRET and JWT_REFRESH_SECRET must be different");
 }
-if (parsed.data.NODE_ENV === "production" && parsed.data.ALLOW_INSECURE_COOKIES) {
+if (
+  parsed.data.NODE_ENV === "production" &&
+  parsed.data.ALLOW_INSECURE_COOKIES
+) {
   throw new Error("ALLOW_INSECURE_COOKIES must be false in production");
 }
 
