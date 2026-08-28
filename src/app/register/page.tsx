@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { apiRegister, apiVerifyOtp, ApiError } from "@/lib/client/api";
 import { GoogleButton } from "@/components/google-button";
+import { TiLogo } from "@/components/ti-logo";
 
 type Stage = "form" | "otp";
 
@@ -54,7 +55,7 @@ export default function RegisterPage() {
     <main className="auth-shell">
       <div className="auth-card">
         <Link className="brand" href="/">
-          <span className="mark">N</span> Thapar&nbsp;Nexus
+          <TiLogo size={30} className="ti-mark" /> Thapar&nbsp;Nexus
         </Link>
         <h1>{stage === "form" ? "Create your account" : "Verify your email"}</h1>
         <p className="sub">

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { apiLogout, type SessionUser } from "@/lib/client/api";
+import { TiLogo } from "@/components/ti-logo";
 
 /**
  * Shared top navigation for authenticated app screens. Role-aware: only
@@ -33,7 +34,7 @@ export function AppNav({ user, unread = 0 }: { user: SessionUser | null; unread?
     <header className="appnav">
       <div className="appnav-inner wrap">
         <Link className="brand" href="/opportunities">
-          <span className="mark">N</span> Nexus
+          <TiLogo size={26} className="ti-mark" /> Nexus
         </Link>
         <nav className="appnav-links">
           {link("/opportunities", "Feed")}

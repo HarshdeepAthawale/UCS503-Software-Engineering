@@ -2,6 +2,7 @@ import Link from "next/link";
 import ThemeToggle from "@/components/theme-toggle";
 import PipelineDemo from "@/components/pipeline-demo";
 import Reveal from "@/components/reveal";
+import { TiLogo } from "@/components/ti-logo";
 
 /**
  * Thapar Nexus landing page — port of the approved warm-dark editorial artifact
@@ -83,7 +84,7 @@ export default function Home() {
       <header className="nav">
         <div className="wrap nav-inner">
           <a className="brand" href="#top">
-            <span className="mark">N</span> Thapar&nbsp;Nexus
+            <TiLogo size={30} className="ti-mark" /> Thapar&nbsp;Nexus
           </a>
           <nav className="nav-links">
             <a href="#problem">The problem</a>
@@ -103,13 +104,19 @@ export default function Home() {
       <main id="top">
         {/* ── HERO ── */}
         <section className="hero">
+          <div className="hero-glow" aria-hidden="true" />
           <div className="wrap hero-grid">
             <div>
-              <span className="eyebrow">Thapar Institute · Opportunity Pipeline</span>
+              <div className="hero-badge">
+                <TiLogo size={22} />
+                <span className="eyebrow" style={{ margin: 0 }}>
+                  Thapar Institute · Opportunity Pipeline
+                </span>
+              </div>
               <h1>
                 Make sure an application
                 <br />
-                reaches a decision.
+                <span className="grad-text">reaches a decision.</span>
                 <br />
                 <span className="fade">And make it visible when it doesn&apos;t.</span>
               </h1>
@@ -375,7 +382,7 @@ export default function Home() {
           <div className="foot-grid">
             <div className="foot-brand">
               <a className="brand" href="#top">
-                <span className="mark">N</span> Thapar&nbsp;Nexus
+                <TiLogo size={30} className="ti-mark" /> Thapar&nbsp;Nexus
               </a>
               <p>
                 A verified opportunity pipeline for the institute — built to make sure an

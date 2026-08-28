@@ -1921,3 +1921,126 @@ footer {
   padding: 0;
   text-decoration: underline;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Landing polish — logo, ambient glow, gradient headline, richer surfaces
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.ti-mark {
+  display: inline-block;
+  vertical-align: middle;
+  filter: drop-shadow(0 3px 10px color-mix(in oklab, #e11d2a 30%, transparent));
+  transition: transform 0.25s ease;
+}
+.brand:hover .ti-mark {
+  transform: rotate(-4deg) scale(1.05);
+}
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Hero — layered ambient glow behind the fold */
+.hero {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.hero-glow {
+  position: absolute;
+  inset: -20% -10% auto -10%;
+  height: 620px;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(46% 55% at 82% 18%, color-mix(in oklab, var(--accent) 26%, transparent), transparent 70%),
+    radial-gradient(40% 48% at 12% 8%, color-mix(in oklab, #e11d2a 20%, transparent), transparent 70%),
+    radial-gradient(60% 60% at 50% -10%, color-mix(in oklab, var(--maroon) 22%, transparent), transparent 75%);
+  filter: blur(8px);
+  opacity: 0.9;
+  animation: glowdrift 18s ease-in-out infinite alternate;
+}
+@keyframes glowdrift {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to { transform: translate3d(-3%, 2%, 0) scale(1.08); }
+}
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 15px 7px 9px;
+  border: 1px solid var(--border-strong);
+  border-radius: 99px;
+  background: color-mix(in oklab, var(--surface) 80%, transparent);
+  backdrop-filter: blur(6px);
+  margin-bottom: 26px;
+  box-shadow: var(--shadow-md);
+}
+
+/* Gradient headline accent */
+.grad-text {
+  background: linear-gradient(100deg, #ff6a4d 0%, var(--accent) 30%, #e11d2a 65%, var(--maroon) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Buttons — a touch more depth + a gradient primary */
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent-press));
+  box-shadow: 0 6px 20px -6px color-mix(in oklab, var(--accent) 60%, transparent);
+}
+.btn-primary:hover {
+  background: linear-gradient(135deg, var(--accent-hover), var(--accent));
+  transform: translateY(-1px);
+}
+
+/* Stat numbers glow subtly */
+.hero-meta .stat .n {
+  color: var(--text);
+}
+
+/* Feature / difference cards — gentle gradient border + lift on hover */
+.fcard,
+.dcard,
+.split,
+.showcase .opp,
+.cta-band {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.fcard:hover,
+.dcard:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--border-strong);
+}
+.fcard.primary {
+  position: relative;
+  border-color: color-mix(in oklab, var(--accent) 40%, var(--border));
+  background:
+    linear-gradient(180deg, color-mix(in oklab, var(--accent) 7%, var(--surface)), var(--surface));
+}
+
+/* CTA band — bold gradient wash */
+.cta-band {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(80% 140% at 100% 0%, color-mix(in oklab, var(--accent) 22%, transparent), transparent 60%),
+    linear-gradient(180deg, var(--surface), var(--surface-alt));
+  border: 1px solid var(--border-strong);
+}
+
+/* Section dividers a bit richer */
+.divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border-strong), transparent);
+}
+
+/* Footer mark alignment */
+.foot-brand .brand {
+  margin-bottom: 14px;
+}

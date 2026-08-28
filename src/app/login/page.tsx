@@ -10,6 +10,7 @@ import {
   ApiError,
 } from "@/lib/client/api";
 import { GoogleButton } from "@/components/google-button";
+import { TiLogo } from "@/components/ti-logo";
 
 type Mode = "password" | "code";
 
@@ -89,7 +90,7 @@ export default function LoginPage() {
     <main className="auth-shell">
       <div className="auth-card">
         <Link className="brand" href="/">
-          <span className="mark">N</span> Thapar&nbsp;Nexus
+          <TiLogo size={30} className="ti-mark" /> Thapar&nbsp;Nexus
         </Link>
         <h1>Welcome back</h1>
         <p className="sub">
