@@ -67,7 +67,17 @@ export default function PipelineDemo() {
               <div className="cap">{s.label}</div>
               {i < STEPS.length - 1 && (
                 <div className="line">
-                  <span className="fill" style={{ width: i < stage ? "100%" : "0%" }} />
+                  {/* A custom property, not `width`, so the same value drives
+                      the connector in both orientations: the stepper turns
+                      vertical on phones (five captions cannot share ~47px each
+                      at 360px) and there the fill has to grow in height. An
+                      inline `width` would have pinned it to horizontal. */}
+                  <span
+                    className="fill"
+                    style={
+                      { "--fill": i < stage ? "100%" : "0%" } as React.CSSProperties
+                    }
+                  />
                 </div>
               )}
             </div>
