@@ -215,3 +215,277 @@ export async function apiReplaceSkills(
   });
   return body.profile;
 }
+
+// ── Opportunities (T-09 / T-11) ──────────────────────────────────────────────
+
+export type OppType =
+  | "RESEARCH"
+  | "INTERNSHIP"
+  | "TA"
+  | "HACKATHON_TEAM"
+  | "MICRO_TASK"
+  | "REFERRAL";
+export type OppStatus = "DRAFT" | "LIVE" | "AT_RISK" | "EXPIRED" | "CLOSED";
+export type SlaPledge = "H24" | "H48" | "WEEK";
+export type SkillRequirement = "REQUIRED" | "PREFERRED";
+export type ResponsivenessBadge =
+  | "HIGHLY_RESPONSIVE"
+  | "RESPONSIVE"
+  | "SLOW"
+  | "UNRESPONSIVE"
+  | "NEW";
+
+export interface OppSkill {
+  id: string;
+  name: string;
+  domain: string;
+  requirement: SkillRequirement;
+}
+
+export interface Opportunity {
+  id: string;
+  type: OppType;
+  title: string;
+  description: string;
+  domain: string;
+  duration: string | null;
+  stipend: boolean;
+  seatCount: number;
+  seatsFilled: number;
+  deadline: string;
+  slaPledge: SlaPledge;
+  status: OppStatus;
+  createdAt: string;
+  poster: {
+    id: string;
+    name: string;
+    role: string;
+    responsiveness?: {
+      badge: ResponsivenessBadge;
+      medianTtaHours: number | null;
+      sampleSize: number;
+    };
+  };
+  skills: OppSkill[];
+}
+
+export interface OpportunityListParams {
+  q?: string;
+  type?: OppType;
+  domain?: string;
+  stipend?: "true" | "false";
+  skillId?: string;
+  cursor?: string;
+  limit?: number;
+}
+
+export async function apiListOpportunities(
+  params: OpportunityListParams = {},
+): Promise<{ opportunities: Opportunity[]; nextCursor: string | null }> {
+  const qs = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) {
+    if (v !== undefined && v !== null && v !== "") qs.set(k, String(v));
+  }
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  return request<{ opportunities: Opportunity[]; nextCursor: string | null }>(
+    `/api/opportunities${suffix}`,
+  );
+}
+
+export async function apiGetOpportunity(id: string): Promise<Opportunity> {
+  const body = await request<{ opportunity: Opportunity }>(`/api/opportunities/${id}`);
+  return body.opportunity;
+}
+
+export interface OpportunityCreateInput {
+  type: OppType;
+  title: string;
+  description: string;
+  domain: string;
+  duration?: string | null;
+  stipend?: boolean;
+  seatCount?: number;
+  deadline: string;
+  slaPledge: SlaPledge;
+  skills?: { skillId: string; requirement: SkillRequirement }[];
+}
+
+export async function apiCreateOpportunity(
+  input: OpportunityCreateInput,
+): Promise<Opportunity> {
+  const body = await request<{ opportunity: Opportunity }>("/api/opportunities", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+  return body.opportunity;
+}
+
+export async function apiCloseOpportunity(id: string): Promise<{ id: string; status: OppStatus }> {
+  return request<{ id: string; status: OppStatus }>(`/api/opportunities/${id}`, {
+    method: "POST",
+  });
+}
+
+// ── Applications (T-12 / T-13) ───────────────────────────────────────────────
+
+export type AppState =
+  | "APPLIED"
+  | "RECEIVED"
+  | "SHORTLISTED"
+  | "INTERVIEW"
+  | "SELECTED"
+  | "REJECTED"
+  | "WITHDRAWN";
+export type RejectionCode =
+  | "SKILL_MISMATCH"
+  | "SEATS_FILLED"
+  | "TIMING_CONFLICT"
+  | "PROFILE_INCOMPLETE"
+  | "STRONGER_APPLICANTS"
+  | "OTHER";
+
+export interface MyApplication {
+  id: string;
+  status: AppState;
+  appliedAt: string;
+  firstTransitionAt: string | null;
+  rejectionCode: RejectionCode | null;
+  opportunity: {
+    id: string;
+    title: string;
+    type: OppType;
+    status: OppStatus;
+    deadline: string;
+  };
+}
+
+export interface ApplicationEvent {
+  fromState: AppState | null;
+  toState: AppState;
+  note: string | null;
+  createdAt: string;
+}
+
+export interface Applicant {
+  id: string;
+  status: AppState;
+  appliedAt: string;
+  firstTransitionAt: string | null;
+  rejectionCode: RejectionCode | null;
+  student: { id: string; name: string };
+  events: ApplicationEvent[];
+}
+
+export async function apiApply(
+  opportunityId: string,
+  note?: string,
+): Promise<{ id: string; status: AppState }> {
+  const body = await request<{ application: { id: string; status: AppState } }>(
+    `/api/opportunities/${opportunityId}/applications`,
+    { method: "POST", body: JSON.stringify(note ? { note } : {}) },
+  );
+  return body.application;
+}
+
+export async function apiListMyApplications(): Promise<MyApplication[]> {
+  const body = await request<{ applications: MyApplication[] }>("/api/applications");
+  return body.applications;
+}
+
+export async function apiListApplicants(opportunityId: string): Promise<Applicant[]> {
+  const body = await request<{ applicants: Applicant[] }>(
+    `/api/opportunities/${opportunityId}/applications`,
+  );
+  return body.applicants;
+}
+
+export async function apiTransition(
+  applicationId: string,
+  toState: Exclude<AppState, "APPLIED" | "WITHDRAWN">,
+  opts: { note?: string; rejectionCode?: RejectionCode } = {},
+): Promise<{ id: string; status: AppState }> {
+  const body = await request<{ application: { id: string; status: AppState } }>(
+    `/api/applications/${applicationId}`,
+    { method: "PATCH", body: JSON.stringify({ toState, ...opts }) },
+  );
+  return body.application;
+}
+
+export async function apiWithdraw(
+  applicationId: string,
+): Promise<{ id: string; status: AppState }> {
+  const body = await request<{ application: { id: string; status: AppState } }>(
+    `/api/applications/${applicationId}/withdraw`,
+    { method: "POST" },
+  );
+  return body.application;
+}
+
+// ── Messaging (T-16) ─────────────────────────────────────────────────────────
+
+export interface Message {
+  id: string;
+  senderId: string;
+  body: string;
+  createdAt: string;
+}
+
+export async function apiListMessages(applicationId: string): Promise<Message[]> {
+  const body = await request<{ messages: Message[] }>(
+    `/api/applications/${applicationId}/messages`,
+  );
+  return body.messages;
+}
+
+export async function apiSendMessage(applicationId: string, text: string): Promise<Message> {
+  const body = await request<{ message: Message }>(
+    `/api/applications/${applicationId}/messages`,
+    { method: "POST", body: JSON.stringify({ body: text }) },
+  );
+  return body.message;
+}
+
+// ── Notifications (T-17) ─────────────────────────────────────────────────────
+
+export type NotifFreq = "IMMEDIATE" | "DAILY" | "WEEKLY";
+
+export interface Notification {
+  id: string;
+  type: string;
+  payload: Record<string, unknown>;
+  readAt: string | null;
+  createdAt: string;
+}
+
+export async function apiListNotifications(): Promise<{
+  notifications: Notification[];
+  unread: number;
+}> {
+  return request<{ notifications: Notification[]; unread: number }>("/api/notifications");
+}
+
+export async function apiMarkNotificationsRead(ids?: string[]): Promise<number> {
+  const body = await request<{ marked: number }>("/api/notifications/read", {
+    method: "POST",
+    body: JSON.stringify(ids && ids.length ? { ids } : {}),
+  });
+  return body.marked;
+}
+
+export async function apiGetNotificationPref(): Promise<{
+  frequency: NotifFreq;
+  lastDigestAt: string | null;
+}> {
+  const body = await request<{ preference: { frequency: NotifFreq; lastDigestAt: string | null } }>(
+    "/api/notifications/preferences",
+  );
+  return body.preference;
+}
+
+export async function apiSetNotificationPref(frequency: NotifFreq): Promise<NotifFreq> {
+  const body = await request<{ preference: { frequency: NotifFreq } }>(
+    "/api/notifications/preferences",
+    { method: "PUT", body: JSON.stringify({ frequency }) },
+  );
+  return body.preference.frequency;
+}
