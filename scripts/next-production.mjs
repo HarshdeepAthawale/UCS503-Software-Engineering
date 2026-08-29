@@ -26,6 +26,12 @@
  * Set as a script rather than an inline `NODE_ENV=production next build` so it
  * works on Windows (PowerShell has no inline env-var prefix) as well as Linux.
  *
+ * Runtime pin: `.node-version` is 22, not the 24 this was first written against.
+ * Render accepts either, but Vercel treats `.node-version` as an exact pin and
+ * offers no 24 runtime, so the frontend deploy failed on it. 22 is current LTS
+ * and is satisfied by the `engines` range in package.json, so both hosts and a
+ * local Node 24 all agree.
+ *
  * NOTE: with NODE_ENV correct, `ALLOW_INSECURE_COOKIES` is now actually checked
  * at build time. If the deploy still has it set to "true", the build will fail
  * loudly with "ALLOW_INSECURE_COOKIES must be false in production" — that guard

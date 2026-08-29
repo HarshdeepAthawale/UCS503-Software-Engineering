@@ -21,7 +21,7 @@ pipeline that was never written, and the tail of the tracker.
 **Topology** (decided 2026-08-29, supersedes the earlier "move everything to Vercel"):
 
 ```
-browser ──► app.vercel.app ──rewrite /api/*──► ucs503-…onrender.com
+browser ──► thapar-nexus.vercel.app ──rewrite /api/*──► ucs503-…onrender.com
                 (frontend)                          (backend + DB + storage)
                                     ▲
             cron-job.org ───────────┘  (hits Render DIRECTLY, skips the proxy)
@@ -48,9 +48,9 @@ not depend on the frontend being up or on any host's cron feature.
 |---|---|---|---|
 | **A1** | Delete `vercel.json`; scheduling leaves the repo (D-27) | — | ✅ |
 | **A2** | `next.config.ts`: `beforeFiles` rewrite `/api/:path*` → `$BACKEND_ORIGIN`, with https + bare-origin validation. `beforeFiles` is required — a bare rewrites array runs only *after* filesystem routes, so the local /api handlers would win and the proxy would never fire | — | ✅ |
-| **A3** | Connect Vercel project `ucs-503-software-engineering` to the repo, production branch `main` | HA (dashboard) | ⬜ |
+| **A3** | Connect Vercel project `ucs-503-software-engineering` to the repo, production branch `main` | — | ✅ (done 2026-08-29, domain `thapar-nexus.vercel.app`) |
 | **A4** | Vercel env: **`BACKEND_ORIGIN=https://ucs503-software-engineering.onrender.com`**, `ALLOW_INSECURE_COOKIES=false`, `NODE_ENV` **omitted**. The rest of the vars are still needed — `src/lib/env.ts` validates at boot even though Vercel's own /api copy is never reached | A3 | ⬜ |
-| **A5** | On **Render**, set `APP_ORIGIN` to the **Vercel** URL — not Render's own. The browser sits on Vercel, so that is the `redirect_uri` Google must return to; the callback then proxies through. Register `${APP_ORIGIN}` and `${APP_ORIGIN}/api/auth/google/callback` in Google Cloud Console | A3 | ⬜ |
+| **A5** | On **Render**, set `APP_ORIGIN=https://thapar-nexus.vercel.app` — the **Vercel** URL, not Render's own. The browser sits on Vercel, so that is the `redirect_uri` Google must return to; the callback then proxies through. Register `${APP_ORIGIN}` and `${APP_ORIGIN}/api/auth/google/callback` in Google Cloud Console | A3 | ⬜ |
 | **A6** | Verify through the proxy: `/api/health`, a real login **and a page refresh 15+ min later** (proves the refresh cookie survives), a résumé signed-URL fetch, and the Google flow end to end | A5 | ⬜ |
 | **A7** | Four cron-job.org jobs against the **Render** origin, `Authorization: Bearer $CRON_SECRET`, hourly at :00 / :15 / :30 / :45 | — | ⬜ |
 | **A8** | Confirm each job returns 200 and does work — seed one past-deadline posting, watch it flip to `EXPIRED` | A7 | ⬜ |
