@@ -125,26 +125,76 @@ export async function softDeleteSkill(admin: Principal, id: string) {
 // ── Own profile skill assignment (ownership-scoped) ──────────────────────────
 
 /**
- * Replace the caller's whole skill set (profile editor). Validates every skillId
- * against the LIVE taxonomy first - a soft-deleted skill cannot be re-attached.
- * Runs in one transaction so the set is never observed half-written.
+ * Resolve a typed skill name to a taxonomy skill id, creating the skill if it is
+ * new (default domain "General"). Matching is case-insensitive so "Python" and
+ * "python" collapse to one row. A member typing a skill thus grows the taxonomy
+ * organically — a deliberate relaxation of admin-only curation (see D-26); the
+ * `UserSkill → Skill` link, and therefore matching / faceted search, is kept.
  */
-export async function replaceOwnSkills(principal: Principal, input: UserSkillsReplaceInput) {
-  const ids = [...new Set(input.skills.map((s) => s.skillId))];
-
-  const valid = await prisma.skill.findMany({
-    where: { id: { in: ids }, deletedAt: null },
+async function resolveSkillIdByName(principal: Principal, rawName: string): Promise<string> {
+  const name = rawName.trim();
+  const existing = await prisma.skill.findFirst({
+    where: { name: { equals: name, mode: "insensitive" }, deletedAt: null },
     select: { id: true },
   });
-  if (valid.length !== ids.length) {
-    throw Errors.validation("One or more skills are not in the taxonomy.", "skills");
+  if (existing) return existing.id;
+
+  try {
+    const created = await prisma.skill.create({
+      data: { name, domain: "General" },
+      select: { id: true },
+    });
+    await audit({
+      action: "skill.created",
+      actorId: principal.userId,
+      target: created.id,
+      metadata: { name, domain: "General", source: "profile" },
+    });
+    return created.id;
+  } catch (e) {
+    // Name already exists (unique is case-sensitive & spans soft-deleted rows):
+    // reuse it, un-deleting a previously removed skill of the same name.
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+      const any = await prisma.skill.findFirst({
+        where: { name: { equals: name, mode: "insensitive" } },
+        select: { id: true, deletedAt: true },
+      });
+      if (any) {
+        if (any.deletedAt) {
+          await prisma.skill.update({ where: { id: any.id }, data: { deletedAt: null } });
+        }
+        return any.id;
+      }
+    }
+    throw e;
+  }
+}
+
+/**
+ * Replace the caller's whole skill set (profile editor). Skills arrive by NAME;
+ * each is resolved to a taxonomy row (created if new). Names are de-duplicated
+ * case-insensitively (last proficiency wins) so the composite PK is never
+ * violated. The swap runs in one transaction so the set is never half-written.
+ */
+export async function replaceOwnSkills(principal: Principal, input: UserSkillsReplaceInput) {
+  // De-dupe by normalised name, last-wins on proficiency.
+  const byName = new Map<string, { name: string; proficiency: (typeof input.skills)[number]["proficiency"] }>();
+  for (const s of input.skills) {
+    const key = s.name.trim().toLowerCase();
+    if (key) byName.set(key, { name: s.name.trim(), proficiency: s.proficiency });
+  }
+  const unique = [...byName.values()];
+
+  const resolved = [] as { skillId: string; proficiency: (typeof unique)[number]["proficiency"] }[];
+  for (const s of unique) {
+    resolved.push({ skillId: await resolveSkillIdByName(principal, s.name), proficiency: s.proficiency });
   }
 
   await prisma.$transaction(async (tx) => {
     await tx.userSkill.deleteMany({ where: { userId: principal.userId } });
-    if (input.skills.length > 0) {
+    if (resolved.length > 0) {
       await tx.userSkill.createMany({
-        data: input.skills.map((s) => ({
+        data: resolved.map((s) => ({
           userId: principal.userId,
           skillId: s.skillId,
           proficiency: s.proficiency,
@@ -156,15 +206,12 @@ export async function replaceOwnSkills(principal: Principal, input: UserSkillsRe
   await audit({
     action: "profile.skills_replaced",
     actorId: principal.userId,
-    metadata: { count: input.skills.length },
+    metadata: { count: resolved.length },
   });
 
   return {
     userId: principal.userId,
-    skills: input.skills.map((s) => ({
-      skillId: s.skillId,
-      proficiency: s.proficiency,
-    })),
+    skills: unique.map((s) => ({ name: s.name, proficiency: s.proficiency })),
   };
 }
 

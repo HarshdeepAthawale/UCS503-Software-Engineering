@@ -88,6 +88,12 @@ const CASES: Array<[Role, Permission, boolean]> = [
   ["ADMIN", "flag:create", false],
   ["ADMIN", "flag:read", true],
   ["ADMIN", "flag:resolve", true],
+  // Resume visibility (T-44): the reviewing roles may open ANOTHER member's
+  // resume; a student may not (their own is the ownership path in the service).
+  ["FACULTY", "profile:read_resume", true],
+  ["ALUMNI", "profile:read_resume", true],
+  ["ADMIN", "profile:read_resume", true],
+  ["STUDENT", "profile:read_resume", false],
 ];
 
 describe("RBAC matrix (deny-by-default)", () => {
@@ -151,5 +157,11 @@ describe("Account status gate", () => {
   it("PENDING_ALUMNI is read-only until approved", () => {
     expect(can(P("ALUMNI", "PENDING_ALUMNI"), "opportunity:read")).toBe(true);
     expect(can(P("ALUMNI", "PENDING_ALUMNI"), "opportunity:create")).toBe(false);
+  });
+
+  it("treats a qualified read (profile:read_resume) as a read, not a mutation", () => {
+    expect(can(P("ALUMNI", "PENDING_ALUMNI"), "profile:read_resume")).toBe(true);
+    expect(can(P("FACULTY", "UNVERIFIED"), "profile:read_resume")).toBe(true);
+    expect(can(P("FACULTY", "SUSPENDED"), "profile:read_resume")).toBe(false);
   });
 });

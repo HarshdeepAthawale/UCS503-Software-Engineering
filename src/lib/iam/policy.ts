@@ -47,7 +47,11 @@ export function decide(
   if (principal.status === "SUSPENDED") {
     return { allowed: false, reason: "account_suspended" };
   }
-  const isMutating = !permission.endsWith(":read") && !permission.endsWith(":list");
+  // Classify on the ACTION, not the whole string: qualified reads such as
+  // `profile:read_resume` are still reads, and a suffix test would wrongly call
+  // them mutations and lock out UNVERIFIED / PENDING_ALUMNI viewers.
+  const action = permission.split(":")[1] ?? "";
+  const isMutating = !action.startsWith("read") && !action.startsWith("list");
   if (
     (principal.status === "UNVERIFIED" || principal.status === "PENDING_ALUMNI") &&
     isMutating

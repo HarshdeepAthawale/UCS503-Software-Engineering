@@ -176,7 +176,7 @@ export default function OpportunityDetailPage() {
               </div>
 
               <aside className="panel">
-                <div className="kv"><span className="k">Posted by</span><span className="v">{opp.poster.name}</span></div>
+                <div className="kv"><span className="k">Posted by</span><span className="v"><Link href={`/profile/${opp.poster.id}`}>{opp.poster.name}</Link></span></div>
                 <div className="kv"><span className="k">Domain</span><span className="v">{opp.domain}</span></div>
                 <div className="kv"><span className="k">Stipend</span><span className="v">{opp.stipend ? "Yes" : "No"}</span></div>
                 {opp.duration && <div className="kv"><span className="k">Duration</span><span className="v">{opp.duration}</span></div>}

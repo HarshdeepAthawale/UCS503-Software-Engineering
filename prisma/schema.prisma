@@ -220,6 +220,22 @@ model Profile {
   cgpaPublic Boolean  @default(false) @map("cgpa_public")
   bio        String?
 
+  // One-line self-description ("Security researcher · binary exploitation").
+  // `role` is the ACCOUNT type (STUDENT/FACULTY/...), which says nothing about
+  // what a person actually works on - this is the field a reviewer reads first.
+  headline String?
+
+  // External identity links. Stored raw and rendered as anchors, so the schema
+  // layer restricts them to http(s) (codeguard-0-xss).
+  githubUrl   String? @map("github_url")
+  linkedinUrl String? @map("linkedin_url")
+  websiteUrl  String? @map("website_url")
+
+  // What the member is open to, drawn from the SAME vocabulary as postings, so
+  // this is matchable later rather than free text. Empty list = not stated.
+  openTo       OppType[] @default([]) @map("open_to")
+  hoursPerWeek Int?      @map("hours_per_week")
+
   // Résumé metadata (T-44, M2). The PDF itself lives in Supabase Storage at
   // `resumeKey`; only its filename/size/timestamp are kept here. Null → no résumé.
   resumeKey        String?   @map("resume_key")

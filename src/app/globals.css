@@ -1303,6 +1303,14 @@ footer {
   gap: 20px;
   align-items: start;
 }
+/* `.panel-grid` is two columns, so a grid holding a single card left that card
+   at 1.15fr with ~45% dead space beside it (the Résumé and Projects panels on
+   both profile pages). A lone card, or one explicitly marked `span-full`,
+   takes the whole row instead. */
+.panel-grid > .panel-card:only-child,
+.panel-card.span-full {
+  grid-column: 1 / -1;
+}
 .panel-card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -1333,6 +1341,18 @@ footer {
   border: 1px solid var(--border-strong);
   background: var(--surface-alt);
   color: var(--text);
+}
+/* The availability chips are <button>s, which arrive with a UA font and cursor
+   that a <span> chip never had - reset those so both render identically. */
+button.skill-chip {
+  cursor: pointer;
+  font-family: inherit;
+}
+.skill-chip.is-on {
+  border-color: var(--accent);
+  background: var(--accent-soft, var(--surface-alt));
+  color: var(--accent);
+  font-weight: 600;
 }
 .skill-chip .x {
   cursor: pointer;
@@ -1939,6 +1959,13 @@ footer {
 .pcard .nm {
   font-weight: 600;
   font-size: 14px;
+}
+/* Names that open a member profile. The global `a` rule strips colour and
+   underline, so without this a link is indistinguishable from plain text -
+   the underline on hover is the only cue that the name is clickable. */
+.pcard .nm a:hover,
+.kv .v a:hover {
+  text-decoration: underline;
 }
 .pcard .row {
   display: flex;

@@ -48,6 +48,8 @@ export const OWNERSHIP_SCOPED: ReadonlySet<Permission> = new Set<Permission>([
 const STUDENT: Permission[] = [
   "profile:read",
   "profile:update", // OWN
+  // NOT `profile:read_resume` - a student sees only their OWN resume, which is
+  // the ownership path in the service, not a matrix grant.
   "opportunity:read",
   "opportunity:list",
   "application:create",
@@ -64,6 +66,7 @@ const STUDENT: Permission[] = [
 
 const FACULTY: Permission[] = [
   "profile:read",
+  "profile:read_resume", // any member's resume, for reviewing candidates (T-44)
   "profile:update", // OWN
   "opportunity:read",
   "opportunity:list",
@@ -89,6 +92,7 @@ const ALUMNI: Permission[] = [...FACULTY];
 // override that is separately audited).
 const ADMIN: Permission[] = [
   "profile:read",
+  "profile:read_resume", // governance / moderation
   "opportunity:read",
   "opportunity:list",
   "application:read",

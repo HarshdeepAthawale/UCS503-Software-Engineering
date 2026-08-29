@@ -69,34 +69,49 @@ describe("UserSkillAddSchema (assignment)", () => {
   });
 });
 
-describe("UserSkillsReplaceSchema (profile editor)", () => {
+describe("UserSkillsReplaceSchema (profile editor — typed names)", () => {
   it("accepts an empty set (clears skills)", () => {
     const r = UserSkillsReplaceSchema.safeParse({ skills: [] });
     expect(r.success).toBe(true);
   });
 
-  it("accepts a bounded set", () => {
+  it("accepts typed skill names with a proficiency", () => {
     const r = UserSkillsReplaceSchema.safeParse({
       skills: [
-        { skillId: UUID, proficiency: "ADVANCED" },
-        { skillId: UUID, proficiency: "EXPERT" },
+        { name: "Python", proficiency: "ADVANCED" },
+        { name: "Rust", proficiency: "EXPERT" },
       ],
     });
     expect(r.success).toBe(true);
   });
 
-  it("rejects more than 50 skills", () => {
-    const skills = Array.from({ length: 51 }, () => ({
-      skillId: UUID,
+  it("rejects more than 8 skills (the per-profile cap)", () => {
+    const skills = Array.from({ length: 9 }, (_, i) => ({
+      name: `Skill ${i}`,
       proficiency: "BEGINNER" as const,
     }));
     const r = UserSkillsReplaceSchema.safeParse({ skills });
     expect(r.success).toBe(false);
   });
 
-  it("rejects a skill outside the taxonomy shape (unknown key)", () => {
+  it("accepts exactly 8 skills", () => {
+    const skills = Array.from({ length: 8 }, (_, i) => ({
+      name: `Skill ${i}`,
+      proficiency: "BEGINNER" as const,
+    }));
+    expect(UserSkillsReplaceSchema.safeParse({ skills }).success).toBe(true);
+  });
+
+  it("rejects an empty skill name", () => {
     const r = UserSkillsReplaceSchema.safeParse({
-      skills: [{ skillId: UUID, proficiency: "BEGINNER", name: "Free text!" }],
+      skills: [{ name: "   ", proficiency: "BEGINNER" }],
+    });
+    expect(r.success).toBe(false);
+  });
+
+  it("rejects unknown keys (no mass assignment)", () => {
+    const r = UserSkillsReplaceSchema.safeParse({
+      skills: [{ name: "Python", proficiency: "BEGINNER", skillId: UUID }],
     });
     expect(r.success).toBe(false);
   });

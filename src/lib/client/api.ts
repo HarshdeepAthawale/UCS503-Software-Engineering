@@ -42,10 +42,19 @@ export interface ResumeView extends ResumeMeta {
 export interface Profile {
   userId: string;
   name: string;
+  /** Account type (STUDENT/FACULTY/...) — see `headline` for what they do. */
   role: string;
   branch: string | null;
   year: number | null;
   bio: string | null;
+  /** One-line self-description, e.g. "Security researcher · binary exploitation". */
+  headline: string | null;
+  githubUrl: string | null;
+  linkedinUrl: string | null;
+  websiteUrl: string | null;
+  /** Posting types this member is open to; empty = not stated. */
+  openTo: OppType[];
+  hoursPerWeek: number | null;
   cgpa: number | null;
   cgpaPublic: boolean;
   skills: { id: string; name: string; domain: string; proficiency: string }[];
@@ -142,21 +151,43 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   return (await res.json()) as T;
 }
 
+/**
+ * In-flight refresh, shared by every concurrent caller.
+ *
+ * The refresh cookie ROTATES on use and the server runs reuse detection, so two
+ * refreshes racing on the same cookie is not merely a wasted round-trip: the
+ * second presents an already-spent token and looks exactly like theft, which
+ * revokes the whole family and signs the user out. A page that mounts two
+ * components calling `bootstrapSession`, or fires parallel requests that both
+ * 401, could do precisely that.
+ */
+let refreshInFlight: Promise<boolean> | null = null;
+
 /** Mint a fresh access token from the HttpOnly refresh cookie (page load). */
-export async function tryRefresh(): Promise<boolean> {
-  try {
-    const res = await fetch("/api/auth/refresh", { method: "POST" });
-    if (!res.ok) {
+export function tryRefresh(): Promise<boolean> {
+  if (refreshInFlight) return refreshInFlight;
+
+  refreshInFlight = (async () => {
+    try {
+      const res = await fetch("/api/auth/refresh", { method: "POST" });
+      if (!res.ok) {
+        clearSession();
+        return false;
+      }
+      const body = (await res.json()) as { accessToken: string; user: SessionUser };
+      setSession(body.accessToken, body.user);
+      return true;
+    } catch {
       clearSession();
       return false;
+    } finally {
+      // Cleared inside the same promise so the next caller starts a new
+      // request rather than joining this settled one.
+      refreshInFlight = null;
     }
-    const body = (await res.json()) as { accessToken: string; user: SessionUser };
-    setSession(body.accessToken, body.user);
-    return true;
-  } catch {
-    clearSession();
-    return false;
-  }
+  })();
+
+  return refreshInFlight;
 }
 
 /** Restore a session if one exists; returns true when signed in. */
@@ -212,12 +243,34 @@ export async function apiGetMyProfile(): Promise<Profile | null> {
   return body.profile;
 }
 
+/**
+ * Another member's profile, or null when there is none to show. The server
+ * decides what comes back: CGPA is stripped unless the student made it public,
+ * and `resume` is null unless the viewer is allowed to see it — so this payload
+ * is already safe to render as-is.
+ */
+export async function apiGetProfile(userId: string): Promise<Profile | null> {
+  try {
+    const body = await request<{ profile: Profile }>(`/api/profiles/${userId}`);
+    return body.profile;
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) return null;
+    throw err;
+  }
+}
+
 export async function apiUpdateProfile(input: {
   branch?: string | null;
   year?: number | null;
   cgpa?: number | null;
   cgpaPublic?: boolean;
   bio?: string | null;
+  headline?: string | null;
+  githubUrl?: string | null;
+  linkedinUrl?: string | null;
+  websiteUrl?: string | null;
+  openTo?: OppType[];
+  hoursPerWeek?: number | null;
 }): Promise<Profile> {
   const body = await request<{ profile: Profile }>("/api/profiles/me", {
     method: "PATCH",
@@ -232,7 +285,7 @@ export async function apiGetSkills(): Promise<TaxonomySkill[]> {
 }
 
 export async function apiReplaceSkills(
-  skills: { skillId: string; proficiency: string }[],
+  skills: { name: string; proficiency: string }[],
 ): Promise<Profile> {
   const body = await request<{ profile: Profile }>("/api/profiles/me/skills", {
     method: "PUT",

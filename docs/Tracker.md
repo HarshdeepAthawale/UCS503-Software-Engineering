@@ -54,7 +54,7 @@ Verified by running the toolchain on 2026-08-29, not by reading the task board.
 | Check | Command | Result |
 |---|---|---|
 | Type safety | `npm run typecheck` | ✅ clean (strict mode, no `any`) |
-| Unit tests | `npm test` | ✅ **181 passed** across 13 files |
+| Unit tests | `npm test` | ✅ **183 passed** across 13 files |
 | Production build | `npm run build` | ✅ green — 50 routes (47 API), middleware 53.4 kB |
 | Database | Supabase Postgres 16 | ✅ live, **9/9 migrations applied**, 20 tables |
 | Seed state | — | 2 users (1 `ADMIN`, 1 `STUDENT`), all other tables empty — **by design**, see D-06 |
@@ -335,6 +335,11 @@ Go/No-Go conditions from `ImplementationPlan.md` §5, assessed honestly.
 |---|---|---|---|
 | AC | **T-25 (M9)** — institute-wide analytics on the admin console. `getInstituteAnalytics()` computes resolution rate, **median TTA via `percentile_cont`** (set-based, scales), seat-fill, and pipeline/type/status distributions + a 14-day application trend — all from the immutable event log, so nothing is self-reported (D-25). New `GET /api/admin/analytics` (`analytics:read`, ADMIN-only); admin **Analytics tab** with stat cards, CSS bar charts and a sparkline. Raw SQL smoke-tested on the live DB. **This closes M9 → the entire MUST tier (M1–M9) is ✅.** 181 tests green; build clean (50 routes) | S1 attestations (flagship SHOULD) · CI (T-34) · pilot (T-29) | Actions billing (G-01) for CI |
 
+### 2026-08-29 — Typed skills on the profile (unblocks empty taxonomy)
+| Member | Done | Next | Blocked |
+|---|---|---|---|
+| SD | The profile Skills picker was an **empty dropdown** (taxonomy unseeded, G-08) — students couldn't add anything. Switched to a **text input + datalist suggestions**, capped at **8**. Server `replaceOwnSkills` now takes skill **names** and find-or-creates the taxonomy row (case-insensitive de-dupe, default domain "General"), so the `UserSkill → Skill` link is preserved and matching/search keep working (D-26, partially reverses D-04). Schema `UserSkillsReplaceSchema` → names + `max 8`; tests updated. **183 tests green**; build clean | Attestations (S1) · admin skill-merge tooling | — |
+
 ### _(Template)_
 ```
 ### YYYY-MM-DD
@@ -376,6 +381,7 @@ Go/No-Go conditions from `ImplementationPlan.md` §5, assessed honestly.
 | **D-23** | 2026-08-29 | **Flags target postings; "remove" is a soft-delete; duplicate OPEN flags blocked by a partial-unique index** | Hard-delete on removal; service-level dedup; flagging users/messages too | A soft-delete drops the posting from every listing yet preserves analytics and the audit trail (Rules.md: nothing hard-deleted). The DB, not the service, guarantees one open flag per reporter per posting (D-11 philosophy). Scope held to postings, matching PRD M9 ("flagged postings") — no new moderation surface |
 | **D-24** | 2026-08-29 | **NFR-P1 measured by server-side execution time (EXPLAIN ANALYZE), not dev→remote wall-clock** | Report the raw round-trip; skip measuring | The 300 ms budget is a deployment-local target; a dev machine's RTT to a remote Supabase region (~300 ms) swamps the query and would misreport conformance. The benchmark seeds 5 000 rows in a rolled-back txn (no committed mock data, D-06) and reports both figures — server-side p95 ≈ 74 ms is the honest, in-region number |
 | **D-25** | 2026-08-29 | **Institute analytics computed set-based in SQL from the immutable event log; median via `percentile_cont`** | Load all rows and average in JS; a nightly rollup table | Aggregates over `applied_at`/`first_transition_at` cannot be back-dated, so the numbers are trustworthy by construction (same basis as M6). `percentile_cont` gives a true median that scales without pulling every row; no rollup table to keep in sync at pilot scale |
+| **D-26** | 2026-08-29 | **Members may TYPE skills on their profile (find-or-create in the taxonomy), capped at 8** | Admin-only curation (D-04, original M2 rule); pure free-text strings | The admin-curated taxonomy started empty (G-08), so students literally could not add a skill. Relaxing to type-to-create keeps the `UserSkill → Skill` FK — so matching (S5) and faceted skill search still work — while free-text strings would have broken both. Case-insensitive de-dupe; new skills default to domain "General"; admin can still merge/curate. **Partially reverses D-04**, recorded openly |
 
 ---
 
@@ -397,7 +403,7 @@ Go/No-Go conditions from `ImplementationPlan.md` §5, assessed honestly.
 | **G-05** | S2 | **The traceability matrix cited test IDs that do not exist** (`IT-01`, `IT-04`, `E2E-3`, `UT-*`) | Docs | 2026-08-29 | ✅ | Fixed in this rewrite — §4 names real files only, and §4.1(b) states the gap plainly |
 | **G-06** | S2 | **The task board disagreed with the code in both directions** — T-20 (S2) and the S3 budget shipped but were marked ⬜; M2/M4/M8/M9 were marked ✅ with real gaps | Docs | 2026-08-29 | ✅ | Fixed in this rewrite; **D-20** sets the rule that prevents a recurrence |
 | **G-07** | S3 | **10 of the 17 requirements tracked in §4 have no user story or acceptance criteria** in PRD §6 — including five Must-tier (M2, M4, M7, M8, M9) | Docs | 2026-08-29 | ⬜ | Their status is asserted against no written bar → **T-40** |
-| **G-08** | S3 | **Empty skill taxonomy** — the `skills` table has 0 rows, so matching (S5), the readiness meter (C1) and faceted skill search have nothing to operate on | Data | 2026-08-29 | ⬜ | Not seeded, by design (D-06), but the admin must curate a starter taxonomy through the console before T-29 |
+| **G-08** | S3 | **Empty skill taxonomy** — the `skills` table starts at 0 rows | Data | 2026-08-29 | 🟦 | **Mitigated:** the profile editor now lets members type skills (find-or-create, capped at 8, D-26), so the taxonomy self-populates from real usage; admin can still curate/merge. The pilot no longer blocks on a pre-seeded list |
 | **G-09** | S3 | **Résumé storage configuration** — needs `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` + a private `resumes` bucket | Infra | 2026-08-29 | ✅ | **Resolved (local):** bucket created, keys set in `.env`, verified with a live upload+sign+delete round-trip. **Still to do:** set the same two vars on the Vercel deploy |
 
 ---

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AppNav } from "@/components/app-nav";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ResumeViewer } from "@/components/resume-viewer";
 import {
   apiAddProject,
@@ -18,11 +18,22 @@ import {
   ApiError,
   bootstrapSession,
   getUser,
+  type OppType,
   type Profile,
   type TaxonomySkill,
 } from "@/lib/client/api";
 
 const MAX_RESUME_MB = 4;
+
+/** Posting types a member can declare themselves open to (mirrors OppType). */
+const OPEN_TO_OPTIONS: { value: OppType; label: string }[] = [
+  { value: "RESEARCH", label: "Research" },
+  { value: "INTERNSHIP", label: "Internship" },
+  { value: "TA", label: "TA" },
+  { value: "HACKATHON_TEAM", label: "Hackathon team" },
+  { value: "MICRO_TASK", label: "Micro-task" },
+  { value: "REFERRAL", label: "Referral" },
+];
 
 const PROFICIENCIES = [
   "BEGINNER",
@@ -31,8 +42,10 @@ const PROFICIENCIES = [
   "EXPERT",
 ] as const;
 
+const SKILL_LIMIT = 8; // mirrors PROFILE_SKILL_LIMIT in the server schema
+
 interface PendingSkill {
-  skillId: string;
+  name: string;
   proficiency: (typeof PROFICIENCIES)[number];
 }
 
@@ -51,8 +64,14 @@ export default function ProfilePage() {
   const [cgpa, setCgpa] = useState("");
   const [cgpaPublic, setCgpaPublic] = useState(false);
   const [bio, setBio] = useState("");
+  const [headline, setHeadline] = useState("");
+  const [githubUrl, setGithubUrl] = useState("");
+  const [linkedinUrl, setLinkedinUrl] = useState("");
+  const [websiteUrl, setWebsiteUrl] = useState("");
+  const [openTo, setOpenTo] = useState<OppType[]>([]);
+  const [hoursPerWeek, setHoursPerWeek] = useState("");
 
-  const [pickerSkill, setPickerSkill] = useState("");
+  const [pickerName, setPickerName] = useState("");
   const [pickerProficiency, setPickerProficiency] =
     useState<(typeof PROFICIENCIES)[number]>("INTERMEDIATE");
 
@@ -87,9 +106,15 @@ export default function ProfilePage() {
         setCgpa(p.cgpa != null ? String(p.cgpa) : "");
         setCgpaPublic(p.cgpaPublic);
         setBio(p.bio ?? "");
+        setHeadline(p.headline ?? "");
+        setGithubUrl(p.githubUrl ?? "");
+        setLinkedinUrl(p.linkedinUrl ?? "");
+        setWebsiteUrl(p.websiteUrl ?? "");
+        setOpenTo(p.openTo ?? []);
+        setHoursPerWeek(p.hoursPerWeek != null ? String(p.hoursPerWeek) : "");
         setSkills(
           p.skills.map((s) => ({
-            skillId: s.id,
+            name: s.name,
             proficiency: s.proficiency as PendingSkill["proficiency"],
           })),
         );
@@ -119,6 +144,12 @@ export default function ProfilePage() {
         cgpa: cgpa ? Number(cgpa) : null,
         cgpaPublic,
         bio: bio.trim() || null,
+        headline: headline.trim() || null,
+        githubUrl: githubUrl.trim() || null,
+        linkedinUrl: linkedinUrl.trim() || null,
+        websiteUrl: websiteUrl.trim() || null,
+        openTo,
+        hoursPerWeek: hoursPerWeek ? Number(hoursPerWeek) : null,
       });
       await apiReplaceSkills(skills);
       setSaved(true);
@@ -133,20 +164,19 @@ export default function ProfilePage() {
   }
 
   function addSkill() {
-    if (!pickerSkill) return;
+    const name = pickerName.trim();
+    if (!name || skills.length >= SKILL_LIMIT) return;
     setSkills((prev) => {
-      const next = prev.filter((s) => s.skillId !== pickerSkill);
-      return [
-        ...next,
-        { skillId: pickerSkill, proficiency: pickerProficiency },
-      ];
+      // Replace a same-named entry (case-insensitive) rather than duplicating it.
+      const next = prev.filter((s) => s.name.toLowerCase() !== name.toLowerCase());
+      return [...next, { name, proficiency: pickerProficiency }];
     });
-    setPickerSkill("");
+    setPickerName("");
     setPickerProficiency("INTERMEDIATE");
   }
 
-  function removeSkill(skillId: string) {
-    setSkills((prev) => prev.filter((s) => s.skillId !== skillId));
+  function removeSkill(name: string) {
+    setSkills((prev) => prev.filter((s) => s.name.toLowerCase() !== name.toLowerCase()));
   }
 
   // Projects use per-item CRUD (there is no batch-replace endpoint), so add and
@@ -261,9 +291,13 @@ export default function ProfilePage() {
   }
 
   const user = getUser();
-  const selectedSkillIds = new Set(skills.map((s) => s.skillId));
-  const available = taxonomy.filter((t) => !selectedSkillIds.has(t.id));
-  const skillById = new Map(taxonomy.map((t) => [t.id, t]));
+  // Recomputed on every render before this, which meant rebuilding a Set and
+  // re-filtering the whole taxonomy on each keystroke in any field on the page.
+  const suggestions = useMemo(() => {
+    const selected = new Set(skills.map((s) => s.name.toLowerCase()));
+    return taxonomy.filter((t) => !selected.has(t.name.toLowerCase()));
+  }, [skills, taxonomy]);
+  const atSkillLimit = skills.length >= SKILL_LIMIT;
 
   return (
     // Wrapped in `.app-shell` with `AppNav`, exactly like every other signed-in
@@ -300,6 +334,21 @@ export default function ProfilePage() {
             <div className="panel-card">
               <h2>About you</h2>
               <div className="form">
+                <div className="field">
+                  <label htmlFor="headline">Headline</label>
+                  <input
+                    id="headline"
+                    type="text"
+                    value={headline}
+                    onChange={(e) => setHeadline(e.target.value)}
+                    placeholder="e.g. Security researcher · binary exploitation"
+                    maxLength={120}
+                  />
+                  <p className="empty-note">
+                    One line on what you actually work on — the first thing a
+                    poster reads.
+                  </p>
+                </div>
                 <div className="field">
                   <label htmlFor="branch">Branch</label>
                   <input
@@ -357,67 +406,145 @@ export default function ProfilePage() {
                     maxLength={1000}
                   />
                 </div>
+                <div className="field">
+                  <label htmlFor="githubUrl">GitHub</label>
+                  <input
+                    id="githubUrl"
+                    type="url"
+                    value={githubUrl}
+                    onChange={(e) => setGithubUrl(e.target.value)}
+                    placeholder="https://github.com/…"
+                    maxLength={500}
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor="linkedinUrl">LinkedIn</label>
+                  <input
+                    id="linkedinUrl"
+                    type="url"
+                    value={linkedinUrl}
+                    onChange={(e) => setLinkedinUrl(e.target.value)}
+                    placeholder="https://linkedin.com/in/…"
+                    maxLength={500}
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor="websiteUrl">Website</label>
+                  <input
+                    id="websiteUrl"
+                    type="url"
+                    value={websiteUrl}
+                    onChange={(e) => setWebsiteUrl(e.target.value)}
+                    placeholder="https://…"
+                    maxLength={500}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Third card in a two-column grid, so it would otherwise sit alone
+                in the left column of row 2. It spans the row instead. */}
+            <div className="panel-card span-full">
+              <h2>Availability</h2>
+              <p className="empty-note" style={{ marginBottom: 12 }}>
+                What you're open to right now. These are the same categories
+                postings use, so this is what matching reads later.
+              </p>
+              <div className="skills-current">
+                {OPEN_TO_OPTIONS.map((o) => {
+                  const on = openTo.includes(o.value);
+                  return (
+                    <button
+                      key={o.value}
+                      type="button"
+                      className={`skill-chip${on ? " is-on" : ""}`}
+                      aria-pressed={on}
+                      onClick={() =>
+                        setOpenTo((prev) =>
+                          prev.includes(o.value)
+                            ? prev.filter((v) => v !== o.value)
+                            : [...prev, o.value],
+                        )
+                      }
+                    >
+                      {o.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="form" style={{ marginTop: 16 }}>
+                <div className="field">
+                  <label htmlFor="hoursPerWeek">Hours a week (optional)</label>
+                  <input
+                    id="hoursPerWeek"
+                    type="number"
+                    min={1}
+                    max={80}
+                    value={hoursPerWeek}
+                    onChange={(e) => setHoursPerWeek(e.target.value)}
+                    placeholder="e.g. 10"
+                  />
+                </div>
               </div>
             </div>
 
             <div className="panel-card">
               <h2>Skills</h2>
               <p className="empty-note" style={{ marginBottom: 12 }}>
-                Drawn from the institute taxonomy - self-claimed until an
-                attestation verifies them.
+                Type a skill and add it — pick a suggestion or enter your own. Up
+                to {SKILL_LIMIT}; self-claimed until an attestation verifies them.
               </p>
 
               <div className="skills-current">
                 {skills.length === 0 && (
-                  <p className="empty-note">
-                    No skills yet. Add from the taxonomy.
-                  </p>
+                  <p className="empty-note">No skills yet — type one below.</p>
                 )}
-                {skills.map((s) => {
-                  const meta = skillById.get(s.skillId);
-                  return (
+                {skills.map((s) => (
+                  <span key={s.name} className="skill-chip" title={s.proficiency.toLowerCase()}>
+                    {s.name} · {s.proficiency.toLowerCase()}
                     <span
-                      key={s.skillId}
-                      className="skill-chip"
-                      title={meta?.domain ?? ""}
+                      className="x"
+                      role="button"
+                      aria-label={`Remove ${s.name}`}
+                      tabIndex={0}
+                      onClick={() => removeSkill(s.name)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") removeSkill(s.name);
+                      }}
                     >
-                      {meta?.name ?? s.skillId.slice(0, 8)} ·{" "}
-                      {s.proficiency.toLowerCase()}
-                      <span
-                        className="x"
-                        role="button"
-                        aria-label={`Remove ${meta?.name ?? "skill"}`}
-                        tabIndex={0}
-                        onClick={() => removeSkill(s.skillId)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ")
-                            removeSkill(s.skillId);
-                        }}
-                      >
-                        ×
-                      </span>
+                      ×
                     </span>
-                  );
-                })}
+                  </span>
+                ))}
               </div>
 
               <div className="skill-picker">
                 <div className="skill-add-row">
-                  <select
-                    aria-label="Pick a skill"
-                    value={pickerSkill}
-                    onChange={(e) => setPickerSkill(e.target.value)}
-                  >
-                    <option value="">Choose a skill…</option>
-                    {available.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name} · {t.domain}
-                      </option>
+                  <input
+                    type="text"
+                    list="skill-suggestions"
+                    aria-label="Skill name"
+                    placeholder={atSkillLimit ? `Limit of ${SKILL_LIMIT} reached` : "Type a skill…"}
+                    value={pickerName}
+                    maxLength={80}
+                    disabled={atSkillLimit}
+                    onChange={(e) => setPickerName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        addSkill();
+                      }
+                    }}
+                  />
+                  <datalist id="skill-suggestions">
+                    {suggestions.map((t) => (
+                      <option key={t.id} value={t.name} />
                     ))}
-                  </select>
+                  </datalist>
                   <select
                     aria-label="Proficiency"
                     value={pickerProficiency}
+                    disabled={atSkillLimit}
                     onChange={(e) =>
                       setPickerProficiency(
                         e.target.value as typeof pickerProficiency,
@@ -434,11 +561,16 @@ export default function ProfilePage() {
                     className="mini solid"
                     type="button"
                     onClick={addSkill}
-                    disabled={!pickerSkill}
+                    disabled={!pickerName.trim() || atSkillLimit}
                   >
                     Add
                   </button>
                 </div>
+                {atSkillLimit && (
+                  <p className="empty-note" style={{ marginTop: 8 }}>
+                    You&apos;ve added the maximum of {SKILL_LIMIT} skills. Remove one to add another.
+                  </p>
+                )}
               </div>
 
               <div className="save-bar">

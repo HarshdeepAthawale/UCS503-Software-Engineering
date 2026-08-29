@@ -7,7 +7,7 @@ import {
   signResumeUrl,
   uploadResumeObject,
 } from "@/lib/storage/resume-storage";
-import type { Principal } from "@/lib/iam/policy";
+import { can, type Principal } from "@/lib/iam/policy";
 import type {
   ProfileUpdateInput,
   ProjectCreateInput,
@@ -15,18 +15,21 @@ import type {
 } from "@/lib/validation/schemas";
 
 /**
- * Who may see a résumé: the owner, an ADMIN, or any FACULTY / ALUMNI — the
- * institute roles that post opportunities and review candidates ("faculty and
- * employees can view"). A STUDENT may view only their own. Gates both the
- * metadata on a profile and the signed preview/download URLs.
+ * Who may see a résumé: the owner always, plus any role granted
+ * `profile:read_resume` in the matrix (ADMIN / FACULTY / ALUMNI — the institute
+ * roles that post opportunities and review candidates). A STUDENT holds no such
+ * grant, so a student sees only their own.
+ *
+ * The role half deliberately goes through `can()` rather than a local role
+ * switch, so permissions.ts stays the single source of truth and the cell is
+ * covered by tests/iam/authorization-matrix.test.ts. Going through the policy
+ * also applies the account-status gate (a SUSPENDED reviewer is denied).
+ *
+ * Gates both the metadata on a profile and the signed preview/download URLs.
  */
 function canViewResume(viewer: Principal, ownerId: string): boolean {
-  return (
-    viewer.userId === ownerId ||
-    viewer.role === "ADMIN" ||
-    viewer.role === "FACULTY" ||
-    viewer.role === "ALUMNI"
-  );
+  if (viewer.userId === ownerId) return viewer.status !== "SUSPENDED";
+  return can(viewer, "profile:read_resume");
 }
 
 /**
@@ -67,6 +70,12 @@ export async function getProfile(viewer: Principal, targetUserId: string) {
     branch: row.branch,
     year: row.year,
     bio: row.bio,
+    headline: row.headline,
+    githubUrl: row.githubUrl,
+    linkedinUrl: row.linkedinUrl,
+    websiteUrl: row.websiteUrl,
+    openTo: row.openTo,
+    hoursPerWeek: row.hoursPerWeek,
     cgpa: canSeeCgpa ? row.cgpa : null,
     cgpaPublic: row.cgpaPublic,
     skills: row.userSkills.map((us) => ({
@@ -104,12 +113,30 @@ export async function updateOwnProfile(principal: Principal, input: ProfileUpdat
     cgpa: input.cgpa,
     cgpaPublic: input.cgpaPublic,
     bio: input.bio,
+    headline: input.headline,
+    githubUrl: input.githubUrl,
+    linkedinUrl: input.linkedinUrl,
+    websiteUrl: input.websiteUrl,
+    openTo: input.openTo,
+    hoursPerWeek: input.hoursPerWeek,
   };
   const saved = await prisma.profile.upsert({
     where: { userId: principal.userId },
     create: { userId: principal.userId, ...data },
     update: data,
-    select: { userId: true, branch: true, year: true, cgpaPublic: true, bio: true },
+    select: {
+      userId: true,
+      branch: true,
+      year: true,
+      cgpaPublic: true,
+      bio: true,
+      headline: true,
+      githubUrl: true,
+      linkedinUrl: true,
+      websiteUrl: true,
+      openTo: true,
+      hoursPerWeek: true,
+    },
   });
   await audit({ action: "profile.updated", actorId: principal.userId });
   return saved;
@@ -302,17 +329,23 @@ export async function removeOwnResume(principal: Principal) {
 
 /**
  * Résumé metadata + freshly-signed preview/download URLs for a viewer allowed to
- * see it. Returns null when there is no résumé; throws 403 when the viewer is not
- * permitted (a STUDENT viewing another student). URLs are short-lived and minted
+ * see it. Throws 403 when the viewer is not permitted (a STUDENT viewing another
+ * student); returns null when there is no résumé. URLs are short-lived and minted
  * per request, so nothing durable is ever handed out.
+ *
+ * Authorize BEFORE the lookup: if existence were checked first, an unauthorized
+ * viewer would get 404 for "no résumé" and 403 for "has one", which is exactly
+ * the existence oracle guard.ts's generic 403 exists to avoid. A denied viewer
+ * now gets the same 403 for every target.
  */
 export async function getResumeForViewer(viewer: Principal, targetUserId: string) {
+  if (!canViewResume(viewer, targetUserId)) throw Errors.forbidden();
+
   const profile = await prisma.profile.findFirst({
     where: { userId: targetUserId, deletedAt: null },
     select: { resumeKey: true, resumeName: true, resumeSize: true, resumeUploadedAt: true },
   });
   if (!profile?.resumeKey) return null;
-  if (!canViewResume(viewer, targetUserId)) throw Errors.forbidden();
   if (!resumeStorageConfigured()) return null;
 
   const filename = profile.resumeName ?? "resume.pdf";

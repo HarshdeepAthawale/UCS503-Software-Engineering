@@ -128,7 +128,11 @@ export default function ApplicantsPage() {
                     <h4><span>{titleCase(col)}</span><span>{list.length}</span></h4>
                     {list.map((a) => (
                       <div className="pcard" key={a.id}>
-                        <div className="nm">{a.student.name}</div>
+                        <div className="nm">
+                          {/* The name is the way into the full profile - skills,
+                              projects and résumé - not just the inline preview. */}
+                          <Link href={`/profile/${a.student.id}`}>{a.student.name}</Link>
+                        </div>
                         <div className="tl-meta">Applied {timeAgo(a.appliedAt)}</div>
                         {a.rejectionCode && (
                           <div className="tl-meta">Reason: {titleCase(a.rejectionCode)}</div>

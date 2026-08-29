@@ -72,6 +72,29 @@ export const AlumniClaimSchema = z.object({
   proofUrl: z.string().trim().url().max(500),
 });
 
+// The posting-type vocabulary. Declared here rather than in the opportunity
+// block below because a profile's `openTo` reuses it — one list, so "open to
+// research" is the same token a posting carries.
+const oppType = z.enum([
+  "RESEARCH",
+  "INTERNSHIP",
+  "TA",
+  "HACKATHON_TEAM",
+  "MICRO_TASK",
+  "REFERRAL",
+]);
+
+// Same http(s)-only rule as `projectUrl` below: these are rendered as <a href>,
+// and Zod's .url() would happily accept `javascript:` (codeguard-0-xss).
+const profileLink = z
+  .string()
+  .trim()
+  .url("Enter a valid URL.")
+  .max(500)
+  .refine((v) => /^https?:\/\//i.test(v), { message: "Link must start with http:// or https://." })
+  .nullable()
+  .optional();
+
 export const ProfileUpdateSchema = z
   .object({
     // Nullable so the owner can explicitly CLEAR a field (not just leave it
@@ -82,6 +105,18 @@ export const ProfileUpdateSchema = z
     cgpa: z.coerce.number().gte(0).lte(10).nullable().optional(),
     cgpaPublic: z.boolean().optional(),
     bio: z.string().trim().max(1000).nullable().optional(),
+    headline: z.string().trim().max(120).nullable().optional(),
+    githubUrl: profileLink,
+    linkedinUrl: profileLink,
+    websiteUrl: profileLink,
+    // Reuses the posting vocabulary; deduped so the same token cannot be sent
+    // twice, and capped at the number of types that actually exist.
+    openTo: z
+      .array(oppType)
+      .max(6)
+      .transform((v) => Array.from(new Set(v)))
+      .optional(),
+    hoursPerWeek: z.coerce.number().int().gte(1).lte(80).nullable().optional(),
   })
   .strict(); // reject unknown keys → no mass assignment of role/status/etc.
 
@@ -128,12 +163,16 @@ export const UserSkillAddSchema = z
   .object({ skillId, proficiency })
   .strict();
 
-// Replace the caller's whole skill set in one call (profile editor).
+// Replace the caller's whole skill set in one call (profile editor). Skills are
+// entered by NAME (typed or picked); the service resolves each to a taxonomy row
+// (creating it if new), so referential integrity — and skill-based matching /
+// faceted search — is preserved. Capped at 8 per profile.
+export const PROFILE_SKILL_LIMIT = 8;
 export const UserSkillsReplaceSchema = z
   .object({
     skills: z
-      .array(z.object({ skillId, proficiency }).strict())
-      .max(50, "A profile can hold at most 50 skills."),
+      .array(z.object({ name: skillName, proficiency }).strict())
+      .max(PROFILE_SKILL_LIMIT, `A profile can hold at most ${PROFILE_SKILL_LIMIT} skills.`),
   })
   .strict();
 
@@ -187,14 +226,9 @@ export type UserSkillsReplaceInput = z.infer<typeof UserSkillsReplaceSchema>;
 
 // ── Opportunity (T-09; docs/PRD M3, TechSpec §5.4) ───────────────────────────
 
-const oppType = z.enum([
-  "RESEARCH",
-  "INTERNSHIP",
-  "TA",
-  "HACKATHON_TEAM",
-  "MICRO_TASK",
-  "REFERRAL",
-]);
+// `oppType` is declared above, next to ProfileUpdateSchema: a profile's `openTo`
+// draws on the same vocabulary as a posting's type, and a `const` cannot be used
+// before its declaration is evaluated.
 const slaPledge = z.enum(["H24", "H48", "WEEK"]);
 const skillRequirement = z.enum(["REQUIRED", "PREFERRED"]);
 
