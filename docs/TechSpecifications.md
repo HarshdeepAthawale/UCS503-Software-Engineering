@@ -105,7 +105,7 @@ flowchart TD
 | Validation | **Zod** | One schema shared by client and server |
 | Testing | **Vitest** (unit) — 201 tests, shipped. Supertest and Playwright are **not installed** (T-38) | Only the unit level is currently covered |
 | CI/CD | **GitHub Actions** — `.github/workflows/ci.yml`: install → `db:generate` → typecheck → test → production build | Lint is excluded: `next lint` is interactive and deprecated in 15.x. Inert until Actions billing clears (B-01) |
-| Hosting | **Vercel** (app, target) + **Supabase** (Postgres + object storage). Currently live on **Render** during the migration | Free tier, per-PR previews. Cron is triggered externally by cron-job.org, not by the host — D-27 |
+| Hosting | **Vercel** (frontend) + **Render** (backend, persistent Node) + **Supabase** (Postgres + object storage) | One monolith deployed twice; Vercel rewrites `/api/*` to Render so the browser sees a single origin (D-28). Cron is triggered externally by cron-job.org against Render — D-27 |
 
 ---
 
@@ -329,7 +329,8 @@ flowchart LR
 | `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` / `SUPABASE_RESUME_BUCKET` | Résumé object storage. The service-role key is server-only — never `NEXT_PUBLIC` | ✅ / ✅ / ❌ |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `NEXT_PUBLIC_GOOGLE_ENABLED` | Sign in with Google. The `NEXT_PUBLIC_` flag is read at **build** time | ❌ / ✅ / ❌ |
 | `CRON_SECRET` | Bearer token for `/api/cron/*`. Unset ⇒ every cron route 404s (fail-closed) | ✅ |
-| `APP_ORIGIN` | Canonical public origin; Google matches the redirect URI byte for byte | ❌ |
+| `BACKEND_ORIGIN` | Split deploy: blank on Render/local; the Render origin on Vercel, which rewrites `/api/*` to it (D-28) | ❌ |
+| `APP_ORIGIN` | Canonical public origin; Google matches the redirect URI byte for byte. On the Render backend this is the **Vercel** URL — that is where the browser is | ❌ |
 | `ALLOW_INSECURE_COOKIES` | Dev only. **Must be `false` in production** or the app refuses to boot (B-05) | ❌ |
 | `APPLICATION_BUDGET` | Default 10 | ❌ |
 | `ALLOWED_EMAIL_DOMAIN` | `thapar.edu` | ❌ |
