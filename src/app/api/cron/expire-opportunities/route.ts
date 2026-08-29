@@ -16,3 +16,7 @@ export const POST = handler(async (req) => {
   const expired = await expirePastDeadline();
   return ok({ expired });
 });
+
+// Vercel Cron triggers jobs with a GET (carrying `Authorization: Bearer
+// $CRON_SECRET`); POST stays for manual/authed invocation. Same guard, same work.
+export const GET = POST;

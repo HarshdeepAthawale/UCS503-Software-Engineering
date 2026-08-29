@@ -58,6 +58,18 @@ const EnvSchema = z.object({
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
 
+  // Supabase Storage for résumé PDFs (T-44, M2). The SERVICE ROLE key is
+  // server-only and MUST NOT be exposed to the client - it is used solely to
+  // upload to and mint short-lived signed URLs for a PRIVATE bucket. When either
+  // the URL or the key is unset, résumé upload/preview is disabled (the routes
+  // report it) rather than erroring obscurely. Bucket defaults to "resumes".
+  SUPABASE_URL: z
+    .string()
+    .url("SUPABASE_URL must be an absolute URL, e.g. https://xyz.supabase.co")
+    .optional(),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
+  SUPABASE_RESUME_BUCKET: z.string().default("resumes"),
+
   NODE_ENV: z
     .enum(["development", "test", "production"])
     .default("development"),

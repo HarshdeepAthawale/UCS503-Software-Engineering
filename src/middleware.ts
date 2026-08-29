@@ -61,6 +61,13 @@ function securityHeaders(res: NextResponse, nonce: string): NextResponse {
   // the point - trust flows from the nonce, not from an origin.
   const isDev = process.env.NODE_ENV !== "production";
 
+  // Résumé PDFs are previewed in an <iframe> pointing at a Supabase Storage
+  // signed URL, so that origin must be allowed in frame-src (which otherwise
+  // falls back to default-src 'self' and blocks the preview). Derived from
+  // SUPABASE_URL; absent when the feature is not configured.
+  const supabaseOrigin = originOf(process.env.SUPABASE_URL);
+  const frameSrc = `frame-src 'self'${supabaseOrigin ? ` ${supabaseOrigin}` : ""}`;
+
   res.headers.set(
     "Content-Security-Policy",
     [
@@ -75,6 +82,7 @@ function securityHeaders(res: NextResponse, nonce: string): NextResponse {
       "font-src 'self'",
       // The dev server pushes rebuilds over a websocket.
       `connect-src 'self'${isDev ? " ws: wss:" : ""}`,
+      frameSrc,
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",
@@ -82,6 +90,16 @@ function securityHeaders(res: NextResponse, nonce: string): NextResponse {
     ].join("; "),
   );
   return res;
+}
+
+/** The scheme+host of a URL, or null when unset/malformed. Never throws. */
+function originOf(url: string | undefined): string | null {
+  if (!url) return null;
+  try {
+    return new URL(url).origin;
+  } catch {
+    return null;
+  }
 }
 
 export async function middleware(req: NextRequest): Promise<NextResponse> {

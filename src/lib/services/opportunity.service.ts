@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { Errors } from "@/lib/http/errors";
 import { audit } from "@/lib/security/audit";
 import { notify } from "./notification.service";
+import { DEADLINE_TIERS, DEADLINE_TIER_ORDER, type DeadlineTier } from "@/lib/domain/deadline-reminder";
 import type { Principal } from "@/lib/iam/policy";
 import type {
   OpportunityCreateInput,
@@ -124,19 +125,71 @@ export async function createOpportunity(principal: Principal, input: Opportunity
 
 // ── Read ─────────────────────────────────────────────────────────────────────
 
-/** Opaque keyset cursor over (created_at DESC, id DESC). Encodes both parts so
- *  pagination is stable and needs no extra lookup. Malformed cursors are ignored. */
-function encodeCursor(createdAt: Date, id: string): string {
-  return Buffer.from(`${createdAt.toISOString()}|${id}`, "utf8").toString("base64url");
+/**
+ * User-selectable sort orders (T-39, M4). Each is keyset-paginated on its own
+ * column plus `id` as a stable tiebreaker, so pages never drift or repeat. The
+ * `cmp` operator matches the sort direction (DESC → `<`, ASC → `>`), and `cmp`
+ * is a fixed config literal — never user input — so `Prisma.raw` on it is safe.
+ */
+export type OpportunitySort = "recent" | "deadline" | "seats";
+export const DEFAULT_SORT: OpportunitySort = "recent";
+
+const SORTS: Record<
+  OpportunitySort,
+  {
+    keyExpr: Prisma.Sql; // the primary sort column/expression
+    orderBy: Prisma.Sql; // full ORDER BY (primary + id tiebreaker)
+    cmp: "<" | ">"; // keyset comparison operator for the next page
+    valueSql: (raw: string) => Prisma.Sql | null; // typed bound literal from a cursor token
+    encode: (v: unknown) => string; // a row's sort value → cursor token
+  }
+> = {
+  recent: {
+    keyExpr: Prisma.sql`o.created_at`,
+    orderBy: Prisma.sql`o.created_at DESC, o.id DESC`,
+    cmp: "<",
+    valueSql: (raw) => {
+      const d = new Date(raw);
+      return Number.isNaN(d.getTime()) ? null : Prisma.sql`${d}`;
+    },
+    encode: (v) => (v as Date).toISOString(),
+  },
+  deadline: {
+    keyExpr: Prisma.sql`o.deadline`,
+    orderBy: Prisma.sql`o.deadline ASC, o.id ASC`,
+    cmp: ">",
+    valueSql: (raw) => {
+      const d = new Date(raw);
+      return Number.isNaN(d.getTime()) ? null : Prisma.sql`${d}`;
+    },
+    encode: (v) => (v as Date).toISOString(),
+  },
+  seats: {
+    keyExpr: Prisma.sql`(o.seat_count - o.seats_filled)`,
+    orderBy: Prisma.sql`(o.seat_count - o.seats_filled) DESC, o.id DESC`,
+    cmp: "<",
+    valueSql: (raw) => {
+      const n = Number.parseInt(raw, 10);
+      return Number.isNaN(n) ? null : Prisma.sql`${n}::int`;
+    },
+    encode: (v) => String(v),
+  },
+};
+
+/** Opaque keyset cursor `<sort>|<value>|<id>`. Carries the sort so a cursor from
+ *  one ordering is ignored if the sort changes. Malformed cursors are ignored. */
+function encodeCursor(sort: OpportunitySort, sortVal: unknown, id: string): string {
+  return Buffer.from(`${sort}|${SORTS[sort].encode(sortVal)}|${id}`, "utf8").toString("base64url");
 }
-function decodeCursor(cursor: string): { createdAt: Date; id: string } | null {
+function decodeCursor(cursor: string): { sort: OpportunitySort; valueSql: Prisma.Sql; id: string } | null {
   try {
-    const [iso, id] = Buffer.from(cursor, "base64url").toString("utf8").split("|");
-    if (!iso || !id) return null;
-    const createdAt = new Date(iso);
-    if (Number.isNaN(createdAt.getTime())) return null;
+    const [sort, value, id] = Buffer.from(cursor, "base64url").toString("utf8").split("|");
+    if (!sort || value === undefined || !id) return null;
+    if (!(sort in SORTS)) return null;
     if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
-    return { createdAt, id };
+    const valueSql = SORTS[sort as OpportunitySort].valueSql(value);
+    if (!valueSql) return null;
+    return { sort: sort as OpportunitySort, valueSql, id };
   } catch {
     return null;
   }
@@ -146,8 +199,9 @@ function decodeCursor(cursor: string): { createdAt: Date; id: string } | null {
  * Faceted discovery (T-11; docs/ImplementationPlan §3, M4).
  *
  * Full-text keyword search (`q`) runs against the GIN tsvector index via
- * `websearch_to_tsquery`; facets narrow by type/domain/stipend/skill. Expired &
- * soft-deleted rows are excluded by default. Keyset-paginated on (created_at,id).
+ * `websearch_to_tsquery`; facets narrow by type/domain/stipend/skill; `sort`
+ * chooses the ordering. Expired & soft-deleted rows are excluded by default.
+ * Keyset-paginated on the active sort column + id.
  *
  * SAFETY: every user value is a BOUND parameter in a `Prisma.sql` template - no
  * string interpolation ever reaches the SQL text (codeguard-0-input-validation-injection).
@@ -158,11 +212,15 @@ export async function listOpportunities(opts: {
   domain?: string;
   stipend?: string;
   skillId?: string;
+  sort?: string;
   includeExpired?: boolean;
   cursor?: string;
   limit?: number;
 }) {
   const take = Math.min(Math.max(opts.limit ?? 20, 1), 100);
+  const sort: OpportunitySort =
+    opts.sort && opts.sort in SORTS ? (opts.sort as OpportunitySort) : DEFAULT_SORT;
+  const cfg = SORTS[sort];
 
   const conds: Prisma.Sql[] = [Prisma.sql`o.deleted_at IS NULL`];
   if (!opts.includeExpired) conds.push(Prisma.sql`o.status <> 'EXPIRED'::"OppStatus"`);
@@ -181,16 +239,19 @@ export async function listOpportunities(opts: {
     );
   }
 
+  // A cursor is honoured only when it was minted for the SAME sort - otherwise
+  // pagination across a re-sorted list would be inconsistent, so we reset it.
   const decoded = opts.cursor ? decodeCursor(opts.cursor) : null;
-  const cursorClause = decoded
-    ? Prisma.sql`AND (o.created_at, o.id) < (${decoded.createdAt}, ${decoded.id}::uuid)`
-    : Prisma.empty;
+  const cursorClause =
+    decoded && decoded.sort === sort
+      ? Prisma.sql`AND (${cfg.keyExpr}, o.id) ${Prisma.raw(cfg.cmp)} (${decoded.valueSql}, ${decoded.id}::uuid)`
+      : Prisma.empty;
 
-  const rows = await prisma.$queryRaw<{ id: string; created_at: Date }[]>(Prisma.sql`
-    SELECT o.id, o.created_at
+  const rows = await prisma.$queryRaw<{ id: string; sort_val: Date | number }[]>(Prisma.sql`
+    SELECT o.id, ${cfg.keyExpr} AS sort_val
     FROM opportunities o
     WHERE ${Prisma.join(conds, " AND ")} ${cursorClause}
-    ORDER BY o.created_at DESC, o.id DESC
+    ORDER BY ${cfg.orderBy}
     LIMIT ${take + 1}
   `);
 
@@ -208,7 +269,8 @@ export async function listOpportunities(opts: {
   const last = page[page.length - 1];
   return {
     opportunities: ordered.map((r) => toDto(r as unknown as OppRow)),
-    nextCursor: hasMore && last ? encodeCursor(last.created_at, last.id) : null,
+    nextCursor: hasMore && last ? encodeCursor(sort, last.sort_val, last.id) : null,
+    sort,
   };
 }
 
@@ -392,4 +454,62 @@ export async function sweepSlaBreaches(): Promise<{ atRisk: string[] }> {
     }
   }
   return { atRisk: rows.map((r) => r.id) };
+}
+
+// ── Deadline reminders (T-35; docs/PRD M8) ───────────────────────────────────
+
+/**
+ * Insert a `opportunity.deadline_reminder` notification for the poster of every
+ * still-open posting whose deadline falls in the given tier's window, skipping
+ * any poster who has already been reminded for that (opportunity, tier).
+ *
+ * The whole operation is ONE set-based `INSERT … SELECT … WHERE NOT EXISTS`, so
+ * the dedup is race-safe against concurrent cron ticks (the DB is the arbiter,
+ * per D-11) — no read-then-write window. The tier bounds are the shared
+ * `DEADLINE_TIERS` constants, passed as bound parameters (never interpolated).
+ * Reminders target the POSTER: the deadline is the apply-by date, so it prompts
+ * them to review pending applicants and fill seats before the window closes.
+ */
+async function insertDeadlineReminders(tier: DeadlineTier): Promise<number> {
+  const { lowerH, upperH } = DEADLINE_TIERS[tier];
+  const rows = await prisma.$queryRaw<{ id: string }[]>(Prisma.sql`
+    INSERT INTO notifications (id, user_id, type, payload, created_at)
+    SELECT gen_random_uuid(), o.poster_id, 'opportunity.deadline_reminder',
+           jsonb_build_object('opportunityId', o.id::text, 'tier', ${tier}, 'deadline', o.deadline),
+           now()
+    FROM opportunities o
+    WHERE o.deleted_at IS NULL
+      AND o.status IN ('LIVE'::"OppStatus", 'AT_RISK'::"OppStatus")
+      AND o.deadline >  now() + make_interval(hours => ${lowerH}::int)
+      AND o.deadline <= now() + make_interval(hours => ${upperH}::int)
+      AND NOT EXISTS (
+        SELECT 1 FROM notifications n
+        WHERE n.user_id = o.poster_id
+          AND n.type = 'opportunity.deadline_reminder'
+          AND n.payload->>'opportunityId' = o.id::text
+          AND n.payload->>'tier' = ${tier}
+      )
+    RETURNING id
+  `);
+  return rows.length;
+}
+
+/**
+ * Deadline-reminder sweep (T-35). Fires the T−72h and T−24h reminders for every
+ * open posting entering each window. Idempotent — a tier reminder is sent at
+ * most once per posting (enforced by the NOT EXISTS above) — so it is safe to
+ * run on any schedule. Guarded upstream by CRON_SECRET.
+ */
+export async function remindUpcomingDeadlines(): Promise<Record<DeadlineTier, number>> {
+  const counts = {} as Record<DeadlineTier, number>;
+  let total = 0;
+  for (const tier of DEADLINE_TIER_ORDER) {
+    const n = await insertDeadlineReminders(tier);
+    counts[tier] = n;
+    total += n;
+  }
+  if (total > 0) {
+    await audit({ action: "opportunity.deadline_reminder", metadata: counts });
+  }
+  return counts;
 }

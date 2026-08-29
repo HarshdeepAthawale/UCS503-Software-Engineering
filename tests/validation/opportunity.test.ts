@@ -127,6 +127,16 @@ describe("OpportunityListQuerySchema (T-11 discovery)", () => {
     expect(OpportunityListQuerySchema.safeParse({ skillId: "nope" }).success).toBe(false);
   });
 
+  it("accepts the supported sort keys", () => {
+    for (const sort of ["recent", "deadline", "seats"]) {
+      expect(OpportunityListQuerySchema.safeParse({ sort }).success).toBe(true);
+    }
+  });
+
+  it("rejects an unknown sort key", () => {
+    expect(OpportunityListQuerySchema.safeParse({ sort: "cheapest" }).success).toBe(false);
+  });
+
   it("ignores unknown params (cache-busters)", () => {
     const r = OpportunityListQuerySchema.safeParse({ q: "x", _t: "12345" });
     expect(r.success).toBe(true);

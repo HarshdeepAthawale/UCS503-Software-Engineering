@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { AppNav } from "@/components/app-nav";
+import { ResumeViewer } from "@/components/resume-viewer";
 import {
   apiListApplicants,
   apiTransition,
@@ -47,6 +48,7 @@ export default function ApplicantsPage() {
   const [applicants, setApplicants] = useState<Applicant[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [openResume, setOpenResume] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -150,10 +152,24 @@ export default function ApplicantsPage() {
                           </div>
                         )}
                         <div className="row">
+                          <button
+                            type="button"
+                            className="mini"
+                            onClick={() =>
+                              setOpenResume((cur) => (cur === a.id ? null : a.id))
+                            }
+                          >
+                            {openResume === a.id ? "Hide résumé" : "View résumé"}
+                          </button>
                           <Link className="appnav-link" style={{ padding: "4px 8px", fontSize: 12 }} href={`/applications/${a.id}`}>
                             Message / timeline →
                           </Link>
                         </div>
+                        {openResume === a.id && (
+                          <div className="row" style={{ display: "block" }}>
+                            <ResumeViewer userId={a.student.id} />
+                          </div>
+                        )}
                       </div>
                     ))}
                     {list.length === 0 && <p className="empty-note" style={{ fontSize: 12 }}>-</p>}

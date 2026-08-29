@@ -7,12 +7,22 @@ import { AppNav } from "@/components/app-nav";
 import {
   apiApply,
   apiCloseOpportunity,
+  apiFlagOpportunity,
   apiGetOpportunity,
   ApiError,
   bootstrapSession,
   getUser,
+  type FlagReason,
   type Opportunity,
 } from "@/lib/client/api";
+
+const FLAG_REASONS: { value: FlagReason; label: string }[] = [
+  { value: "SPAM", label: "Spam" },
+  { value: "MISLEADING", label: "Misleading / false details" },
+  { value: "INAPPROPRIATE", label: "Inappropriate content" },
+  { value: "DUPLICATE", label: "Duplicate posting" },
+  { value: "OTHER", label: "Other" },
+];
 import {
   badgeLabel,
   deadlineLabel,
@@ -35,6 +45,12 @@ export default function OpportunityDetailPage() {
   const [notice, setNotice] = useState<string | null>(null);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
+
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportReason, setReportReason] = useState<FlagReason>("MISLEADING");
+  const [reportDetail, setReportDetail] = useState("");
+  const [reportBusy, setReportBusy] = useState(false);
+  const [reported, setReported] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -66,6 +82,25 @@ export default function OpportunityDetailPage() {
       setError(err instanceof ApiError ? err.message : "Could not apply.");
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function onReport() {
+    setError(null);
+    setReportBusy(true);
+    try {
+      await apiFlagOpportunity(id, {
+        reason: reportReason,
+        detail: reportDetail.trim() || undefined,
+      });
+      setReported(true);
+      setReportOpen(false);
+      setReportDetail("");
+      setNotice("Thanks — this posting has been reported to the moderators.");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not submit the report.");
+    } finally {
+      setReportBusy(false);
     }
   }
 
@@ -185,6 +220,39 @@ export default function OpportunityDetailPage() {
                     <p className="empty-note">Only students can apply to opportunities.</p>
                   )}
                 </div>
+
+                {!isOwner && user?.role !== "ADMIN" && (
+                  <div className="report-block">
+                    {reported ? (
+                      <p className="empty-note">You reported this posting.</p>
+                    ) : !reportOpen ? (
+                      <button type="button" className="linklike-muted" onClick={() => setReportOpen(true)}>
+                        Report this posting
+                      </button>
+                    ) : (
+                      <div className="form">
+                        <div className="field">
+                          <label htmlFor="rr">Reason</label>
+                          <select id="rr" value={reportReason} onChange={(e) => setReportReason(e.target.value as FlagReason)}>
+                            {FLAG_REASONS.map((r) => (
+                              <option key={r.value} value={r.value}>{r.label}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="field">
+                          <label htmlFor="rd">Details (optional)</label>
+                          <textarea id="rd" value={reportDetail} maxLength={500} onChange={(e) => setReportDetail(e.target.value)} placeholder="What's wrong with this posting?" />
+                        </div>
+                        <div className="row" style={{ gap: 8 }}>
+                          <button className="mini" type="button" onClick={() => setReportOpen(false)} disabled={reportBusy}>Cancel</button>
+                          <button className="mini solid" type="button" onClick={onReport} disabled={reportBusy}>
+                            {reportBusy ? "Reporting…" : "Submit report"}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </aside>
             </div>
           )}

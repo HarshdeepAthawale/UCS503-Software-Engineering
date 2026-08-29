@@ -137,6 +137,49 @@ export const UserSkillsReplaceSchema = z
   })
   .strict();
 
+// ── Portfolio projects (T-37; docs/PRD M2) ───────────────────────────────────
+
+const projectTitle = z
+  .string()
+  .trim()
+  .min(2, "Project title must be at least 2 characters.")
+  .max(140, "Project title is too long.");
+// Nullable so the owner can CLEAR a link; validated as a URL only when present.
+// Restricted to http(s): Zod's .url() accepts `javascript:`/`data:` schemes,
+// which would be an XSS vector once rendered as an <a href> (codeguard-0-xss).
+const projectUrl = z
+  .string()
+  .trim()
+  .url("Enter a valid URL.")
+  .max(500)
+  .refine((v) => /^https?:\/\//i.test(v), { message: "Link must start with http:// or https://." })
+  .nullable()
+  .optional();
+
+export const ProjectCreateSchema = z
+  .object({
+    title: projectTitle,
+    description: z.string().trim().max(2000).nullable().optional(),
+    repoUrl: projectUrl,
+    liveUrl: projectUrl,
+  })
+  .strict();
+
+export const ProjectUpdateSchema = z
+  .object({
+    title: projectTitle.optional(),
+    description: z.string().trim().max(2000).nullable().optional(),
+    repoUrl: projectUrl,
+    liveUrl: projectUrl,
+  })
+  .strict()
+  .refine((v) => Object.keys(v).length > 0, {
+    message: "Provide at least one field to update.",
+  });
+
+export type ProjectCreateInput = z.infer<typeof ProjectCreateSchema>;
+export type ProjectUpdateInput = z.infer<typeof ProjectUpdateSchema>;
+
 export type SkillCreateInput = z.infer<typeof SkillCreateSchema>;
 export type SkillUpdateInput = z.infer<typeof SkillUpdateSchema>;
 export type UserSkillAddInput = z.infer<typeof UserSkillAddSchema>;
@@ -219,6 +262,7 @@ export const OpportunityListQuerySchema = z.object({
   domain: z.string().trim().min(1).max(80).optional(),
   stipend: z.enum(["true", "false"]).optional(),
   skillId: z.string().trim().uuid("Invalid skill id.").optional(),
+  sort: z.enum(["recent", "deadline", "seats"]).optional(),
   includeExpired: z.enum(["true", "false"]).optional(),
   cursor: z.string().trim().max(300).optional(),
   limit: z.coerce.number().int().gte(1).lte(100).optional(),
@@ -280,6 +324,32 @@ export const NotificationsReadSchema = z
 export const NotificationPrefSchema = z
   .object({ frequency: z.enum(["IMMEDIATE", "DAILY", "WEEKLY"]) })
   .strict();
+
+// ── Moderation flags (T-36; docs/PRD M9) ─────────────────────────────────────
+
+export const FlagCreateSchema = z
+  .object({
+    reason: z.enum(["SPAM", "MISLEADING", "INAPPROPRIATE", "DUPLICATE", "OTHER"]),
+    detail: z.string().trim().max(500).optional(),
+  })
+  .strict();
+
+// Admin resolution. RESOLVED upholds the report (optionally removing the
+// posting); DISMISSED closes it as no-violation. `note` is an optional rationale.
+export const FlagResolveSchema = z
+  .object({
+    decision: z.enum(["RESOLVED", "DISMISSED"]),
+    note: z.string().trim().max(500).optional(),
+    removePosting: z.boolean().optional(),
+  })
+  .strict()
+  .refine((v) => v.decision === "RESOLVED" || !v.removePosting, {
+    message: "A posting can only be removed when the flag is upheld.",
+    path: ["removePosting"],
+  });
+
+export type FlagCreateInput = z.infer<typeof FlagCreateSchema>;
+export type FlagResolveInput = z.infer<typeof FlagResolveSchema>;
 
 export type MessageSendInput = z.infer<typeof MessageSendSchema>;
 export type NotificationsReadInput = z.infer<typeof NotificationsReadSchema>;

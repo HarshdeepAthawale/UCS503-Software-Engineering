@@ -5,22 +5,56 @@ import { useCallback, useEffect, useState } from "react";
 import { AppNav } from "@/components/app-nav";
 import {
   apiAdminAddAllowlist,
+  apiAdminAnalytics,
   apiAdminListAllowlist,
+  apiAdminListFlags,
   apiAdminListUsers,
   apiAdminOverview,
   apiAdminProvisionAlumni,
   apiAdminRemoveAllowlist,
+  apiAdminResolveFlag,
   apiAdminUpdateUser,
   ApiError,
   bootstrapSession,
   getUser,
+  type AdminFlag,
   type AdminOverview,
   type AdminUser,
   type AllowlistEntry,
+  type InstituteAnalytics,
 } from "@/lib/client/api";
 import { timeAgo, titleCase } from "@/lib/client/format";
 
-type Tab = "overview" | "users" | "faculty" | "alumni";
+type Tab = "overview" | "users" | "faculty" | "alumni" | "flags" | "analytics";
+
+/** A labelled horizontal bar row, scaled to the largest value in its group. */
+function BarRow({ label, value, max }: { label: string; value: number; max: number }) {
+  const pct = max > 0 ? Math.round((value / max) * 100) : 0;
+  return (
+    <div className="bar-row">
+      <span className="bar-label">{label}</span>
+      <span className="bar-track">
+        <span className="bar-fill" style={{ width: `${pct}%` }} />
+      </span>
+      <span className="bar-val">{value}</span>
+    </div>
+  );
+}
+
+function BarGroup({ title, data }: { title: string; data: Record<string, number> }) {
+  const entries = Object.entries(data);
+  const max = Math.max(1, ...entries.map(([, v]) => v));
+  return (
+    <div className="panel">
+      <h2 style={{ fontSize: 15, marginTop: 0 }}>{title}</h2>
+      <div className="bar-list">
+        {entries.map(([k, v]) => (
+          <BarRow key={k} label={titleCase(k)} value={v} max={max} />
+        ))}
+      </div>
+    </div>
+  );
+}
 const ROLES = ["STUDENT", "FACULTY", "ALUMNI"] as const;
 
 export default function AdminPage() {
@@ -35,6 +69,8 @@ export default function AdminPage() {
   const [q, setQ] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
   const [allowlist, setAllowlist] = useState<AllowlistEntry[]>([]);
+  const [flags, setFlags] = useState<AdminFlag[]>([]);
+  const [analytics, setAnalytics] = useState<InstituteAnalytics | null>(null);
 
   const [flEmail, setFlEmail] = useState("");
   const [flNote, setFlNote] = useState("");
@@ -71,11 +107,58 @@ export default function AdminPage() {
     }
   }, []);
 
+  const loadFlags = useCallback(async () => {
+    try {
+      setFlags(await apiAdminListFlags());
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "Failed to load the flag queue.");
+    }
+  }, []);
+
+  const loadAnalytics = useCallback(async () => {
+    try {
+      setAnalytics(await apiAdminAnalytics());
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "Failed to load analytics.");
+    }
+  }, []);
+
+  const refreshOverview = useCallback(async () => {
+    try {
+      setOverview(await apiAdminOverview());
+    } catch {
+      /* overview is a nicety here; ignore a refresh failure */
+    }
+  }, []);
+
   useEffect(() => {
     if (!allowed) return;
     if (tab === "users") void loadUsers();
     if (tab === "faculty") void loadAllowlist();
-  }, [allowed, tab, loadUsers, loadAllowlist]);
+    if (tab === "flags") void loadFlags();
+    if (tab === "analytics") void loadAnalytics();
+  }, [allowed, tab, loadUsers, loadAllowlist, loadFlags, loadAnalytics]);
+
+  async function resolveFlag(
+    f: AdminFlag,
+    decision: "RESOLVED" | "DISMISSED",
+    removePosting = false,
+  ) {
+    setError(null);
+    try {
+      await apiAdminResolveFlag(f.id, { decision, removePosting });
+      await Promise.all([loadFlags(), refreshOverview()]);
+      flash(
+        removePosting
+          ? "Flag upheld and posting removed."
+          : decision === "RESOLVED"
+            ? "Flag upheld."
+            : "Flag dismissed.",
+      );
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "Could not update the flag.");
+    }
+  }
 
   function flash(msg: string) {
     setNotice(msg);
@@ -163,9 +246,13 @@ export default function AdminPage() {
           </div>
 
           <div className="tabs">
-            {(["overview", "users", "faculty", "alumni"] as Tab[]).map((t) => (
+            {(["overview", "analytics", "users", "faculty", "alumni", "flags"] as Tab[]).map((t) => (
               <button key={t} className={`tab${tab === t ? " active" : ""}`} onClick={() => setTab(t)}>
-                {t === "alumni" ? "Provision alumni" : titleCase(t)}
+                {t === "alumni"
+                  ? "Provision alumni"
+                  : t === "flags"
+                    ? `Flags${overview?.openFlags ? ` (${overview.openFlags})` : ""}`
+                    : titleCase(t)}
               </button>
             ))}
           </div>
@@ -182,6 +269,7 @@ export default function AdminPage() {
               <div className="stat"><span className="n">{overview.opportunities.atRisk}</span><span className="l">At-risk postings</span></div>
               <div className="stat"><span className="n">{overview.applications}</span><span className="l">Applications</span></div>
               <div className="stat"><span className="n">{overview.pendingClaims}</span><span className="l">Pending claims</span></div>
+              <div className="stat"><span className="n">{overview.openFlags}</span><span className="l">Open flags</span></div>
             </div>
           )}
 
@@ -286,8 +374,107 @@ export default function AdminPage() {
               </form>
             </div>
           )}
+
+          {tab === "flags" && (
+            <div className="panel" style={{ padding: 0, overflowX: "auto" }}>
+              <table className="atable">
+                <thead>
+                  <tr><th>Posting</th><th>Poster</th><th>Reason</th><th>Reported by</th><th>When</th><th>Actions</th></tr>
+                </thead>
+                <tbody>
+                  {flags.map((f) => (
+                    <tr key={f.id}>
+                      <td>
+                        <Link className="appnav-link" style={{ padding: 0 }} href={`/opportunities/${f.opportunity.id}`}>
+                          {f.opportunity.title}
+                        </Link>
+                        {f.detail && <div className="empty-note" style={{ marginTop: 4 }}>{f.detail}</div>}
+                      </td>
+                      <td>{f.opportunity.poster.name}</td>
+                      <td><span className="tag">{titleCase(f.reason)}</span></td>
+                      <td>{f.reporter.name}</td>
+                      <td className="mono-cell">{timeAgo(f.createdAt)}</td>
+                      <td>
+                        <div className="row" style={{ gap: 6 }}>
+                          <button className="mini" onClick={() => void resolveFlag(f, "DISMISSED")}>Dismiss</button>
+                          <button className="mini solid" onClick={() => void resolveFlag(f, "RESOLVED")}>Uphold</button>
+                          <button
+                            className="mini"
+                            onClick={() => {
+                              if (confirm(`Remove the posting "${f.opportunity.title}"? This hides it from all listings.`))
+                                void resolveFlag(f, "RESOLVED", true);
+                            }}
+                          >
+                            Uphold + remove posting
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {flags.length === 0 && (
+                    <tr><td colSpan={6} className="empty-note" style={{ padding: 20 }}>No open flags. The queue is clear.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {tab === "analytics" && (
+            !analytics ? (
+              <p className="app-loading">Loading analytics…</p>
+            ) : (
+              <div className="analytics">
+                <div className="stat-grid">
+                  <div className="stat"><span className="n">{analytics.applications.total}</span><span className="l">Applications</span></div>
+                  <div className="stat"><span className="n">{pctText(analytics.applications.resolutionRate)}</span><span className="l">Resolution rate</span></div>
+                  <div className="stat"><span className="n">{analytics.applications.medianTtaHours == null ? "—" : `${analytics.applications.medianTtaHours}h`}</span><span className="l">Median TTA</span></div>
+                  <div className="stat"><span className="n">{pctText(analytics.seats.fillRate)}</span><span className="l">Seat fill rate</span></div>
+                  <div className="stat"><span className="n">{analytics.applications.acknowledged}</span><span className="l">Acknowledged</span></div>
+                  <div className="stat"><span className="n">{analytics.seats.filled}/{analytics.seats.total}</span><span className="l">Seats filled</span></div>
+                </div>
+
+                <div className="panel" style={{ marginTop: 20 }}>
+                  <h2 style={{ fontSize: 15, marginTop: 0 }}>Applications — last 14 days</h2>
+                  <div className="spark" role="img" aria-label="Applications per day, last 14 days">
+                    {(() => {
+                      const max = Math.max(1, ...analytics.perDay.map((d) => d.count));
+                      return analytics.perDay.map((d) => (
+                        <span key={d.day} className="spark-col" title={`${d.day}: ${d.count}`}>
+                          <span
+                            className="spark-bar"
+                            style={{ height: `${Math.round((d.count / max) * 100)}%` }}
+                          />
+                        </span>
+                      ));
+                    })()}
+                  </div>
+                  <p className="empty-note" style={{ marginTop: 8 }}>
+                    {analytics.perDay.reduce((s, d) => s + d.count, 0)} applications in this window.
+                  </p>
+                </div>
+
+                <div className="detail-grid" style={{ marginTop: 20 }}>
+                  <BarGroup title="Applications by stage" data={analytics.byAppState} />
+                  <BarGroup title="Postings by type" data={analytics.byOppType} />
+                </div>
+                <div className="detail-grid" style={{ marginTop: 20 }}>
+                  <BarGroup title="Postings by status" data={analytics.byOppStatus} />
+                </div>
+
+                <p className="empty-note" style={{ marginTop: 16 }}>
+                  Figures derive from the immutable application event log — TTA and resolution
+                  rate cannot be back-dated or self-reported.
+                </p>
+              </div>
+            )
+          )}
         </div>
       </main>
     </div>
   );
+}
+
+/** Render a 0..1 ratio as a whole-percent string. */
+function pctText(ratio: number): string {
+  return `${Math.round(ratio * 100)}%`;
 }

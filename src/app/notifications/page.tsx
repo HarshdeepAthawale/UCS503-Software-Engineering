@@ -37,6 +37,8 @@ function describe(n: Notification): { text: string; href?: string } {
       return { text: "You have a new message.", href: appId ? `/applications/${appId}` : undefined };
     case "opportunity.at_risk":
       return { text: "A posting is at risk - an applicant is waiting past your SLA.", href: oppId ? `/opportunities/${oppId}/applicants` : undefined };
+    case "opportunity.deadline_reminder":
+      return { text: n.payload.tier === "T24" ? "A posting closes within 24 hours - review applicants before it expires." : "A posting closes within 72 hours - review applicants before it expires.", href: oppId ? `/opportunities/${oppId}/applicants` : undefined };
     default:
       return { text: n.type };
   }

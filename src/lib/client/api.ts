@@ -19,6 +19,26 @@ export interface SessionUser {
   name: string;
 }
 
+export interface Project {
+  id: string;
+  title: string;
+  description: string | null;
+  repoUrl: string | null;
+  liveUrl: string | null;
+  createdAt: string;
+}
+
+export interface ResumeMeta {
+  name: string | null;
+  size: number | null;
+  uploadedAt: string | null;
+}
+
+export interface ResumeView extends ResumeMeta {
+  previewUrl: string;
+  downloadUrl: string;
+}
+
 export interface Profile {
   userId: string;
   name: string;
@@ -29,6 +49,8 @@ export interface Profile {
   cgpa: number | null;
   cgpaPublic: boolean;
   skills: { id: string; name: string; domain: string; proficiency: string }[];
+  projects: Project[];
+  resume: ResumeMeta | null;
 }
 
 export interface TaxonomySkill {
@@ -79,7 +101,10 @@ export function clearSession() {
 async function rawFetch(path: string, init: RequestInit = {}): Promise<Response> {
   const headers = new Headers(init.headers);
   if (accessToken) headers.set("Authorization", `Bearer ${accessToken}`);
-  if (init.body && !headers.has("Content-Type")) {
+  // FormData bodies must set their own multipart Content-Type (with the
+  // boundary) - the browser does that only when we DON'T set the header.
+  const isFormData = typeof FormData !== "undefined" && init.body instanceof FormData;
+  if (init.body && !isFormData && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
   return fetch(path, { ...init, headers });
@@ -216,6 +241,62 @@ export async function apiReplaceSkills(
   return body.profile;
 }
 
+// ── Portfolio projects (T-37; M2) ────────────────────────────────────────────
+
+export interface ProjectInput {
+  title: string;
+  description?: string | null;
+  repoUrl?: string | null;
+  liveUrl?: string | null;
+}
+
+export async function apiAddProject(input: ProjectInput): Promise<Project> {
+  const body = await request<{ project: Project }>("/api/profiles/me/projects", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+  return body.project;
+}
+
+export async function apiUpdateProject(id: string, input: Partial<ProjectInput>): Promise<Project> {
+  const body = await request<{ project: Project }>(`/api/profiles/me/projects/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+  return body.project;
+}
+
+export async function apiRemoveProject(id: string): Promise<void> {
+  await request<void>(`/api/profiles/me/projects/${id}`, { method: "DELETE" });
+}
+
+// ── Résumé (T-44; M2) ────────────────────────────────────────────────────────
+
+export async function apiUploadResume(file: File): Promise<ResumeMeta> {
+  const form = new FormData();
+  form.append("file", file);
+  const body = await request<{ resume: ResumeMeta }>("/api/profiles/me/resume", {
+    method: "POST",
+    body: form,
+  });
+  return body.resume;
+}
+
+export async function apiRemoveResume(): Promise<void> {
+  await request<void>("/api/profiles/me/resume", { method: "DELETE" });
+}
+
+/** Résumé view (metadata + signed URLs) for a user, or null when there is none. */
+export async function apiGetResume(userId: string): Promise<ResumeView | null> {
+  try {
+    const body = await request<{ resume: ResumeView }>(`/api/profiles/${userId}/resume`);
+    return body.resume;
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) return null;
+    throw err;
+  }
+}
+
 // ── Opportunities (T-09 / T-11) ──────────────────────────────────────────────
 
 export type OppType =
@@ -269,25 +350,28 @@ export interface Opportunity {
   skills: OppSkill[];
 }
 
+export type OpportunitySort = "recent" | "deadline" | "seats";
+
 export interface OpportunityListParams {
   q?: string;
   type?: OppType;
   domain?: string;
   stipend?: "true" | "false";
   skillId?: string;
+  sort?: OpportunitySort;
   cursor?: string;
   limit?: number;
 }
 
 export async function apiListOpportunities(
   params: OpportunityListParams = {},
-): Promise<{ opportunities: Opportunity[]; nextCursor: string | null }> {
+): Promise<{ opportunities: Opportunity[]; nextCursor: string | null; sort: OpportunitySort }> {
   const qs = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) {
     if (v !== undefined && v !== null && v !== "") qs.set(k, String(v));
   }
   const suffix = qs.toString() ? `?${qs.toString()}` : "";
-  return request<{ opportunities: Opportunity[]; nextCursor: string | null }>(
+  return request<{ opportunities: Opportunity[]; nextCursor: string | null; sort: OpportunitySort }>(
     `/api/opportunities${suffix}`,
   );
 }
@@ -515,6 +599,24 @@ export interface AdminOverview {
   opportunities: { live: number; atRisk: number };
   applications: number;
   pendingClaims: number;
+  openFlags: number;
+}
+
+export type FlagReason = "SPAM" | "MISLEADING" | "INAPPROPRIATE" | "DUPLICATE" | "OTHER";
+
+export interface AdminFlag {
+  id: string;
+  reason: FlagReason;
+  detail: string | null;
+  createdAt: string;
+  reporter: { id: string; name: string };
+  opportunity: {
+    id: string;
+    title: string;
+    status: string;
+    deletedAt: string | null;
+    poster: { name: string };
+  };
 }
 
 export interface AdminUser {
@@ -536,6 +638,26 @@ export interface AllowlistEntry {
 export async function apiAdminOverview(): Promise<AdminOverview> {
   const body = await request<{ overview: AdminOverview }>("/api/admin/overview");
   return body.overview;
+}
+
+export interface InstituteAnalytics {
+  applications: {
+    total: number;
+    resolved: number;
+    resolutionRate: number;
+    acknowledged: number;
+    medianTtaHours: number | null;
+  };
+  seats: { total: number; filled: number; fillRate: number };
+  byAppState: Record<string, number>;
+  byOppType: Record<string, number>;
+  byOppStatus: Record<string, number>;
+  perDay: { day: string; count: number }[];
+}
+
+export async function apiAdminAnalytics(): Promise<InstituteAnalytics> {
+  const body = await request<{ analytics: InstituteAnalytics }>("/api/admin/analytics");
+  return body.analytics;
 }
 
 export async function apiAdminListUsers(params: {
@@ -591,4 +713,33 @@ export async function apiAdminAddAllowlist(email: string, note?: string): Promis
 
 export async function apiAdminRemoveAllowlist(id: string): Promise<void> {
   await request<{ id: string }>(`/api/admin/faculty-allowlist/${id}`, { method: "DELETE" });
+}
+
+// ── Moderation flags (T-36, M9) ──────────────────────────────────────────────
+
+/** Report a posting (student/faculty/alumni). */
+export async function apiFlagOpportunity(
+  opportunityId: string,
+  input: { reason: FlagReason; detail?: string },
+): Promise<{ id: string }> {
+  const body = await request<{ flag: { id: string } }>(
+    `/api/opportunities/${opportunityId}/flag`,
+    { method: "POST", body: JSON.stringify(input) },
+  );
+  return body.flag;
+}
+
+export async function apiAdminListFlags(): Promise<AdminFlag[]> {
+  const body = await request<{ flags: AdminFlag[] }>("/api/admin/flags");
+  return body.flags;
+}
+
+export async function apiAdminResolveFlag(
+  id: string,
+  input: { decision: "RESOLVED" | "DISMISSED"; note?: string; removePosting?: boolean },
+): Promise<{ id: string; status: string; removedPosting: boolean }> {
+  return request<{ id: string; status: string; removedPosting: boolean }>(
+    `/api/admin/flags/${id}`,
+    { method: "PATCH", body: JSON.stringify(input) },
+  );
 }

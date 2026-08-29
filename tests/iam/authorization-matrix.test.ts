@@ -77,6 +77,17 @@ const CASES: Array<[Role, Permission, boolean]> = [
   ["FACULTY", "user:manage", false],
   ["FACULTY", "faculty_allowlist:manage", false],
   ["ALUMNI", "user:manage", false],
+  // Moderation flags (T-36, M9): any member reports; only ADMIN reads/resolves
+  // the queue (and ADMIN governs, so does not itself raise flags).
+  ["STUDENT", "flag:create", true],
+  ["FACULTY", "flag:create", true],
+  ["ALUMNI", "flag:create", true],
+  ["STUDENT", "flag:read", false],
+  ["STUDENT", "flag:resolve", false],
+  ["FACULTY", "flag:resolve", false],
+  ["ADMIN", "flag:create", false],
+  ["ADMIN", "flag:read", true],
+  ["ADMIN", "flag:resolve", true],
 ];
 
 describe("RBAC matrix (deny-by-default)", () => {

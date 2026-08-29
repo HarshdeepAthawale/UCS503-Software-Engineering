@@ -59,6 +59,7 @@ const STUDENT: Permission[] = [
   "message:send", // membership-scoped in the service
   "notification:read", // own feed (scoped in the service)
   "notification:manage", // own read-state & prefs (scoped in the service)
+  "flag:create", // report a posting for moderation (M9)
 ];
 
 const FACULTY: Permission[] = [
