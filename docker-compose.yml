@@ -1,0 +1,90 @@
+# Local development stack: the app plus a real Postgres 16.
+#
+#   docker compose up --build            start everything
+#   docker compose run --rm app npm run db:migrate:deploy  apply migrations
+#   docker compose down -v               stop and delete the database volume
+#
+# The point is that a teammate needs Docker and nothing else — no local Node,
+# no local Postgres, no matching versions.
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: nexus
+      POSTGRES_PASSWORD: nexus
+      POSTGRES_DB: nexus
+    ports:
+      # Exposed so `npm run db:studio` and psql work from the host. Override
+      # with DB_PORT when 5432 is already taken by a local Postgres.
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # `app` must not start before Postgres actually accepts connections;
+      # without this the first boot races and dies on ECONNREFUSED.
+      test: ["CMD-SHELL", "pg_isready -U nexus -d nexus"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # The DEV stage, not the production image — see the long note in the
+      # Dockerfile. A production build pins NODE_ENV=production, and env.ts then
+      # refuses ALLOW_INSECURE_COOKIES=true, but a Secure cookie is never stored
+      # over http://localhost, so no one could log in.
+      target: dev
+    volumes:
+      - .:/app
+      # Anonymous volume so the bind mount above does not shadow the Linux
+      # node_modules installed in the image; the host's is built for a different
+      # platform and would fail at runtime.
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      # Host port is configurable — a dev server on 3000 is common enough that a
+      # hardcoded mapping just fails the stack with a bind error.
+      #   APP_PORT=3100 docker compose up -d
+      - "${APP_PORT:-3000}:3000"
+    environment:
+      # `db` is the compose service name, resolved on the shared network.
+      DATABASE_URL: postgresql://nexus:nexus@db:5432/nexus?schema=public
+      DIRECT_URL: postgresql://nexus:nexus@db:5432/nexus?schema=public
+
+      # Development-only values. Real deployments inject their own; these exist
+      # so the stack boots for someone who has just cloned the repo.
+      JWT_ACCESS_SECRET: local-docker-access-secret-not-for-production
+      JWT_REFRESH_SECRET: local-docker-refresh-secret-not-for-production
+      ACCESS_TOKEN_TTL: 15m
+      REFRESH_TOKEN_TTL_DAYS: "7"
+      ALLOWED_EMAIL_DOMAIN: thapar.edu
+      APPLICATION_BUDGET: "10"
+
+      # The container serves over plain http on localhost, so Secure cookies
+      # would never be stored. This is the one place that flag may be true —
+      # env.ts refuses to boot with it on in a real production environment.
+      # Development mode, so this is both permitted and required: the stack is
+      # served over plain HTTP on localhost, where a Secure cookie is dropped.
+      ALLOW_INSECURE_COOKIES: "true"
+      NODE_ENV: development
+
+      # Left blank on purpose: résumé upload, email and Google sign-in each
+      # report cleanly when unconfigured rather than failing at runtime.
+      SUPABASE_URL: ""
+      SUPABASE_SERVICE_ROLE_KEY: ""
+      RESEND_API_KEY: ""
+      GOOGLE_CLIENT_ID: ""
+      GOOGLE_CLIENT_SECRET: ""
+
+      # Blank so this container serves its OWN /api. Setting it would turn this
+      # into a frontend proxying to a remote backend (see next.config.ts).
+      BACKEND_ORIGIN: ""
+
+volumes:
+  pgdata:

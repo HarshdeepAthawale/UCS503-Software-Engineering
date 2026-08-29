@@ -39,6 +39,59 @@ Full documentation lives in [`docs/`](docs/):
 
 > Earlier drafts of this README listed Tailwind CSS, Redis + BullMQ, Supertest and Playwright as though they were in use. None are installed. See D-20 in the Tracker: a partial item is recorded with its gap, never rounded up.
 
+## 🐳 Docker
+
+One command for a teammate with nothing installed but Docker — app plus a real
+Postgres 16, no local Node, no local database, no version matching.
+
+```bash
+docker compose up --build                                # start the stack
+docker compose run --rm app npm run db:migrate:deploy    # apply migrations (once)
+docker compose down -v                                   # stop, delete the volume
+```
+
+App on http://localhost:3000, Postgres on 5432 (exposed so `npm run db:studio`
+and psql work from the host).
+
+`docker compose` runs the Dockerfile's **`dev`** stage. `docker build .` (no
+`--target`) still produces the production image — that is the one Render would
+deploy.
+
+Notes that are not obvious from the files:
+
+- **Why two targets.** The production image pins `NODE_ENV=production`, and
+  `src/lib/env.ts` then refuses to boot with `ALLOW_INSECURE_COOKIES=true`
+  (B-05). But a browser will not store a `Secure` cookie from
+  `http://localhost`, so a production build served over plain HTTP can never
+  hold a session and nobody could sign in. The dev stage resolves that honestly
+  rather than weakening the guard.
+
+- `db:migrate:deploy` rather than `db:migrate:apply`: the latter passes
+  `--env-file=.env`, and a container has no `.env` — its environment comes from
+  compose. Same script, same migrations, just no file to read.
+- **Migrations do not run on container boot**, by design. Several replicas
+  starting at once would race on the schema, and a web container should not hold
+  schema authority. Run the command above deliberately.
+- **`output: "standalone"` is opt-in** via `DOCKER_BUILD=1` (see
+  `next.config.ts`). The Vercel and Render builds are unchanged by any of this.
+- **Alpine is safe here** only because `engineType = "client"` (D-18) puts Prisma
+  on the WASM query compiler — there is no native engine to link, so the usual
+  musl/openssl problems do not arise.
+- **The Prisma `.wasm` is copied explicitly.** Standalone traces `import`s, but
+  the client loads that file by path at runtime, so tracing never sees it.
+  Omitting it is how production once died with `ENOENT query_compiler_bg.wasm`.
+- **The compose secrets are development values.** `ALLOW_INSECURE_COOKIES=true`
+  is set there because the container serves plain HTTP on localhost, where a
+  Secure cookie would never be stored — `src/lib/env.ts` still refuses to boot
+  with it on in a real production environment (B-05).
+- Résumé storage, email and Google sign-in are left unconfigured; each reports
+  cleanly rather than failing. Add the keys to `docker-compose.yml` to exercise
+  them.
+
+Render can deploy this image directly (Settings → Build & Deploy → change the
+runtime to Docker). That switch has **not** been made — Render currently builds
+from source and works. See `docs/Remaining-Work-Plan.md`.
+
 ## 🚀 Development (Phase 1 — Identity & IAM)
 
 ```bash

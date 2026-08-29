@@ -15,6 +15,7 @@
     "test:watch": "vitest",
     "db:generate": "prisma generate",
     "db:migrate:apply": "node --env-file=.env scripts/apply-migrations.mjs",
+    "db:migrate:deploy": "node scripts/apply-migrations.mjs",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "bootstrap:admin": "node --env-file=.env --import tsx prisma/bootstrap-admin.ts",

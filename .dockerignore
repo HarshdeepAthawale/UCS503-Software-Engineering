@@ -1,0 +1,32 @@
+# Build context hygiene: everything here would either bloat the image, break the
+# build by shadowing what the Dockerfile installs, or leak secrets into a layer.
+node_modules
+.next
+out
+build
+dist
+.git
+.github
+.vercel
+
+# NEVER ship real environment values into an image layer. Layers are cached and
+# distributable; a secret baked in is a secret published.
+.env
+.env.*
+!.env.example
+
+*.tsbuildinfo
+coverage
+playwright-report
+test-results
+*.log
+.DS_Store
+Thumbs.db
+.idea
+.vscode
+
+# Docs and scratch have no bearing on a build.
+docs
+*.md
+!README.md
+*.tmpdir

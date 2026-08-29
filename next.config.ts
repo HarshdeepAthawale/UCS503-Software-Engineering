@@ -54,6 +54,14 @@ function backendOrigin(): string | null {
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+
+  // Standalone emits a self-contained server.js plus a traced, minimal
+  // node_modules — the shape a container wants. It is opt-in via DOCKER_BUILD
+  // rather than always-on so the Vercel and Render builds stay byte-for-byte
+  // what they are today; this repo has broken two deploys in one day by
+  // changing build behaviour for every host at once.
+  ...(process.env.DOCKER_BUILD === "1" ? { output: "standalone" as const } : {}),
+
   poweredByHeader: false,
   // Prisma runs on the WASM query compiler (`engineType = "client"`, see
   // prisma/schema.prisma). Next's output file tracing follows `import`s, and the
