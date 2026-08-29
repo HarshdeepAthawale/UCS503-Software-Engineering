@@ -11,7 +11,14 @@ import {
   getUser,
   type Opportunity,
   type OppType,
+  type OpportunitySort,
 } from "@/lib/client/api";
+
+const SORTS: { value: OpportunitySort; label: string }[] = [
+  { value: "recent", label: "Newest first" },
+  { value: "deadline", label: "Closing soon" },
+  { value: "seats", label: "Most seats open" },
+];
 import { deadlineLabel, oppTypeLabel, slaLabel, statusClass, titleCase } from "@/lib/client/format";
 
 const TYPES: OppType[] = [
@@ -37,6 +44,7 @@ export default function OpportunitiesPage() {
   const [type, setType] = useState<"" | OppType>("");
   const [domain, setDomain] = useState("");
   const [stipend, setStipend] = useState<"" | "true" | "false">("");
+  const [sort, setSort] = useState<OpportunitySort>("recent");
 
   const debounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -50,6 +58,7 @@ export default function OpportunitiesPage() {
           type: type || undefined,
           domain: domain.trim() || undefined,
           stipend: stipend || undefined,
+          sort,
           cursor: reset ? undefined : cursor ?? undefined,
         });
         setItems((prev) => (reset ? res.opportunities : [...prev, ...res.opportunities]));
@@ -60,7 +69,7 @@ export default function OpportunitiesPage() {
         setLoading(false);
       }
     },
-    [q, type, domain, stipend, cursor],
+    [q, type, domain, stipend, sort, cursor],
   );
 
   // Initial session bootstrap.
@@ -86,7 +95,7 @@ export default function OpportunitiesPage() {
       if (debounce.current) clearTimeout(debounce.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [signedIn, q, type, domain, stipend]);
+  }, [signedIn, q, type, domain, stipend, sort]);
 
   if (!ready) {
     return <main className="app-shell"><p className="app-loading">Loading…</p></main>;
@@ -143,6 +152,11 @@ export default function OpportunitiesPage() {
               <option value="">Any stipend</option>
               <option value="true">Stipend</option>
               <option value="false">Unpaid</option>
+            </select>
+            <select value={sort} onChange={(e) => setSort(e.target.value as OpportunitySort)} aria-label="Sort by">
+              {SORTS.map((s) => (
+                <option key={s.value} value={s.value}>{s.label}</option>
+              ))}
             </select>
           </div>
 

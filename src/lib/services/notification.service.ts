@@ -15,7 +15,8 @@ export type NotificationType =
   | "application.status_changed" // → student: pipeline advanced
   | "application.withdrawn" // → poster: an applicant withdrew
   | "message.received" // → the other thread participant
-  | "opportunity.at_risk"; // → poster: SLA breach nudge
+  | "opportunity.at_risk" // → poster: SLA breach nudge
+  | "opportunity.deadline_reminder"; // → poster: deadline at T−72h / T−24h (T-35)
 
 export async function notify(
   userId: string,

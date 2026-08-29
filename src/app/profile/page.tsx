@@ -4,18 +4,25 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AppNav } from "@/components/app-nav";
 import { useCallback, useEffect, useState } from "react";
+import { ResumeViewer } from "@/components/resume-viewer";
 import {
+  apiAddProject,
   apiGetMyProfile,
   apiGetSkills,
   apiLogout,
+  apiRemoveProject,
+  apiRemoveResume,
   apiReplaceSkills,
   apiUpdateProfile,
+  apiUploadResume,
   ApiError,
   bootstrapSession,
   getUser,
   type Profile,
   type TaxonomySkill,
 } from "@/lib/client/api";
+
+const MAX_RESUME_MB = 4;
 
 const PROFICIENCIES = [
   "BEGINNER",
@@ -48,6 +55,15 @@ export default function ProfilePage() {
   const [pickerSkill, setPickerSkill] = useState("");
   const [pickerProficiency, setPickerProficiency] =
     useState<(typeof PROFICIENCIES)[number]>("INTERMEDIATE");
+
+  const [projTitle, setProjTitle] = useState("");
+  const [projRepo, setProjRepo] = useState("");
+  const [projLive, setProjLive] = useState("");
+  const [projDesc, setProjDesc] = useState("");
+  const [projBusy, setProjBusy] = useState(false);
+
+  const [resumeBusy, setResumeBusy] = useState(false);
+  const [resumeRefresh, setResumeRefresh] = useState(0);
 
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -131,6 +147,85 @@ export default function ProfilePage() {
 
   function removeSkill(skillId: string) {
     setSkills((prev) => prev.filter((s) => s.skillId !== skillId));
+  }
+
+  // Projects use per-item CRUD (there is no batch-replace endpoint), so add and
+  // remove call the API immediately and reload — independent of the "Save
+  // profile" button, which owns the about/skills form.
+  async function addProject() {
+    if (!projTitle.trim()) return;
+    setError(null);
+    setProjBusy(true);
+    try {
+      await apiAddProject({
+        title: projTitle.trim(),
+        repoUrl: projRepo.trim() || null,
+        liveUrl: projLive.trim() || null,
+        description: projDesc.trim() || null,
+      });
+      setProjTitle("");
+      setProjRepo("");
+      setProjLive("");
+      setProjDesc("");
+      await load();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not add the project.");
+    } finally {
+      setProjBusy(false);
+    }
+  }
+
+  async function removeProject(id: string) {
+    setError(null);
+    setProjBusy(true);
+    try {
+      await apiRemoveProject(id);
+      await load();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not remove the project.");
+    } finally {
+      setProjBusy(false);
+    }
+  }
+
+  async function onResumeChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-selecting the same file after an error
+    if (!file) return;
+    setError(null);
+    // Client-side pre-checks for instant feedback; the server re-validates.
+    if (file.type !== "application/pdf") {
+      setError("Only PDF résumés are accepted.");
+      return;
+    }
+    if (file.size > MAX_RESUME_MB * 1024 * 1024) {
+      setError(`The résumé must be at most ${MAX_RESUME_MB} MB.`);
+      return;
+    }
+    setResumeBusy(true);
+    try {
+      await apiUploadResume(file);
+      await load();
+      setResumeRefresh((n) => n + 1);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not upload the résumé.");
+    } finally {
+      setResumeBusy(false);
+    }
+  }
+
+  async function removeResume() {
+    setError(null);
+    setResumeBusy(true);
+    try {
+      await apiRemoveResume();
+      await load();
+      setResumeRefresh((n) => n + 1);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not remove the résumé.");
+    } finally {
+      setResumeBusy(false);
+    }
   }
 
   async function onLogout() {
@@ -357,6 +452,157 @@ export default function ProfilePage() {
               </div>
             </div>
           </form>
+
+          <div className="panel-grid">
+            <div className="panel-card">
+              <h2>Résumé</h2>
+              <p className="empty-note" style={{ marginBottom: 12 }}>
+                Upload a PDF (max {MAX_RESUME_MB} MB). Faculty and employers can
+                preview it inline while reviewing your applications — no download
+                needed.
+              </p>
+
+              <div className="resume-actions">
+                <label className={`btn btn-primary${resumeBusy ? " is-disabled" : ""}`}>
+                  {resumeBusy
+                    ? "Working…"
+                    : profile?.resume
+                      ? "Replace résumé"
+                      : "Upload résumé"}
+                  <input
+                    type="file"
+                    accept="application/pdf"
+                    hidden
+                    disabled={resumeBusy}
+                    onChange={(e) => void onResumeChange(e)}
+                  />
+                </label>
+                {profile?.resume && (
+                  <button
+                    type="button"
+                    className="mini"
+                    onClick={() => void removeResume()}
+                    disabled={resumeBusy}
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+
+              {profile?.resume ? (
+                <div style={{ marginTop: 16 }}>
+                  <ResumeViewer userId={profile.userId} refreshKey={resumeRefresh} />
+                </div>
+              ) : (
+                <p className="empty-note" style={{ marginTop: 12 }}>
+                  No résumé yet.
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="panel-grid">
+            <div className="panel-card">
+              <h2>Projects</h2>
+              <p className="empty-note" style={{ marginBottom: 12 }}>
+                Portfolio work with a repository link. Added and removed
+                immediately — no need to press Save.
+              </p>
+
+              <div className="proj-list">
+                {(profile?.projects.length ?? 0) === 0 && (
+                  <p className="empty-note">
+                    No projects yet. Add one with a repo link below.
+                  </p>
+                )}
+                {profile?.projects.map((p) => (
+                  <div key={p.id} className="proj-row">
+                    <div className="proj-main">
+                      <strong>{p.title}</strong>
+                      {p.description && <p className="sub">{p.description}</p>}
+                      <div className="proj-links">
+                        {p.repoUrl && (
+                          <a href={p.repoUrl} target="_blank" rel="noopener noreferrer">
+                            Repository
+                          </a>
+                        )}
+                        {p.liveUrl && (
+                          <a href={p.liveUrl} target="_blank" rel="noopener noreferrer">
+                            Live
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      className="mini"
+                      type="button"
+                      onClick={() => void removeProject(p.id)}
+                      disabled={projBusy}
+                      aria-label={`Remove ${p.title}`}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <div className="form" style={{ marginTop: 16 }}>
+                <div className="field">
+                  <label htmlFor="projTitle">Title</label>
+                  <input
+                    id="projTitle"
+                    type="text"
+                    value={projTitle}
+                    onChange={(e) => setProjTitle(e.target.value)}
+                    placeholder="e.g. Distributed cache in Rust"
+                    maxLength={140}
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor="projRepo">Repository URL</label>
+                  <input
+                    id="projRepo"
+                    type="url"
+                    value={projRepo}
+                    onChange={(e) => setProjRepo(e.target.value)}
+                    placeholder="https://github.com/…"
+                    maxLength={500}
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor="projLive">Live URL (optional)</label>
+                  <input
+                    id="projLive"
+                    type="url"
+                    value={projLive}
+                    onChange={(e) => setProjLive(e.target.value)}
+                    placeholder="https://…"
+                    maxLength={500}
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor="projDesc">Description (optional)</label>
+                  <textarea
+                    id="projDesc"
+                    value={projDesc}
+                    onChange={(e) => setProjDesc(e.target.value)}
+                    placeholder="What it does, your role, the stack…"
+                    maxLength={2000}
+                  />
+                </div>
+                <div className="save-bar">
+                  <button
+                    className="btn btn-primary"
+                    type="button"
+                    onClick={() => void addProject()}
+                    disabled={projBusy || !projTitle.trim()}
+                  >
+                    {projBusy ? "Working…" : "Add project"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </main>
     </div>

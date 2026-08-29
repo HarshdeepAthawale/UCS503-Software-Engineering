@@ -31,12 +31,13 @@ const USER_SELECT = {
 // ── Overview ─────────────────────────────────────────────────────────────────
 
 export async function getOverview() {
-  const [byRole, opps, atRisk, applications, pendingClaims] = await Promise.all([
+  const [byRole, opps, atRisk, applications, pendingClaims, openFlags] = await Promise.all([
     prisma.user.groupBy({ by: ["role"], where: { deletedAt: null }, _count: true }),
     prisma.opportunity.count({ where: { deletedAt: null, status: "LIVE" } }),
     prisma.opportunity.count({ where: { deletedAt: null, status: "AT_RISK" } }),
     prisma.application.count({ where: { deletedAt: null } }),
     prisma.alumniClaim.count({ where: { decision: null } }),
+    prisma.flag.count({ where: { status: "OPEN" } }),
   ]);
 
   const roles: Record<string, number> = { STUDENT: 0, FACULTY: 0, ALUMNI: 0, ADMIN: 0 };
@@ -47,6 +48,7 @@ export async function getOverview() {
     opportunities: { live: opps, atRisk },
     applications,
     pendingClaims,
+    openFlags,
   };
 }
 

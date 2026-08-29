@@ -101,6 +101,21 @@ enum NotifFreq {
   WEEKLY
 }
 
+// Moderation: why a posting was flagged, and where the flag stands (T-36, M9).
+enum FlagReason {
+  SPAM
+  MISLEADING
+  INAPPROPRIATE
+  DUPLICATE
+  OTHER
+}
+
+enum FlagStatus {
+  OPEN      // awaiting admin review
+  RESOLVED  // upheld (posting may have been removed)
+  DISMISSED // reviewed, no violation
+}
+
 // ── Identity ─────────────────────────────────────────────────────────────────
 
 model User {
@@ -122,6 +137,7 @@ model User {
   auditEvents   AuditLog[]     @relation("actor")
   opportunities Opportunity[]  @relation("poster")
   applications  Application[]  @relation("student")
+  flagsReported Flag[]         @relation("flag_reporter")
   events        ApplicationEvent[] @relation("event_actor")
   messagesSent  Message[]      @relation("message_sender")
   notifications Notification[] @relation("notification_user")
@@ -204,14 +220,44 @@ model Profile {
   cgpaPublic Boolean  @default(false) @map("cgpa_public")
   bio        String?
 
+  // Résumé metadata (T-44, M2). The PDF itself lives in Supabase Storage at
+  // `resumeKey`; only its filename/size/timestamp are kept here. Null → no résumé.
+  resumeKey        String?   @map("resume_key")
+  resumeName       String?   @map("resume_name")
+  resumeSize       Int?      @map("resume_size")
+  resumeUploadedAt DateTime? @map("resume_uploaded_at") @db.Timestamptz(6)
+
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
   deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
 
-  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   userSkills UserSkill[]
+  projects   ProfileProject[]
 
   @@map("profiles")
+}
+
+// Portfolio projects with repository links (docs/PRD M2). Structured, owner-
+// managed, soft-deleted so history survives. The repo link is the anchor that
+// S7 (verified project artifacts) later verifies — kept optional here so a
+// non-code project can still be listed.
+model ProfileProject {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  title       String
+  description String?
+  repoUrl     String?   @map("repo_url")
+  liveUrl     String?   @map("live_url")
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  profile Profile @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("profile_projects")
 }
 
 // Admin-curated skill taxonomy (docs/PRD M2) — skills are NOT free text.
@@ -276,6 +322,7 @@ model Opportunity {
   poster            User                @relation("poster", fields: [posterId], references: [id], onDelete: Cascade)
   opportunitySkills OpportunitySkill[]
   applications      Application[]
+  flags             Flag[]
 
   @@index([posterId])
   @@index([status])
@@ -421,6 +468,36 @@ model NotificationPreference {
   user User @relation("notification_pref", fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("notification_preferences")
+}
+
+// ── Moderation: flag queue (T-36; docs/PRD M9) ───────────────────────────────
+
+// A report against a posting. Any non-admin member may raise one; an admin
+// reviews the queue and either upholds it (RESOLVED, optionally removing the
+// posting) or DISMISSES it. `reviewedById` is a bare column (like AlumniClaim),
+// not a relation. A PARTIAL UNIQUE index on (opportunity_id, reporter_id) WHERE
+// status = 'OPEN' — added in the migration, since Prisma cannot express it —
+// stops one member opening duplicate flags on the same posting.
+model Flag {
+  id             String     @id @default(uuid()) @db.Uuid
+  opportunityId  String     @map("opportunity_id") @db.Uuid
+  reporterId     String     @map("reporter_id") @db.Uuid
+  reason         FlagReason
+  detail         String?
+  status         FlagStatus @default(OPEN)
+  resolutionNote String?    @map("resolution_note")
+  reviewedById   String?    @map("reviewed_by_id") @db.Uuid
+  resolvedAt     DateTime?  @map("resolved_at") @db.Timestamptz(6)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  opportunity Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  reporter    User        @relation("flag_reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@index([opportunityId])
+  @@map("flags")
 }
 
 // ── Governance ───────────────────────────────────────────────────────────────

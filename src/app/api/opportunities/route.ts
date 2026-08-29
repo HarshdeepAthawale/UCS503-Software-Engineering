@@ -32,6 +32,7 @@ export const GET = handler(async (req) => {
     domain: parsed.data.domain,
     stipend: parsed.data.stipend,
     skillId: parsed.data.skillId,
+    sort: parsed.data.sort,
     includeExpired: parsed.data.includeExpired === "true",
     cursor: parsed.data.cursor,
     limit: parsed.data.limit,

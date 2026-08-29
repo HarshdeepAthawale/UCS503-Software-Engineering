@@ -590,7 +590,9 @@ header.nav {
 .stepper .step .line .fill {
   display: block;
   height: 100%;
-  width: 0;
+  /* `--fill` is set inline by PipelineDemo. Horizontal here, remapped to
+     height in the vertical mobile stepper below. */
+  width: var(--fill, 0%);
   background: var(--accent);
   transition: 0.5s ease;
 }
@@ -1375,6 +1377,163 @@ footer {
   margin-top: 22px;
 }
 
+/* ---- profile projects (T-37, M2) ---- */
+.proj-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.proj-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.proj-main {
+  min-width: 0;
+}
+.proj-main strong {
+  font-weight: 600;
+}
+.proj-main .sub {
+  margin: 4px 0 0;
+  font-size: 13.5px;
+  color: var(--faint);
+}
+.proj-links {
+  display: flex;
+  gap: 14px;
+  margin-top: 8px;
+}
+.proj-links a {
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ---- résumé (T-44, M2) ---- */
+.resume-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.btn.is-disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+.resume-view {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.resume-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-alt);
+}
+.resume-name {
+  font-weight: 600;
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.resume-bar a {
+  margin-left: auto;
+}
+.resume-frame {
+  display: block;
+  width: 100%;
+  height: 560px;
+  border: 0;
+  background: var(--surface);
+}
+
+/* ---- institute analytics (T-25, M9) ---- */
+.bar-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.bar-row {
+  display: grid;
+  grid-template-columns: 140px 1fr 40px;
+  align-items: center;
+  gap: 12px;
+}
+.bar-label {
+  font-size: 13px;
+  color: var(--faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bar-track {
+  height: 10px;
+  background: var(--surface-alt);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--text);
+  border-radius: 99px;
+  min-width: 2px;
+}
+.bar-val {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.spark {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 90px;
+  padding-top: 6px;
+}
+.spark-col {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  height: 100%;
+}
+.spark-bar {
+  width: 100%;
+  background: var(--text);
+  border-radius: 3px 3px 0 0;
+  min-height: 2px;
+}
+
+/* ---- report a posting (T-36, M9) ---- */
+.report-block {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.linklike-muted {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--faint);
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.linklike-muted:hover {
+  color: var(--text);
+}
+
 /* ============ responsive ============ */
 @media (max-width: 900px) {
   .hero-grid {
@@ -1396,9 +1555,10 @@ footer {
     grid-template-columns: 1fr;
     gap: 28px;
   }
-  .nav-links {
-    display: none;
-  }
+  /* `.nav-links` was hidden here for a nav that no longer exists - the
+     marketing dock uses `.dock-links` and the portal bar `.appnav-links`, so
+     the rule matched nothing. Removed rather than left to imply the dock is
+     handled at this breakpoint; it is handled at 720px. */
   .split {
     overflow-x: auto;
   }
@@ -2795,5 +2955,232 @@ html {
   .dock-item,
   .dock-tip {
     transition: none;
+  }
+}
+
+/* ============================================================================
+   MOBILE PASS
+   ---------------------------------------------------------------------------
+   The layout already collapsed its grids below 900px, but collapsing columns
+   is not the same as being usable on a phone. These are the things that only
+   show up on a real handset.
+   ========================================================================== */
+
+/* --- 1. iOS zoom on focus -------------------------------------------------
+   Safari on iOS zooms the viewport whenever a focused form control is under
+   16px, then leaves the page scrolled and scaled. Every control in this
+   system was 15px, so signing in, registering, and editing a profile each
+   kicked the layout sideways on the first tap.
+
+   16px is the threshold, not a preference - 15.9px still zooms. Listed per
+   selector because `.field input` outranks a bare `input`. */
+@media (max-width: 720px) {
+  input,
+  select,
+  textarea,
+  .field input,
+  .field select,
+  .field textarea,
+  .facet-bar input,
+  .facet-bar input[type="search"],
+  .facet-bar select,
+  .skill-picker select,
+  .skill-add-row select {
+    font-size: 16px;
+  }
+}
+
+/* --- 2. The pipeline stepper ----------------------------------------------
+   Five steps sharing one row needs about 47px per step at 360px, and
+   "Acknowledged" alone is wider than that at 10.5px - the captions spilled
+   into each other. Shrinking the type far enough to fit would have put it
+   under 9px, which is not a legible size on any screen.
+
+   So it turns vertical instead: the dots stack, the connector runs down
+   between them, and each caption gets a full line at a readable size. The
+   fill grows in height here rather than width, which is why PipelineDemo
+   passes `--fill` instead of an inline width. */
+@media (max-width: 560px) {
+  .stepper {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+  }
+  .stepper .step {
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 12px;
+    text-align: left;
+    padding-bottom: 16px;
+  }
+  .stepper .step:last-child {
+    padding-bottom: 0;
+  }
+  .stepper .step .dot {
+    flex: none;
+  }
+  .stepper .step .cap {
+    margin-top: 0;
+    font-size: 12.5px;
+    letter-spacing: 0.01em;
+  }
+  /* Connector: down the left, aligned to the centre of the dot column. */
+  .stepper .step .line {
+    top: var(--dot);
+    left: calc(var(--dot) / 2 - 1px);
+    width: 2px;
+    height: 16px;
+  }
+  .stepper .step .line .fill {
+    width: 2px;
+    height: var(--fill, 0%);
+  }
+}
+
+/* --- 3. Reclaim horizontal space ------------------------------------------
+   24px of gutter each side is 13% of a 360px screen. */
+@media (max-width: 560px) {
+  .wrap {
+    padding: 0 18px;
+  }
+  .demo {
+    padding: 16px;
+  }
+  .demo-app {
+    padding: 14px 13px 12px;
+  }
+}
+
+/* --- 4. Vertical rhythm ---------------------------------------------------
+   76px between sections reads as generous on a desktop and as dead scrolling
+   on a phone, where it can exceed a third of the viewport height. */
+@media (max-width: 720px) {
+  section {
+    padding: 48px 0;
+  }
+  .hero {
+    padding: 32px 0 48px;
+  }
+}
+
+/* --- 5. Display type ------------------------------------------------------
+   The clamp bottoms out at 40px, which is still three-quarters of the width
+   of a 320px screen for a single long word. */
+@media (max-width: 420px) {
+  .hero h1 {
+    font-size: 34px;
+  }
+}
+
+/* --- 6. Full-width primary actions ----------------------------------------
+   Side-by-side buttons leave each around 140px on a phone. Stacked and full
+   width, both become unambiguous tap targets - `.btn` is already 44px tall,
+   so only the axis needed fixing. */
+@media (max-width: 560px) {
+  .hero-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .hero-actions .btn {
+    width: 100%;
+  }
+  .facet-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .facet-bar input,
+  .facet-bar select {
+    width: 100%;
+  }
+}
+
+/* --- 7. Wide tables -------------------------------------------------------
+   `.split` carries `overflow: hidden` to clip its own rounded corners, which
+   also clipped the comparison table's overflowing columns - the rows were
+   simply cut off mid-word with no way to reach them. Scroll the axis that
+   overflows and keep clipping the other. */
+@media (max-width: 720px) {
+  .split {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+  .split table {
+    min-width: 520px;
+  }
+  .split th,
+  .split td {
+    padding: 12px 14px;
+  }
+}
+
+/* --- 8. Notched displays --------------------------------------------------
+   In landscape the rounded corner and camera cutout overlap the gutters, so
+   the sticky dock loses an edge. `env()` resolves to 0 everywhere else. */
+.dock {
+  padding-left: max(16px, env(safe-area-inset-left));
+  padding-right: max(16px, env(safe-area-inset-right));
+}
+@media (max-width: 560px) {
+  .wrap {
+    padding-left: max(18px, env(safe-area-inset-left));
+    padding-right: max(18px, env(safe-area-inset-right));
+  }
+}
+
+/* --- 9. Long unbroken strings ---------------------------------------------
+   Institute addresses (hathawale_be24@thapar.edu) and opaque ids have no
+   break opportunity and pushed a horizontal scrollbar onto the page. `body`
+   hides that overflow, so the effect was content sliced off at the edge
+   rather than a visible scrollbar. */
+@media (max-width: 560px) {
+  .mono,
+  .field .err,
+  .demo-head .tt {
+    overflow-wrap: anywhere;
+  }
+}
+
+/* --- 10. The signed-in portal bar -----------------------------------------
+   `.appnav-inner` is one non-wrapping 62px row holding the brand, up to five
+   links (Feed / Applications / Notifications / Admin / Profile), the theme
+   toggle, "+ Post" and "Sign out". That needs roughly twice the width of a
+   360px screen, so on a phone the right-hand end - including Sign out - was
+   simply off-screen and unreachable. This is the whole signed-in experience,
+   not a marketing page.
+
+   Two rows: identity and actions stay together on top, the links become a
+   full-width strip below that scrolls horizontally. Scrolling rather than
+   wrapping keeps the bar a predictable height as links appear and disappear
+   by role - an admin sees five, a student four, and a wrapping bar would
+   change height between accounts. */
+@media (max-width: 720px) {
+  .appnav-inner {
+    flex-wrap: wrap;
+    height: auto;
+    gap: 10px;
+    padding: 10px 0;
+  }
+  .appnav-links {
+    order: 3;
+    width: 100%;
+    margin-left: 0;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    /* The strip is a scroll container, so its focus rings would be clipped
+       without room to render. */
+    padding-bottom: 2px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .appnav-links::-webkit-scrollbar {
+    display: none;
+  }
+  .appnav-link {
+    flex: none;
+    min-height: 40px;
+    padding: 8px 12px;
   }
 }
