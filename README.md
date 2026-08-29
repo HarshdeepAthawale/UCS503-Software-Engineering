@@ -33,7 +33,11 @@ Full documentation lives in [`docs/`](docs/):
 
 ## 🛠️ Stack
 
-Next.js 15 · TypeScript · Tailwind CSS v4 · PostgreSQL 16 · Prisma · Redis + BullMQ · Zod · Vitest / Supertest / Playwright · GitHub Actions
+**Shipped:** Next.js 15 (App Router) · TypeScript · a hand-authored CSS design system (`src/app/globals.css`, CSP-safe, light/dark) · Supabase PostgreSQL 16 via Prisma + `@prisma/adapter-pg` · Supabase Storage (résumé PDFs) · `jose` JWT auth · Zod · Resend (email) · Vitest (201 tests)
+
+**Planned, not yet installed:** Redis token-bucket rate limiting (T-41 — today's limiter is in-memory and therefore per-instance) · Supertest + Playwright (T-38) · GitHub Actions (workflow committed, inert until the account's Actions billing clears — B-01)
+
+> Earlier drafts of this README listed Tailwind CSS, Redis + BullMQ, Supertest and Playwright as though they were in use. None are installed. See D-20 in the Tracker: a partial item is recorded with its gap, never rounded up.
 
 ## 🚀 Development (Phase 1 — Identity & IAM)
 

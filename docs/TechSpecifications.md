@@ -30,7 +30,7 @@ Nexus deploys as **one Next.js unit** (single deployable) with a service-oriente
 
 ```
 ┌───────────────────────────────────────────────────────────────────────┐
-│  CLIENT — Next.js 15 (App Router), TypeScript, Tailwind CSS v4         │
+│  CLIENT — Next.js 15 (App Router), TypeScript, hand-authored CSS       │
 │  Server Components (reads) · Client Components (interaction)           │
 └───────────────────────────────┬───────────────────────────────────────┘
                                  │  HTTPS / JSON
@@ -47,8 +47,8 @@ Nexus deploys as **one Next.js unit** (single deployable) with a service-oriente
                                  │
 ┌───────────────────────────────▼───────────────────────────────────────┐
 │  DATA                                                                 │
-│  PostgreSQL 16 (source of truth) · Redis (session/cache/queue)       │
-│  Postgres FTS + pg_trgm (search) · S3-compatible object storage      │
+│  Supabase PostgreSQL 16 (source of truth) · Redis PLANNED (T-41)     │
+│  Postgres FTS + pg_trgm (search) · Supabase Storage (résumé PDFs)    │
 └───────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -67,7 +67,7 @@ flowchart TD
         NO[Notification]; AN[Analytics]; MO[Moderation]
     end
     subgraph Data["🗄️ Data"]
-        PG[(PostgreSQL 16)]; RD[(Redis)]; S3[(Object Storage)]
+        PG[(Supabase PostgreSQL 16)]; RD[(Redis — planned, T-41)]; S3[(Supabase Storage)]
     end
     RSC --> MW
     CC --> MW
@@ -75,8 +75,8 @@ flowchart TD
     Services --> PG
     Services --> RD
     Services --> S3
-    RD -.BullMQ jobs.-> NO
-    RD -.expiry/nudge jobs.-> OP
+    CRON[cron-job.org] -.hourly HTTP.-> NO
+    CRON -.hourly HTTP.-> OP
 ```
 
 ---
@@ -97,15 +97,15 @@ flowchart TD
 | Layer | Choice | Justification |
 |---|---|---|
 | Framework | **Next.js 15 + TypeScript** | One deployable unit, typed end-to-end, fast iteration |
-| Styling | **Tailwind CSS v4** | Utility-first, no naming overhead |
+| Styling | **Hand-authored CSS** (`src/app/globals.css`) | Tailwind was planned and never adopted. A single token-driven sheet gives the warm-editorial look, light/dark, and a CSP-safe pre-paint theme stamp (T-32) |
 | ORM | **Prisma** | Typed queries; migration history is a version-controlled artifact |
-| Database | **PostgreSQL 16** | Relational integrity, FTS, JSONB where needed |
-| Cache / Queue | **Redis + BullMQ** | Sessions, rate limits, scheduled digest & expiry jobs |
+| Database | **Supabase PostgreSQL 16**, Prisma + `@prisma/adapter-pg` (WASM query compiler) | Relational integrity, FTS, JSONB. Not Neon/Railway — see D-18 |
+| Cache / Queue | **None shipped.** Rate limiting is in-memory fixed-window (`src/lib/security/rate-limit.ts`); scheduled jobs are plain HTTP endpoints under `/api/cron/*` | Redis + BullMQ remain the Phase-2 target (T-41). Until then the limiter is per-instance, so it does not hold across serverless invocations — a real gap, not a design choice |
 | Auth | **Custom JWT** (access 15m + refresh 7d, rotating) | Course expects to *see* auth built, not delegated |
 | Validation | **Zod** | One schema shared by client and server |
-| Testing | **Vitest** (unit), **Supertest** (integration), **Playwright** (E2E) | Covers all three syllabus levels |
-| CI/CD | **GitHub Actions** | Lint → typecheck → test → migrate → deploy on green |
-| Hosting | **Vercel** (app) + **Neon/Railway** (Postgres) | Free tier, per-PR preview deployments |
+| Testing | **Vitest** (unit) — 201 tests, shipped. Supertest and Playwright are **not installed** (T-38) | Only the unit level is currently covered |
+| CI/CD | **GitHub Actions** — `.github/workflows/ci.yml`: install → `db:generate` → typecheck → test → production build | Lint is excluded: `next lint` is interactive and deprecated in 15.x. Inert until Actions billing clears (B-01) |
+| Hosting | **Vercel** (app, target) + **Supabase** (Postgres + object storage). Currently live on **Render** during the migration | Free tier, per-PR previews. Cron is triggered externally by cron-job.org, not by the host — D-27 |
 
 ---
 
@@ -323,13 +323,20 @@ flowchart LR
 
 | Variable | Purpose | Secret? |
 |---|---|---|
-| `DATABASE_URL` | Postgres connection | ✅ |
-| `REDIS_URL` | Redis connection | ✅ |
-| `JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET` | Token signing | ✅ |
-| `SMTP_*` | OTP email delivery | ✅ |
-| `S3_*` | Object storage | ✅ |
-| `APP_APPLICATION_BUDGET` | Default 10 | ❌ |
-| `APP_ALLOWED_EMAIL_DOMAIN` | `thapar.edu` | ❌ |
+| `DATABASE_URL` / `DIRECT_URL` | Supabase Postgres (pooled / direct) | ✅ |
+| `JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET` | Token signing — must differ | ✅ |
+| `RESEND_API_KEY` / `EMAIL_FROM` | OTP + digest delivery. Without both, the mailer refuses to send in production | ✅ / ❌ |
+| `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` / `SUPABASE_RESUME_BUCKET` | Résumé object storage. The service-role key is server-only — never `NEXT_PUBLIC` | ✅ / ✅ / ❌ |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `NEXT_PUBLIC_GOOGLE_ENABLED` | Sign in with Google. The `NEXT_PUBLIC_` flag is read at **build** time | ❌ / ✅ / ❌ |
+| `CRON_SECRET` | Bearer token for `/api/cron/*`. Unset ⇒ every cron route 404s (fail-closed) | ✅ |
+| `APP_ORIGIN` | Canonical public origin; Google matches the redirect URI byte for byte | ❌ |
+| `ALLOW_INSECURE_COOKIES` | Dev only. **Must be `false` in production** or the app refuses to boot (B-05) | ❌ |
+| `APPLICATION_BUDGET` | Default 10 | ❌ |
+| `ALLOWED_EMAIL_DOMAIN` | `thapar.edu` | ❌ |
+
+The authoritative list is `.env.example`; `src/lib/env.ts` validates it at boot.
+There is no `REDIS_URL`, `SMTP_*` or `S3_*` — earlier drafts of this table named
+variables the code has never read.
 
 Config is environment-driven; secrets live in the platform's secret store (never committed — see `Rules.md`). Three environments: **local**, **staging (preview)**, **production**, kept at parity.
 
