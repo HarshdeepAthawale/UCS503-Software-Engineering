@@ -120,9 +120,17 @@ export default function ProfilePage() {
         );
       }
     } catch (err) {
-      setError(
-        err instanceof ApiError ? err.message : "Failed to load your profile.",
-      );
+      // A 401 here means the refresh cookie minted a token the API then
+      // rejected - an expired or revoked session, not a load failure. Showing
+      // "failed to load" would send the user to retry a page that can never
+      // succeed until they sign in again.
+      if (err instanceof ApiError && err.status === 401) {
+        setNotSignedIn(true);
+      } else {
+        setError(
+          err instanceof ApiError ? err.message : "Failed to load your profile.",
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -131,6 +139,20 @@ export default function ProfilePage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  // MUST stay above the `loading` / `notSignedIn` early returns below. Hooks run
+  // in call order, so a hook after a conditional return is called on some
+  // renders and not others: the first render bails at `loading` having run one
+  // fewer hook, and the render that finally gets here trips React #310,
+  // "rendered more hooks than during the previous render" — which crashed the
+  // whole page into the error boundary rather than failing visibly here.
+  //
+  // The memo itself is a real saving: without it every keystroke in any field
+  // on the page rebuilt this Set and re-filtered the entire taxonomy.
+  const suggestions = useMemo(() => {
+    const selected = new Set(skills.map((s) => s.name.toLowerCase()));
+    return taxonomy.filter((t) => !selected.has(t.name.toLowerCase()));
+  }, [skills, taxonomy]);
 
   async function onSave(e: React.FormEvent) {
     e.preventDefault();
@@ -291,12 +313,6 @@ export default function ProfilePage() {
   }
 
   const user = getUser();
-  // Recomputed on every render before this, which meant rebuilding a Set and
-  // re-filtering the whole taxonomy on each keystroke in any field on the page.
-  const suggestions = useMemo(() => {
-    const selected = new Set(skills.map((s) => s.name.toLowerCase()));
-    return taxonomy.filter((t) => !selected.has(t.name.toLowerCase()));
-  }, [skills, taxonomy]);
   const atSkillLimit = skills.length >= SKILL_LIMIT;
 
   return (
