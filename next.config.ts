@@ -63,6 +63,15 @@ const nextConfig: NextConfig = {
   ...(process.env.DOCKER_BUILD === "1" ? { output: "standalone" as const } : {}),
 
   poweredByHeader: false,
+
+  images: {
+    // Next 16 REQUIRES every `quality` used by next/image to be declared here;
+    // an undeclared value is a warning today and an error then. 90 is what
+    // components/ti-logo.tsx asks for — the wordmark is small and sits in the
+    // nav on every page, so the extra fidelity is worth the bytes.
+    qualities: [75, 90],
+  },
+
   // Prisma runs on the WASM query compiler (`engineType = "client"`, see
   // prisma/schema.prisma). Next's output file tracing follows `import`s, and the
   // client loads that .wasm by PATH at runtime, so tracing never sees it and it

@@ -85,6 +85,12 @@ export default async function RootLayout({
     // applied to Newsreader and Plus Jakarta Sans.
     <html
       lang="en"
+      // globals.css sets `scroll-behavior: smooth` on <html>. Next currently
+      // disables that during route transitions so a navigation does not animate
+      // a scroll to the top; a future version stops inferring it and requires
+      // this attribute to keep the behaviour. Without it, every route change
+      // would smooth-scroll.
+      data-scroll-behavior="smooth"
       suppressHydrationWarning
       className={`${fraunces.variable} ${inter.variable} ${jetbrains.variable}`}
     >
