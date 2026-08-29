@@ -115,7 +115,23 @@ export async function middleware(req: NextRequest): Promise<NextResponse> {
     (p) => pathname === p || pathname.startsWith(p + "/"),
   );
 
-  if (isApi && !isPublic) {
+  // On the FRONTEND deployment (BACKEND_ORIGIN set) this middleware runs in
+  // front of a rewrite that forwards /api/* to the backend — and it runs BEFORE
+  // that rewrite. Gating here would verify the token with THIS deployment's
+  // JWT_ACCESS_SECRET, but the token was signed by the backend with ITS secret.
+  // The two are deliberately not shared: duplicating a signing key onto a second
+  // host to satisfy a redundant check is a worse trade than skipping the check.
+  //
+  // Without this, every authenticated request 401s at the edge and never
+  // reaches the backend at all — refresh works (it is public), then every call
+  // after it fails, which looks exactly like a broken session.
+  //
+  // Nothing is weakened: this gate was only ever a cheap early reject, never
+  // authoritative. The backend re-verifies the token and reloads role and status
+  // from the database on every request (see iam/guard.ts).
+  const isProxyFrontend = Boolean(process.env.BACKEND_ORIGIN);
+
+  if (isApi && !isPublic && !isProxyFrontend) {
     const header = req.headers.get("authorization");
     const token = header?.startsWith("Bearer ") ? header.slice(7).trim() : null;
     const claims = token ? await verifyAccessToken(token) : null;
