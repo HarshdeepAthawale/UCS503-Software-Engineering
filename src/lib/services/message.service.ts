@@ -76,3 +76,64 @@ export async function sendMessage(principal: Principal, applicationId: string, b
   await notify(recipient, "message.received", { applicationId });
   return message;
 }
+
+// ── Inbox (all of the caller's conversations) ────────────────────────────────
+
+/**
+ * Every conversation the caller is part of, across every application - as a
+ * student, one row per professor they've messaged; as a poster (faculty/
+ * alumni), one row per applicant. Scoped to the principal via the OR clause
+ * below (never a matrix-wide grant), so `message:read` is safe for every role.
+ *
+ * Only applications whose thread has at least one message are returned - an
+ * application with no messages yet isn't a "conversation".
+ */
+export async function listMyThreads(principal: Principal) {
+  const applications = await prisma.application.findMany({
+    where: {
+      deletedAt: null,
+      OR: [{ studentId: principal.userId }, { opportunity: { posterId: principal.userId } }],
+    },
+    select: {
+      id: true,
+      status: true,
+      student: { select: { id: true, name: true, role: true } },
+      opportunity: {
+        select: {
+          id: true,
+          title: true,
+          poster: { select: { id: true, name: true, role: true } },
+        },
+      },
+      thread: {
+        select: {
+          messages: {
+            orderBy: { createdAt: "desc" },
+            take: 1,
+            select: { body: true, createdAt: true, senderId: true },
+          },
+        },
+      },
+    },
+  });
+
+  const threads = applications
+    .filter((a) => a.thread && a.thread.messages.length > 0)
+    .map((a) => {
+      const isStudent = principal.userId === a.student.id;
+      const counterpart = isStudent ? a.opportunity.poster : a.student;
+      const lastMessage = a.thread!.messages[0]!;
+      return {
+        applicationId: a.id,
+        opportunity: { id: a.opportunity.id, title: a.opportunity.title },
+        status: a.status,
+        counterpart,
+        lastMessage,
+      };
+    })
+    .sort(
+      (x, y) => new Date(y.lastMessage.createdAt).getTime() - new Date(x.lastMessage.createdAt).getTime(),
+    );
+
+  return { threads };
+}

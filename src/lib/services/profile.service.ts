@@ -78,6 +78,7 @@ export async function getProfile(viewer: Principal, targetUserId: string) {
     hoursPerWeek: row.hoursPerWeek,
     cgpa: canSeeCgpa ? row.cgpa : null,
     cgpaPublic: row.cgpaPublic,
+    backlogs: row.backlogs,
     skills: row.userSkills.map((us) => ({
       id: us.skill.id,
       name: us.skill.name,
@@ -112,6 +113,7 @@ export async function updateOwnProfile(principal: Principal, input: ProfileUpdat
     year: input.year,
     cgpa: input.cgpa,
     cgpaPublic: input.cgpaPublic,
+    backlogs: input.backlogs,
     bio: input.bio,
     headline: input.headline,
     githubUrl: input.githubUrl,

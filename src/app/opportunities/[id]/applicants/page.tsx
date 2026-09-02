@@ -18,15 +18,15 @@ import {
 import { statusClass, timeAgo, titleCase } from "@/lib/client/format";
 
 // Which forward moves a poster may make from each state (mirrors the server).
-const NEXT: Record<string, Exclude<AppState, "APPLIED" | "WITHDRAWN">[]> = {
-  APPLIED: ["RECEIVED", "SHORTLISTED", "REJECTED"],
-  RECEIVED: ["SHORTLISTED", "REJECTED"],
+// RECEIVED is no longer offered - APPLIED goes straight to SHORTLISTED/REJECTED
+// (see src/lib/domain/application-state.ts).
+const NEXT: Record<string, Exclude<AppState, "APPLIED" | "WITHDRAWN" | "RECEIVED">[]> = {
+  APPLIED: ["SHORTLISTED", "REJECTED"],
   SHORTLISTED: ["INTERVIEW", "SELECTED", "REJECTED"],
   INTERVIEW: ["SELECTED", "REJECTED"],
 };
 const COLUMNS: AppState[] = [
   "APPLIED",
-  "RECEIVED",
   "SHORTLISTED",
   "INTERVIEW",
   "SELECTED",
@@ -34,7 +34,6 @@ const COLUMNS: AppState[] = [
   "WITHDRAWN",
 ];
 const ACTION_LABEL: Record<string, string> = {
-  RECEIVED: "Mark received",
   SHORTLISTED: "Shortlist",
   INTERVIEW: "Interview",
   SELECTED: "Select",
@@ -49,6 +48,7 @@ export default function ApplicantsPage() {
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [openResume, setOpenResume] = useState<string | null>(null);
+  const [minCgpaFilter, setMinCgpaFilter] = useState("");
 
   const load = useCallback(async () => {
     try {
@@ -67,7 +67,7 @@ export default function ApplicantsPage() {
     })();
   }, [load]);
 
-  async function move(app: Applicant, to: Exclude<AppState, "APPLIED" | "WITHDRAWN">) {
+  async function move(app: Applicant, to: Exclude<AppState, "APPLIED" | "WITHDRAWN" | "RECEIVED">) {
     setError(null);
     setBusyId(app.id);
     try {
@@ -98,7 +98,14 @@ export default function ApplicantsPage() {
     );
   }
 
-  const byState = (s: AppState) => applicants.filter((a) => a.status === s);
+  // Shortlist filter (docs/PRD M3): faculty set their own CGPA floor here to
+  // narrow the pipeline, independent of any minCgpa the posting itself carries.
+  const cgpaFloor = minCgpaFilter === "" ? null : Number(minCgpaFilter);
+  const visible =
+    cgpaFloor == null
+      ? applicants
+      : applicants.filter((a) => a.student.cgpa != null && a.student.cgpa >= cgpaFloor);
+  const byState = (s: AppState) => visible.filter((a) => a.status === s);
 
   return (
     <div className="app-shell">
@@ -111,7 +118,25 @@ export default function ApplicantsPage() {
           <div className="page-head">
             <div>
               <h1>Applicant pipeline</h1>
-              <p className="sub">{applicants.length} applicant{applicants.length === 1 ? "" : "s"} · move each toward a decision.</p>
+              <p className="sub">
+                {visible.length} of {applicants.length} applicant{applicants.length === 1 ? "" : "s"} shown · move each toward a decision.
+              </p>
+              <Link href={`/opportunities/${id}/shortlisted`} className="appnav-link" style={{ display: "inline-flex", marginTop: 6 }}>
+                Shortlisted candidates →
+              </Link>
+            </div>
+            <div className="field" style={{ minWidth: 180 }}>
+              <label htmlFor="cgpaFilter">Shortlist by min CGPA</label>
+              <input
+                id="cgpaFilter"
+                type="number"
+                min={0}
+                max={10}
+                step={0.01}
+                value={minCgpaFilter}
+                onChange={(e) => setMinCgpaFilter(e.target.value)}
+                placeholder="e.g. 7.5"
+              />
             </div>
           </div>
 
@@ -134,6 +159,13 @@ export default function ApplicantsPage() {
                           <Link href={`/profile/${a.student.id}`}>{a.student.name}</Link>
                         </div>
                         <div className="tl-meta">Applied {timeAgo(a.appliedAt)}</div>
+                        {(a.student.branch || a.student.cgpa != null || a.student.backlogs != null) && (
+                          <div className="tl-meta">
+                            {a.student.branch ?? "Branch not set"}
+                            {a.student.cgpa != null ? ` · CGPA ${a.student.cgpa}` : ""}
+                            {a.student.backlogs != null ? ` · ${a.student.backlogs} backlog${a.student.backlogs === 1 ? "" : "s"}` : ""}
+                          </div>
+                        )}
                         {a.rejectionCode && (
                           <div className="tl-meta">Reason: {titleCase(a.rejectionCode)}</div>
                         )}

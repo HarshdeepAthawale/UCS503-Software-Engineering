@@ -176,6 +176,11 @@ export default function MemberProfilePage() {
                       CGPA <strong>{profile.cgpa}</strong>
                     </p>
                   )}
+                  {profile.backlogs != null && (
+                    <p className="sub" style={{ marginTop: 12 }}>
+                      Active backlogs <strong>{profile.backlogs}</strong>
+                    </p>
+                  )}
                   {(profile.openTo.length > 0 || profile.hoursPerWeek != null) && (
                     <div style={{ marginTop: 16 }}>
                       <p className="empty-note" style={{ marginBottom: 8 }}>

@@ -16,6 +16,7 @@ import {
   type TaxonomySkill,
 } from "@/lib/client/api";
 import { oppTypeLabel } from "@/lib/client/format";
+import { BRANCHES } from "@/lib/domain/branch";
 
 const TYPES: OppType[] = ["RESEARCH", "INTERNSHIP", "TA", "HACKATHON_TEAM", "MICRO_TASK", "REFERRAL"];
 const PLEDGES: { value: SlaPledge; label: string }[] = [
@@ -47,6 +48,9 @@ export default function NewOpportunityPage() {
   const [skills, setSkills] = useState<PickedSkill[]>([]);
   const [pick, setPick] = useState("");
   const [pickReq, setPickReq] = useState<SkillRequirement>("REQUIRED");
+  const [eligibleBranches, setEligibleBranches] = useState<string[]>([]);
+  const [minCgpa, setMinCgpa] = useState("");
+  const [maxBacklogs, setMaxBacklogs] = useState("");
 
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -91,6 +95,9 @@ export default function NewOpportunityPage() {
         deadline: new Date(deadline).toISOString(),
         slaPledge,
         skills: skills.length ? skills : undefined,
+        eligibleBranches: eligibleBranches.length ? eligibleBranches : undefined,
+        minCgpa: minCgpa ? Number(minCgpa) : undefined,
+        maxBacklogs: maxBacklogs ? Number(maxBacklogs) : undefined,
       });
       router.push(`/opportunities/${created.id}`);
     } catch (err) {
@@ -173,6 +180,57 @@ export default function NewOpportunityPage() {
               <select id="sla" value={slaPledge} onChange={(e) => setSlaPledge(e.target.value as SlaPledge)}>
                 {PLEDGES.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
               </select>
+            </div>
+
+            <div className="field">
+              <label>Eligible branches (optional)</label>
+              <p className="empty-note" style={{ marginBottom: 8 }}>
+                Leave every box unchecked to accept applicants from any branch.
+              </p>
+              <div className="check-row" style={{ flexWrap: "wrap", gap: "6px 16px" }}>
+                {BRANCHES.map((b) => (
+                  <label key={b} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                    <input
+                      type="checkbox"
+                      checked={eligibleBranches.includes(b)}
+                      onChange={(e) =>
+                        setEligibleBranches((prev) =>
+                          e.target.checked ? [...prev, b] : prev.filter((x) => x !== b),
+                        )
+                      }
+                    />
+                    {b}
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className="field">
+              <label htmlFor="minCgpa">Minimum CGPA (optional)</label>
+              <input
+                id="minCgpa"
+                type="number"
+                min={0}
+                max={10}
+                step={0.01}
+                value={minCgpa}
+                onChange={(e) => setMinCgpa(e.target.value)}
+                placeholder="e.g. 7.5"
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="maxBacklogs">Maximum active backlogs allowed (optional)</label>
+              <input
+                id="maxBacklogs"
+                type="number"
+                min={0}
+                max={50}
+                value={maxBacklogs}
+                onChange={(e) => setMaxBacklogs(e.target.value)}
+                placeholder="e.g. 0"
+              />
+              <p className="empty-note">
+                e.g. 0 for no backlogs, 1 to allow up to one. Leave blank for no cap.
+              </p>
             </div>
 
             <div className="field">

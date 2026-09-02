@@ -218,6 +218,9 @@ model Profile {
   // CGPA is private by default (docs/PRD NFR-PR1); `cgpaPublic` gates exposure.
   cgpa       Decimal? @db.Decimal(3, 2)
   cgpaPublic Boolean  @default(false) @map("cgpa_public")
+  // Active/current backlogs (self-reported). Not privacy-gated like `cgpa` -
+  // treated the same as `branch`/`year` (docs/PRD M3 eligibility filters).
+  backlogs   Int?
   bio        String?
 
   // One-line self-description ("Security researcher · binary exploitation").
@@ -330,6 +333,16 @@ model Opportunity {
   deadline   DateTime  @db.Timestamptz(6)
   slaPledge  SlaPledge @map("sla_pledge")
   status     OppStatus @default(LIVE)
+
+  // Eligibility filters (docs/PRD M3). Drawn from the fixed vocabulary in
+  // src/lib/domain/branch.ts; empty array = every branch eligible. `minCgpa`
+  // null = no CGPA floor. Enforced server-side in application.service.ts
+  // (authoritative) and mirrored client-side to hide "Apply" for a student who
+  // can't meet it.
+  eligibleBranches String[] @default([]) @map("eligible_branches")
+  minCgpa          Decimal? @db.Decimal(3, 2) @map("min_cgpa")
+  // Max ACTIVE backlogs a student may have to apply; null = no backlog cap.
+  maxBacklogs      Int?     @map("max_backlogs")
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)

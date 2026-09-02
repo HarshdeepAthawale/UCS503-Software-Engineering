@@ -40,6 +40,7 @@ export function AppNav({ user, unread = 0 }: { user: SessionUser | null; unread?
         <nav className="appnav-links">
           {link("/opportunities", "Feed")}
           {user?.role === "STUDENT" && link("/applications", "Applications")}
+          {link("/messages", "Messages")}
           {link("/notifications", "Notifications", unread)}
           {user?.role === "ADMIN" && link("/admin", "Admin")}
           {link("/profile", "Profile")}

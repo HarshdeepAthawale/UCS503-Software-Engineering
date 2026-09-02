@@ -63,7 +63,15 @@ export async function applyToOpportunity(
 ) {
   const opp = await prisma.opportunity.findFirst({
     where: { id: opportunityId, deletedAt: null },
-    select: { id: true, status: true, deadline: true, posterId: true },
+    select: {
+      id: true,
+      status: true,
+      deadline: true,
+      posterId: true,
+      eligibleBranches: true,
+      minCgpa: true,
+      maxBacklogs: true,
+    },
   });
   if (!opp) throw Errors.notFound();
   if (opp.posterId === principal.userId) {
@@ -74,6 +82,35 @@ export async function applyToOpportunity(
   }
   if (opp.deadline <= new Date()) {
     throw Errors.gone("The application deadline has passed.");
+  }
+
+  // Eligibility filters (docs/PRD M3). The client hides "Apply" for a student
+  // who doesn't qualify, but that's UX only - this is the authoritative check,
+  // since nothing stops a direct POST here.
+  if (opp.eligibleBranches.length > 0 || opp.minCgpa !== null || opp.maxBacklogs !== null) {
+    const profile = await prisma.profile.findUnique({
+      where: { userId: principal.userId },
+      select: { branch: true, cgpa: true, backlogs: true },
+    });
+    if (opp.eligibleBranches.length > 0) {
+      if (!profile?.branch || !opp.eligibleBranches.includes(profile.branch)) {
+        throw Errors.domainRule(
+          `This opportunity is only open to: ${opp.eligibleBranches.join(", ")}.`,
+        );
+      }
+    }
+    if (opp.minCgpa !== null) {
+      if (profile?.cgpa == null || Number(profile.cgpa) < Number(opp.minCgpa)) {
+        throw Errors.domainRule(`This opportunity requires a minimum CGPA of ${opp.minCgpa}.`);
+      }
+    }
+    if (opp.maxBacklogs !== null) {
+      if (profile?.backlogs == null || profile.backlogs > opp.maxBacklogs) {
+        throw Errors.domainRule(
+          `This opportunity requires ${opp.maxBacklogs} or fewer active backlogs.`,
+        );
+      }
+    }
   }
 
   try {
@@ -226,6 +263,7 @@ export async function withdrawApplication(principal: Principal, applicationId: s
       select: {
         status: true,
         studentId: true,
+        opportunityId: true,
         opportunity: { select: { posterId: true } },
       },
     });
@@ -234,6 +272,18 @@ export async function withdrawApplication(principal: Principal, applicationId: s
     if (!canWithdraw(app.status)) {
       throw Errors.conflict("This application can no longer be withdrawn.");
     }
+
+    // Withdrawing an ACCEPTED offer frees the seat it held, so the poster can
+    // select someone else. Conditional on seatsFilled > 0 so a concurrent
+    // release can never take it negative (mirrors the allocation guard in
+    // transitionApplication).
+    if (app.status === "SELECTED") {
+      await tx.opportunity.updateMany({
+        where: { id: app.opportunityId, seatsFilled: { gt: 0 } },
+        data: { seatsFilled: { decrement: 1 } },
+      });
+    }
+
     const updated = await tx.application.update({
       where: { id: applicationId },
       data: {
@@ -255,9 +305,10 @@ export async function withdrawApplication(principal: Principal, applicationId: s
     action: "application.withdrawn",
     actorId: principal.userId,
     target: applicationId,
-    metadata: { from: result.from },
+    metadata: { from: result.from, seatReleased: result.from === "SELECTED" },
   });
-  // Notify the poster that an applicant withdrew (T-17).
+  // Notify the poster that an applicant withdrew (T-17) - including a selected
+  // one declining the offer, which is the case they most need to see promptly.
   await notify(result.posterId, "application.withdrawn", { applicationId });
   return result.updated;
 }
@@ -287,6 +338,12 @@ export async function listMyApplications(principal: Principal) {
  * Applicants to one opportunity (poster view). The route has already verified
  * the caller owns the opportunity (or is admin); this returns the pipeline with
  * each application's full immutable event timeline.
+ *
+ * `branch`/`cgpa` are returned regardless of the student's `cgpaPublic` flag -
+ * unlike a profile page view, this list is scoped to people who chose to apply
+ * to THIS poster's own posting (the same consent boundary `profile:read_resume`
+ * already relies on for résumés), so the poster can shortlist by the same CGPA
+ * criteria they set on the posting.
  */
 export async function listApplicantsForOpportunity(opportunityId: string) {
   const opp = await prisma.opportunity.findFirst({
@@ -304,12 +361,29 @@ export async function listApplicantsForOpportunity(opportunityId: string) {
       appliedAt: true,
       firstTransitionAt: true,
       rejectionCode: true,
-      student: { select: { id: true, name: true } },
+      student: {
+        select: {
+          id: true,
+          name: true,
+          profile: { select: { branch: true, cgpa: true, backlogs: true } },
+        },
+      },
       events: {
         orderBy: { createdAt: "asc" },
         select: { fromState: true, toState: true, note: true, createdAt: true },
       },
     },
   });
-  return { applicants };
+  return {
+    applicants: applicants.map((a) => ({
+      ...a,
+      student: {
+        id: a.student.id,
+        name: a.student.name,
+        branch: a.student.profile?.branch ?? null,
+        cgpa: a.student.profile?.cgpa == null ? null : Number(a.student.profile.cgpa),
+        backlogs: a.student.profile?.backlogs ?? null,
+      },
+    })),
+  };
 }

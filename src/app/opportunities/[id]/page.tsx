@@ -8,12 +8,14 @@ import {
   apiApply,
   apiCloseOpportunity,
   apiFlagOpportunity,
+  apiGetMyProfile,
   apiGetOpportunity,
   ApiError,
   bootstrapSession,
   getUser,
   type FlagReason,
   type Opportunity,
+  type Profile,
 } from "@/lib/client/api";
 
 const FLAG_REASONS: { value: FlagReason; label: string }[] = [
@@ -45,6 +47,8 @@ export default function OpportunityDetailPage() {
   const [notice, setNotice] = useState<string | null>(null);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
+  const [myProfile, setMyProfile] = useState<Profile | null>(null);
+  const [profileLoaded, setProfileLoaded] = useState(false);
 
   const [reportOpen, setReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState<FlagReason>("MISLEADING");
@@ -65,7 +69,22 @@ export default function OpportunityDetailPage() {
       const ok = await bootstrapSession();
       setSignedIn(ok);
       setReady(true);
-      if (ok) await load();
+      if (!ok) return;
+      await load();
+      // Needed to compute branch/CGPA eligibility client-side (T-09 filters);
+      // the server re-checks on submit regardless, so a stale/failed fetch here
+      // only affects whether we can hide the button early, not correctness.
+      if (getUser()?.role === "STUDENT") {
+        try {
+          setMyProfile(await apiGetMyProfile());
+        } catch {
+          /* eligibility preview is optional */
+        } finally {
+          setProfileLoaded(true);
+        }
+      } else {
+        setProfileLoaded(true);
+      }
     })();
   }, [load]);
 
@@ -137,6 +156,29 @@ export default function OpportunityDetailPage() {
   const open = opp?.status === "LIVE" || opp?.status === "AT_RISK";
   const badge = opp?.poster.responsiveness?.badge;
 
+  // Eligibility filters (docs/PRD M3) - mirrors the check in application.service.ts
+  // so the button can be hidden for a student who won't pass it anyway. This is
+  // UX only; the server is the authoritative check on submit.
+  const ineligibleReasons: string[] = [];
+  if (opp && isStudent) {
+    if (opp.eligibleBranches.length > 0) {
+      if (!myProfile?.branch || !opp.eligibleBranches.includes(myProfile.branch)) {
+        ineligibleReasons.push(`restricted to ${opp.eligibleBranches.join(", ")}`);
+      }
+    }
+    if (opp.minCgpa != null) {
+      if (myProfile?.cgpa == null || myProfile.cgpa < opp.minCgpa) {
+        ineligibleReasons.push(`requires a minimum CGPA of ${opp.minCgpa}`);
+      }
+    }
+    if (opp.maxBacklogs != null) {
+      if (myProfile?.backlogs == null || myProfile.backlogs > opp.maxBacklogs) {
+        ineligibleReasons.push(`requires ${opp.maxBacklogs} or fewer active backlogs`);
+      }
+    }
+  }
+  const eligible = ineligibleReasons.length === 0;
+
   return (
     <div className="app-shell">
       <AppNav user={user} />
@@ -183,6 +225,15 @@ export default function OpportunityDetailPage() {
                 <div className="kv"><span className="k">Seats</span><span className="v">{opp.seatCount - opp.seatsFilled} of {opp.seatCount} open</span></div>
                 <div className="kv"><span className="k">Deadline</span><span className="v">Closes {deadlineLabel(opp.deadline)}</span></div>
                 <div className="kv"><span className="k">SLA pledge</span><span className="v">{slaLabel(opp.slaPledge)}</span></div>
+                {opp.eligibleBranches.length > 0 && (
+                  <div className="kv"><span className="k">Eligible branches</span><span className="v">{opp.eligibleBranches.join(", ")}</span></div>
+                )}
+                {opp.minCgpa != null && (
+                  <div className="kv"><span className="k">Min CGPA</span><span className="v">{opp.minCgpa}</span></div>
+                )}
+                {opp.maxBacklogs != null && (
+                  <div className="kv"><span className="k">Max backlogs</span><span className="v">{opp.maxBacklogs}</span></div>
+                )}
                 {badge && (
                   <div className="kv">
                     <span className="k">Responsiveness</span>
@@ -199,10 +250,22 @@ export default function OpportunityDetailPage() {
                   {isOwner ? (
                     <div className="hero-actions" style={{ flexDirection: "column", alignItems: "stretch" }}>
                       <Link className="btn btn-primary" href={`/opportunities/${id}/applicants`}>Manage applicants</Link>
+                      <Link className="btn btn-ghost" href={`/opportunities/${id}/shortlisted`}>Shortlisted candidates</Link>
                       <Link className="btn btn-ghost" href={`/opportunities/${id}/edit`}>Edit posting</Link>
                       {opp.status !== "CLOSED" && opp.status !== "EXPIRED" && (
                         <button className="btn btn-danger" type="button" onClick={onClose} disabled={busy}>Close posting</button>
                       )}
+                    </div>
+                  ) : isStudent && open && !profileLoaded ? (
+                    <p className="empty-note">Checking eligibility…</p>
+                  ) : isStudent && open && !eligible ? (
+                    <div>
+                      <p className="empty-note">
+                        You don't meet this posting's eligibility criteria: {ineligibleReasons.join("; ")}.
+                      </p>
+                      <p className="empty-note">
+                        <Link href="/profile">Update your profile</Link> if this doesn't look right.
+                      </p>
                     </div>
                   ) : isStudent && open ? (
                     <div className="form">

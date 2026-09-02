@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { env } from "@/lib/env";
+import { BRANCHES } from "@/lib/domain/branch";
 
 /**
  * Shared Zod schemas - the single validation boundary for the API
@@ -86,6 +87,10 @@ const oppType = z.enum([
 
 // Same http(s)-only rule as `projectUrl` below: these are rendered as <a href>,
 // and Zod's .url() would happily accept `javascript:` (codeguard-0-xss).
+// Fixed branch vocabulary (src/lib/domain/branch.ts) - shared by a profile's
+// own branch and an opportunity's `eligibleBranches` so the two are matchable.
+const branch = z.enum(BRANCHES);
+
 const profileLink = z
   .string()
   .trim()
@@ -100,10 +105,13 @@ export const ProfileUpdateSchema = z
     // Nullable so the owner can explicitly CLEAR a field (not just leave it
     // untouched). `.optional()` alone would reject `null` and make fields
     // un-clearsable.
-    branch: z.string().trim().max(80).nullable().optional(),
+    branch: branch.nullable().optional(),
     year: z.coerce.number().int().gte(1).lte(6).nullable().optional(),
     cgpa: z.coerce.number().gte(0).lte(10).nullable().optional(),
     cgpaPublic: z.boolean().optional(),
+    // Active/current backlogs (self-reported), matched against an opportunity's
+    // `maxBacklogs` filter.
+    backlogs: z.coerce.number().int().gte(0).lte(50).nullable().optional(),
     bio: z.string().trim().max(1000).nullable().optional(),
     headline: z.string().trim().max(120).nullable().optional(),
     githubUrl: profileLink,
@@ -232,6 +240,15 @@ export type UserSkillsReplaceInput = z.infer<typeof UserSkillsReplaceSchema>;
 const slaPledge = z.enum(["H24", "H48", "WEEK"]);
 const skillRequirement = z.enum(["REQUIRED", "PREFERRED"]);
 
+// Eligibility filters (docs/PRD M3): empty branch list / null minCgpa = open to
+// everyone. Deduped so the same branch can't be sent twice.
+const eligibleBranches = z
+  .array(branch)
+  .max(BRANCHES.length)
+  .transform((v) => Array.from(new Set(v)));
+const minCgpa = z.coerce.number().gte(0).lte(10);
+const maxBacklogs = z.coerce.number().int().gte(0).lte(50);
+
 export const OpportunityCreateSchema = z
   .object({
     type: oppType,
@@ -256,6 +273,9 @@ export const OpportunityCreateSchema = z
       )
       .max(30)
       .optional(),
+    eligibleBranches: eligibleBranches.optional(),
+    minCgpa: minCgpa.nullable().optional(),
+    maxBacklogs: maxBacklogs.nullable().optional(),
   })
   .strict(); // no mass assignment of posterId/status/seatsFilled
 
@@ -283,6 +303,9 @@ export const OpportunityUpdateSchema = z
       )
       .max(30)
       .optional(),
+    eligibleBranches: eligibleBranches.optional(),
+    minCgpa: minCgpa.nullable().optional(),
+    maxBacklogs: maxBacklogs.nullable().optional(),
   })
   .strict()
   .refine((v) => Object.keys(v).length > 0, { message: "Provide at least one field to update." });
@@ -329,7 +352,9 @@ export const ApplicationCreateSchema = z
 // in the service, not here. A rejection code is only meaningful on REJECTED.
 export const ApplicationTransitionSchema = z
   .object({
-    toState: z.enum(["RECEIVED", "SHORTLISTED", "INTERVIEW", "SELECTED", "REJECTED"]),
+    // RECEIVED is deliberately absent: no longer an offered poster transition
+    // (APPLIED goes straight to SHORTLISTED/REJECTED) - see application-state.ts.
+    toState: z.enum(["SHORTLISTED", "INTERVIEW", "SELECTED", "REJECTED"]),
     note: z.string().trim().max(1000).optional(),
     rejectionCode: rejectionCode.optional(),
   })

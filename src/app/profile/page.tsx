@@ -22,6 +22,7 @@ import {
   type Profile,
   type TaxonomySkill,
 } from "@/lib/client/api";
+import { BRANCHES } from "@/lib/domain/branch";
 
 const MAX_RESUME_MB = 4;
 
@@ -63,6 +64,7 @@ export default function ProfilePage() {
   const [year, setYear] = useState("");
   const [cgpa, setCgpa] = useState("");
   const [cgpaPublic, setCgpaPublic] = useState(false);
+  const [backlogs, setBacklogs] = useState("");
   const [bio, setBio] = useState("");
   const [headline, setHeadline] = useState("");
   const [githubUrl, setGithubUrl] = useState("");
@@ -105,6 +107,7 @@ export default function ProfilePage() {
         setYear(p.year != null ? String(p.year) : "");
         setCgpa(p.cgpa != null ? String(p.cgpa) : "");
         setCgpaPublic(p.cgpaPublic);
+        setBacklogs(p.backlogs != null ? String(p.backlogs) : "");
         setBio(p.bio ?? "");
         setHeadline(p.headline ?? "");
         setGithubUrl(p.githubUrl ?? "");
@@ -165,6 +168,7 @@ export default function ProfilePage() {
         year: year ? Number(year) : null,
         cgpa: cgpa ? Number(cgpa) : null,
         cgpaPublic,
+        backlogs: backlogs ? Number(backlogs) : null,
         bio: bio.trim() || null,
         headline: headline.trim() || null,
         githubUrl: githubUrl.trim() || null,
@@ -367,14 +371,21 @@ export default function ProfilePage() {
                 </div>
                 <div className="field">
                   <label htmlFor="branch">Branch</label>
-                  <input
-                    id="branch"
-                    type="text"
-                    value={branch}
-                    onChange={(e) => setBranch(e.target.value)}
-                    placeholder="e.g. Computer Science"
-                    maxLength={80}
-                  />
+                  <select id="branch" value={branch} onChange={(e) => setBranch(e.target.value)}>
+                    <option value="">Not set</option>
+                    {/* A pre-existing value outside the current vocabulary (e.g. saved
+                        before it was fixed to a list) stays selectable so saving the
+                        rest of the form doesn't silently clear it. */}
+                    {branch && !(BRANCHES as readonly string[]).includes(branch) && (
+                      <option value={branch}>{branch} (legacy value — pick one below)</option>
+                    )}
+                    {BRANCHES.map((b) => (
+                      <option key={b} value={b}>{b}</option>
+                    ))}
+                  </select>
+                  <p className="empty-note">
+                    Used to match branch-restricted opportunity postings.
+                  </p>
                 </div>
                 <div className="field">
                   <label htmlFor="year">Year</label>
@@ -411,6 +422,21 @@ export default function ProfilePage() {
                   <label htmlFor="cgpaPublic">
                     Make my CGPA visible to posters
                   </label>
+                </div>
+                <div className="field">
+                  <label htmlFor="backlogs">Active backlogs</label>
+                  <input
+                    id="backlogs"
+                    type="number"
+                    min={0}
+                    max={50}
+                    value={backlogs}
+                    onChange={(e) => setBacklogs(e.target.value)}
+                    placeholder="0"
+                  />
+                  <p className="empty-note">
+                    Used to match backlog-restricted opportunity postings.
+                  </p>
                 </div>
                 <div className="field">
                   <label htmlFor="bio">Bio</label>

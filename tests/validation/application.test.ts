@@ -50,7 +50,10 @@ describe("ApplicationTransitionSchema (T-13)", () => {
   });
   it("rejects unknown keys", () => {
     expect(
-      ApplicationTransitionSchema.safeParse({ toState: "RECEIVED", foo: 1 }).success,
+      ApplicationTransitionSchema.safeParse({ toState: "SHORTLISTED", foo: 1 }).success,
     ).toBe(false);
+  });
+  it("no longer offers RECEIVED as a poster target", () => {
+    expect(ApplicationTransitionSchema.safeParse({ toState: "RECEIVED" }).success).toBe(false);
   });
 });

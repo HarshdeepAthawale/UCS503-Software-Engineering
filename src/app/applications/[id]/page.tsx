@@ -87,7 +87,11 @@ export default function ApplicationConversationPage() {
   }
 
   async function onWithdraw() {
-    if (!confirm("Withdraw this application? This cannot be undone.")) return;
+    const prompt =
+      mine?.status === "SELECTED"
+        ? "Decline this offer? You were selected for this opportunity - withdrawing frees your seat for another applicant. This cannot be undone."
+        : "Withdraw this application? This cannot be undone.";
+    if (!confirm(prompt)) return;
     setBusy(true);
     try {
       await apiWithdraw(id);
@@ -112,7 +116,10 @@ export default function ApplicationConversationPage() {
 
   const me = getUser();
   const isStudent = me?.role === "STUDENT";
-  const canWithdraw = isStudent && mine && !["SELECTED", "REJECTED", "WITHDRAWN"].includes(mine.status);
+  // Matches canWithdraw() in application-state.ts - withdrawal is allowed from
+  // SELECTED too (declining an accepted offer), just not from an already
+  // resolved REJECTED/WITHDRAWN state.
+  const canWithdraw = isStudent && mine && !["REJECTED", "WITHDRAWN"].includes(mine.status);
 
   return (
     <div className="app-shell">
@@ -164,7 +171,7 @@ export default function ApplicationConversationPage() {
           {canWithdraw && (
             <div style={{ marginTop: 16 }}>
               <button className="btn btn-danger btn-sm" type="button" onClick={onWithdraw} disabled={busy}>
-                Withdraw application
+                {mine?.status === "SELECTED" ? "Decline offer" : "Withdraw application"}
               </button>
             </div>
           )}

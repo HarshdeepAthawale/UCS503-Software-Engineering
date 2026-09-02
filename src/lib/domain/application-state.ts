@@ -7,19 +7,22 @@ import type { AppState } from "@prisma/client";
  * free - means the exact same rules are unit-tested and enforced at runtime, and
  * no illegal transition can be written to the immutable event log.
  *
- *   APPLIED ─┬─► RECEIVED ─┬─► SHORTLISTED ─┬─► INTERVIEW ─┬─► SELECTED (terminal)
- *            │             │                │              └─► REJECTED (terminal)
- *            │             │                ├─► SELECTED
- *            │             │                └─► REJECTED
- *            │             └─► REJECTED
- *            ├─► SHORTLISTED
+ *   APPLIED ─┬─► SHORTLISTED ─┬─► INTERVIEW ─┬─► SELECTED (terminal)
+ *            │                │              └─► REJECTED (terminal)
+ *            │                ├─► SELECTED
+ *            │                └─► REJECTED
  *            └─► REJECTED
  *   (any non-terminal) ─► WITHDRAWN (student-initiated, terminal)
+ *
+ * RECEIVED remains a valid AppState (DB enum, historical event log) but is no
+ * longer offered as a poster transition - APPLIED goes straight to SHORTLISTED
+ * or REJECTED, one fewer manual step in the pipeline. A pre-existing RECEIVED
+ * row (if any) can still move forward from here.
  */
 
 /** Poster-driven transitions only. WITHDRAWN is handled on the student path. */
 const POSTER_TRANSITIONS: Record<AppState, readonly AppState[]> = {
-  APPLIED: ["RECEIVED", "SHORTLISTED", "REJECTED"],
+  APPLIED: ["SHORTLISTED", "REJECTED"],
   RECEIVED: ["SHORTLISTED", "REJECTED"],
   SHORTLISTED: ["INTERVIEW", "SELECTED", "REJECTED"],
   INTERVIEW: ["SELECTED", "REJECTED"],
@@ -51,7 +54,15 @@ export function canPosterTransition(from: AppState, to: AppState): boolean {
   return POSTER_TRANSITIONS[from]?.includes(to) ?? false;
 }
 
-/** A student may withdraw only from a non-terminal state. */
+/**
+ * A student may withdraw from any state except an already-resolved negative
+ * outcome (REJECTED) or an existing withdrawal (WITHDRAWN). This deliberately
+ * ALSO allows withdrawing from SELECTED - an accepted candidate can still
+ * decline the offer, which releases the seat (see withdrawApplication() in
+ * application.service.ts). So this is intentionally NOT `!isTerminal(from)`:
+ * SELECTED is terminal for POSTER-driven transitions (no further pipeline
+ * move), but not for the student's own withdrawal.
+ */
 export function canWithdraw(from: AppState): boolean {
-  return !isTerminal(from);
+  return from !== "REJECTED" && from !== "WITHDRAWN";
 }

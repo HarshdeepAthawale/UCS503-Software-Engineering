@@ -57,6 +57,8 @@ export interface Profile {
   hoursPerWeek: number | null;
   cgpa: number | null;
   cgpaPublic: boolean;
+  /** Active/current backlogs (self-reported), matched against a posting's `maxBacklogs`. */
+  backlogs: number | null;
   skills: { id: string; name: string; domain: string; proficiency: string }[];
   projects: Project[];
   resume: ResumeMeta | null;
@@ -264,6 +266,7 @@ export async function apiUpdateProfile(input: {
   year?: number | null;
   cgpa?: number | null;
   cgpaPublic?: boolean;
+  backlogs?: number | null;
   bio?: string | null;
   headline?: string | null;
   githubUrl?: string | null;
@@ -389,6 +392,10 @@ export interface Opportunity {
   deadline: string;
   slaPledge: SlaPledge;
   status: OppStatus;
+  /** Eligibility filters (docs/PRD M3). Empty array = every branch eligible. */
+  eligibleBranches: string[];
+  minCgpa: number | null;
+  maxBacklogs: number | null;
   createdAt: string;
   poster: {
     id: string;
@@ -445,6 +452,9 @@ export interface OpportunityCreateInput {
   deadline: string;
   slaPledge: SlaPledge;
   skills?: { skillId: string; requirement: SkillRequirement }[];
+  eligibleBranches?: string[];
+  minCgpa?: number | null;
+  maxBacklogs?: number | null;
 }
 
 export async function apiCreateOpportunity(
@@ -509,7 +519,15 @@ export interface Applicant {
   appliedAt: string;
   firstTransitionAt: string | null;
   rejectionCode: RejectionCode | null;
-  student: { id: string; name: string };
+  /** `branch`/`cgpa` are visible here regardless of `cgpaPublic` - the student
+   *  applied to this posting, which is the poster's shortlisting scope. */
+  student: {
+    id: string;
+    name: string;
+    branch: string | null;
+    cgpa: number | null;
+    backlogs: number | null;
+  };
   events: ApplicationEvent[];
 }
 
@@ -538,7 +556,8 @@ export async function apiListApplicants(opportunityId: string): Promise<Applican
 
 export async function apiTransition(
   applicationId: string,
-  toState: Exclude<AppState, "APPLIED" | "WITHDRAWN">,
+  // RECEIVED is no longer an offered poster transition (see application-state.ts).
+  toState: Exclude<AppState, "APPLIED" | "WITHDRAWN" | "RECEIVED">,
   opts: { note?: string; rejectionCode?: RejectionCode } = {},
 ): Promise<{ id: string; status: AppState }> {
   const body = await request<{ application: { id: string; status: AppState } }>(
@@ -580,6 +599,28 @@ export async function apiSendMessage(applicationId: string, text: string): Promi
     { method: "POST", body: JSON.stringify({ body: text }) },
   );
   return body.message;
+}
+
+/** One conversation: an application's thread, plus who's on the other end. */
+export interface MessageThreadSummary {
+  applicationId: string;
+  opportunity: { id: string; title: string };
+  status: AppState;
+  /** The other participant - the professor/poster for a student, the
+   *  applicant for a poster. */
+  counterpart: { id: string; name: string; role: string };
+  lastMessage: { body: string; createdAt: string; senderId: string };
+}
+
+/**
+ * Every conversation the caller is part of, across all their applications -
+ * as a student, every professor they've messaged; as a poster, every
+ * applicant. Newest message first. Only applications with at least one
+ * message sent are included.
+ */
+export async function apiListMyThreads(): Promise<MessageThreadSummary[]> {
+  const body = await request<{ threads: MessageThreadSummary[] }>("/api/messages");
+  return body.threads;
 }
 
 // ── Notifications (T-17) ─────────────────────────────────────────────────────

@@ -15,9 +15,17 @@ import {
 
 describe("poster transitions", () => {
   it("allows the forward pipeline from APPLIED", () => {
-    expect(canPosterTransition("APPLIED", "RECEIVED")).toBe(true);
     expect(canPosterTransition("APPLIED", "SHORTLISTED")).toBe(true);
     expect(canPosterTransition("APPLIED", "REJECTED")).toBe(true);
+  });
+
+  it("no longer offers RECEIVED as a poster transition", () => {
+    expect(canPosterTransition("APPLIED", "RECEIVED")).toBe(false);
+  });
+
+  it("still lets a pre-existing RECEIVED row move forward (legacy data)", () => {
+    expect(canPosterTransition("RECEIVED", "SHORTLISTED")).toBe(true);
+    expect(canPosterTransition("RECEIVED", "REJECTED")).toBe(true);
   });
 
   it("forbids skipping straight to SELECTED/INTERVIEW from APPLIED", () => {
@@ -47,8 +55,11 @@ describe("withdrawal (student)", () => {
     expect(canWithdraw("APPLIED")).toBe(true);
     expect(canWithdraw("INTERVIEW")).toBe(true);
   });
-  it("is refused once terminal", () => {
-    expect(canWithdraw("SELECTED")).toBe(false);
+  it("is ALSO allowed from SELECTED - declining an accepted offer releases the seat", () => {
+    expect(canWithdraw("SELECTED")).toBe(true);
+  });
+  it("is refused only once already resolved negatively", () => {
+    expect(canWithdraw("REJECTED")).toBe(false);
     expect(canWithdraw("WITHDRAWN")).toBe(false);
   });
 });

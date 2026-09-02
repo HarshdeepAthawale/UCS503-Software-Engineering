@@ -32,6 +32,9 @@ const OPP_SELECT = {
   deadline: true,
   slaPledge: true,
   status: true,
+  eligibleBranches: true,
+  minCgpa: true,
+  maxBacklogs: true,
   createdAt: true,
   poster: { select: { id: true, name: true, role: true } },
   opportunitySkills: {
@@ -61,6 +64,9 @@ function toDto(row: OppRow) {
     deadline: row.deadline,
     slaPledge: row.slaPledge,
     status: row.status,
+    eligibleBranches: row.eligibleBranches,
+    minCgpa: row.minCgpa === null ? null : Number(row.minCgpa),
+    maxBacklogs: row.maxBacklogs,
     createdAt: row.createdAt,
     poster: row.poster,
     skills: row.opportunitySkills.map((os) => ({
@@ -100,6 +106,9 @@ export async function createOpportunity(principal: Principal, input: Opportunity
         seatCount: input.seatCount ?? 1,
         deadline: input.deadline,
         slaPledge: input.slaPledge,
+        eligibleBranches: input.eligibleBranches ?? [],
+        minCgpa: input.minCgpa ?? null,
+        maxBacklogs: input.maxBacklogs ?? null,
         opportunitySkills: input.skills?.length
           ? {
               create: input.skills.map((s) => ({
@@ -336,6 +345,9 @@ export async function updateOpportunity(
         seatCount: input.seatCount,
         deadline: input.deadline,
         slaPledge: input.slaPledge,
+        eligibleBranches: input.eligibleBranches,
+        minCgpa: input.minCgpa,
+        maxBacklogs: input.maxBacklogs,
       },
       include: { opportunitySkills: { include: { skill: true } } },
     });
