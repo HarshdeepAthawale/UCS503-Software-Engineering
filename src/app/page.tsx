@@ -12,18 +12,18 @@ import { SiteFooter } from "@/components/site-footer";
 const STEPS = [
   {
     n: "01",
-    title: "Discover in under 2 minutes",
-    body: "Full-text search and typed facets - role, domain, stipend, skill. No WhatsApp forwards, no missed noticeboards.",
+    title: "Find an opportunity",
+    body: "Search research roles, internships, TA positions and more - all in one place, not scattered across group chats.",
   },
   {
     n: "02",
-    title: "Apply - with a budget",
-    body: "Hold at most ten live applications. One constraint kills spray-and-pray and caps every poster's review load.",
+    title: "Apply in a few clicks",
+    body: "No emails, no forms. Apply directly and watch your application move through each stage.",
   },
   {
     n: "03",
     title: "Get a real answer",
-    body: "Every state change is timestamped and immutable. Posters pledge an SLA; silence becomes visible, not normal.",
+    body: "Every poster promises a response time. If they go quiet, it shows - so you're never left wondering.",
   },
 ];
 
@@ -40,16 +40,16 @@ const PILLS = [
 
 const HIGHLIGHTS = [
   {
-    title: "Accountable, not optional",
-    body: "Time-to-Acknowledgement is computed from the event log - never self-reported. Posters carry a rolling Responsiveness Badge.",
+    title: "No more ghosting",
+    body: "We track exactly how long a poster takes to reply. Slow responders can't hide it - it's right there on their profile.",
   },
   {
-    title: "Competency you can trust",
-    body: "Skill attestations exist only where a Selected application connects two people. Enforced in the schema - unfarmable.",
+    title: "Skills you can trust",
+    body: "A skill only gets verified after real work together, not as a favour between friends.",
   },
   {
-    title: "Safe by design",
-    body: "Messaging lives only inside an application or team - never a free-form DM. An entire class of harassment has nowhere to live.",
+    title: "No random DMs",
+    body: "Messaging only happens inside a real application. No cold messages, no spam, no harassment.",
   },
 ];
 
@@ -80,11 +80,10 @@ export default function Home() {
                 </span>
               </h1>
               <p className="lede">
-                Research roles, TA-ships, internships, referrals and hackathon
-                teams - inside one verified pipeline.{" "}
-                <b>Not a network. Not a feed.</b> A pipeline with
-                accountability, where every application is tracked, timestamped,
-                and answered.
+                Right now, opportunities get shared in WhatsApp groups and
+                emails go unanswered. <b>Nexus fixes that.</b> Post or find an
+                opportunity, apply, and track exactly where you stand - until
+                you get a real answer.
               </p>
               <div className="hero-actions">
                 <Link className="btn btn-primary" href="/register">
@@ -130,10 +129,9 @@ export default function Home() {
           <div className="wrap">
             <div className="section-head">
               <span className="eyebrow">How it works</span>
-              <h2>Three steps from opening to outcome.</h2>
+              <h2>Three steps. That's it.</h2>
               <p>
-                Discovery that respects your time, applying with intent, and an
-                answer you can rely on.
+                Find something worth applying to, apply, and actually hear back.
               </p>
             </div>
             <div className="steps">
@@ -152,11 +150,11 @@ export default function Home() {
         <section id="status">
           <div className="wrap">
             <div className="section-head">
-              <span className="eyebrow">Status legibility</span>
-              <h2>Every application has one unambiguous state.</h2>
+              <span className="eyebrow">Track your status</span>
+              <h2>Always know exactly where you stand.</h2>
               <p>
-                Colour, icon and label together - so where you stand is never a
-                guess, and never a colour alone.
+                Applied, Shortlisted, Interview, Selected or Rejected - your
+                application always shows its real, current stage. No guessing.
               </p>
             </div>
             <Reveal className="pillwrap">
@@ -174,12 +172,12 @@ export default function Home() {
           <div className="wrap">
             <div className="section-head">
               <span className="eyebrow">Why Nexus</span>
-              <h2>Three guarantees a feed structurally can&apos;t make.</h2>
+              <h2>What a WhatsApp group can&apos;t do.</h2>
               <p>
-                Each depends on the application record existing as a first-class
-                entity.{" "}
+                A few things only possible when every application is tracked
+                properly.{" "}
                 <Link href="/product" className="inline-link">
-                  See all four →
+                  See everything →
                 </Link>
               </p>
             </div>
@@ -200,8 +198,8 @@ export default function Home() {
             <Reveal className="cta-band">
               <h2>Apply once. Always know where you stand.</h2>
               <p>
-                Join the pilot at Thapar Institute - find a posting in under two
-                minutes, apply, and get a real answer within 48 hours.
+                Join the pilot at Thapar Institute - find a posting in minutes,
+                apply, and get a real answer.
               </p>
               <div className="cta-actions">
                 <Link className="btn btn-primary" href="/register">

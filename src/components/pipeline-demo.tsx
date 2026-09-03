@@ -87,7 +87,7 @@ export default function PipelineDemo() {
         <div className={`tta-badge ${ttaShown ? "show" : ""}`}>
           <span>
             <span className="pulse-dot" />
-            Time-to-Acknowledgement
+            Response time
           </span>
           <span className="v">{stage >= 1 ? "18h 04m" : "-"}</span>
         </div>
