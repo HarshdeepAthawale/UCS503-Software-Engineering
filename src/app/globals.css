@@ -1167,6 +1167,32 @@ footer {
   flex-direction: column;
   gap: 16px;
 }
+/*
+ * Every <select> in the app, unqualified. Nothing anywhere reset the native
+ * control - on Windows in particular that renders as a spinner-style up/down
+ * control instead of a single chevron, and its reserved width isn't in the
+ * padding math any surrounding rule accounts for, so long option text (e.g.
+ * "Newest first") can crowd or clip against it. `appearance: none` removes
+ * the native control entirely; the two-gradient triangle below draws a single
+ * chevron with no image asset, in `currentColor` so it tracks each context's
+ * own `color` (and therefore light/dark) automatically. Each context below
+ * still owns its own `padding-right` since base padding differs per context -
+ * this rule only owns the icon itself.
+ */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position:
+    right 18px center,
+    right 13px center;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
+
 .field {
   display: flex;
   flex-direction: column;
@@ -1185,7 +1211,7 @@ footer {
   font-family: var(--font-sans);
   font-size: 15px;
   color: var(--text);
-  background: var(--surface-alt);
+  background-color: var(--surface-alt);
   border: 1px solid var(--border-strong);
   border-radius: 8px;
   padding: 11px 13px;
@@ -1204,6 +1230,9 @@ footer {
 .field textarea {
   resize: vertical;
   min-height: 90px;
+}
+.field select {
+  padding-right: 34px;
 }
 .field .err {
   color: var(--st-rejected);
@@ -1372,10 +1401,10 @@ button.skill-chip {
   font-family: var(--font-sans);
   font-size: 14px;
   color: var(--text);
-  background: var(--surface-alt);
+  background-color: var(--surface-alt);
   border: 1px solid var(--border-strong);
   border-radius: 8px;
-  padding: 9px 11px;
+  padding: 9px 34px 9px 11px;
   width: 100%;
 }
 .skill-add-row {
@@ -1383,6 +1412,16 @@ button.skill-chip {
   gap: 8px;
 }
 .skill-add-row select {
+  /* Previously unstyled (no rule set border/background at all - a bare
+     native control next to its themed "Add" button). Same treatment as
+     .skill-picker select, just inline instead of full width. */
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--text);
+  background-color: var(--surface-alt);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  padding: 9px 34px 9px 11px;
   flex: 1;
 }
 .empty-note {
@@ -1736,7 +1775,7 @@ button.skill-chip {
 .facet-bar input[type="search"],
 .facet-bar input[type="text"],
 .facet-bar select {
-  background: var(--bg);
+  background-color: var(--bg);
   border: 1px solid var(--border-strong);
   color: var(--text);
   border-radius: 10px;
@@ -1749,6 +1788,7 @@ button.skill-chip {
 }
 .facet-bar select {
   min-width: 150px;
+  padding-right: 34px;
 }
 .facet-bar input:focus,
 .facet-bar select:focus {
@@ -2244,11 +2284,11 @@ button.skill-chip {
   border-bottom: none;
 }
 .atable select {
-  background: var(--bg);
+  background-color: var(--bg);
   border: 1px solid var(--border-strong);
   color: var(--text);
   border-radius: 8px;
-  padding: 5px 8px;
+  padding: 5px 28px 5px 8px;
   font-family: inherit;
   font-size: 13px;
 }
