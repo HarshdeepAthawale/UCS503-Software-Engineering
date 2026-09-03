@@ -72,8 +72,10 @@ export default function ApplicationsPage() {
                   <span className="body">
                     <span className="t">{a.opportunity.title}</span>
                     <span className="when">
-                      {oppTypeLabel(a.opportunity.type)} · applied {timeAgo(a.appliedAt)} ·
-                      closes {deadlineLabel(a.opportunity.deadline)}
+                      {oppTypeLabel(a.opportunity.type)} · applied {timeAgo(a.appliedAt)} ·{" "}
+                      {deadlineLabel(a.opportunity.deadline) === "closed"
+                        ? "closed"
+                        : `closes ${deadlineLabel(a.opportunity.deadline)}`}
                       {a.rejectionCode ? ` · reason: ${titleCase(a.rejectionCode)}` : ""}
                     </span>
                   </span>

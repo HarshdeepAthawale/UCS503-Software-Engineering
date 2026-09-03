@@ -19,7 +19,7 @@ const SORTS: { value: OpportunitySort; label: string }[] = [
   { value: "deadline", label: "Closing soon" },
   { value: "seats", label: "Most seats open" },
 ];
-import { deadlineLabel, oppTypeLabel, slaLabel, statusClass, titleCase } from "@/lib/client/format";
+import { closesLabel, oppTypeLabel, slaLabel, statusClass, titleCase } from "@/lib/client/format";
 
 const TYPES: OppType[] = [
   "RESEARCH",
@@ -190,7 +190,7 @@ export default function OpportunitiesPage() {
                     <span className="m">{o.domain}</span>
                     <span className="m">{o.stipend ? "Stipend" : "Unpaid"}</span>
                     <span className="m">{o.seatCount - o.seatsFilled} of {o.seatCount} seats</span>
-                    <span className="m">Closes {deadlineLabel(o.deadline)}</span>
+                    <span className="m">{closesLabel(o.deadline)}</span>
                     <span className="m">{slaLabel(o.slaPledge)}</span>
                   </div>
                 </Link>

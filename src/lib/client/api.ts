@@ -467,6 +467,32 @@ export async function apiCreateOpportunity(
   return body.opportunity;
 }
 
+export interface OpportunityUpdateInput {
+  title?: string;
+  description?: string;
+  domain?: string;
+  duration?: string | null;
+  stipend?: boolean;
+  seatCount?: number;
+  deadline?: string;
+  slaPledge?: SlaPledge;
+  skills?: { skillId: string; requirement: SkillRequirement }[];
+  eligibleBranches?: string[];
+  minCgpa?: number | null;
+  maxBacklogs?: number | null;
+}
+
+export async function apiUpdateOpportunity(
+  id: string,
+  input: OpportunityUpdateInput,
+): Promise<Opportunity> {
+  const body = await request<{ opportunity: Opportunity }>(`/api/opportunities/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+  return body.opportunity;
+}
+
 export async function apiCloseOpportunity(id: string): Promise<{ id: string; status: OppStatus }> {
   return request<{ id: string; status: OppStatus }>(`/api/opportunities/${id}`, {
     method: "POST",

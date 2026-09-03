@@ -56,6 +56,17 @@ export function deadlineLabel(iso: string): string {
   return "closing soon";
 }
 
+/**
+ * The complete "Closes …" line for a deadline, past or future. `deadlineLabel`
+ * returns the bare word "closed" once the deadline has passed, so a caller
+ * that always prepends "Closes " renders "Closes closed" - this returns the
+ * whole sentence instead so there's only one place that can get it wrong.
+ */
+export function closesLabel(iso: string): string {
+  const label = deadlineLabel(iso);
+  return label === "closed" ? "Closed" : `Closes ${label}`;
+}
+
 /** "just now", "3h ago", "2d ago", or a date for older items. */
 export function timeAgo(iso: string): string {
   const ms = Date.now() - new Date(iso).getTime();

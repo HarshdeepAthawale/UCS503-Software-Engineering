@@ -27,7 +27,7 @@ const FLAG_REASONS: { value: FlagReason; label: string }[] = [
 ];
 import {
   badgeLabel,
-  deadlineLabel,
+  closesLabel,
   oppTypeLabel,
   slaLabel,
   statusClass,
@@ -223,7 +223,7 @@ export default function OpportunityDetailPage() {
                 <div className="kv"><span className="k">Stipend</span><span className="v">{opp.stipend ? "Yes" : "No"}</span></div>
                 {opp.duration && <div className="kv"><span className="k">Duration</span><span className="v">{opp.duration}</span></div>}
                 <div className="kv"><span className="k">Seats</span><span className="v">{opp.seatCount - opp.seatsFilled} of {opp.seatCount} open</span></div>
-                <div className="kv"><span className="k">Deadline</span><span className="v">Closes {deadlineLabel(opp.deadline)}</span></div>
+                <div className="kv"><span className="k">Deadline</span><span className="v">{closesLabel(opp.deadline)}</span></div>
                 <div className="kv"><span className="k">SLA pledge</span><span className="v">{slaLabel(opp.slaPledge)}</span></div>
                 {opp.eligibleBranches.length > 0 && (
                   <div className="kv"><span className="k">Eligible branches</span><span className="v">{opp.eligibleBranches.join(", ")}</span></div>
