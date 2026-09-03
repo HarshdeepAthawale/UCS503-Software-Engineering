@@ -2102,10 +2102,12 @@ button.skill-chip {
   flex: 1;
 }
 .notif .body .t {
+  display: block;
   font-weight: 500;
   font-size: 14px;
 }
 .notif .body .when {
+  display: block;
   color: var(--faint);
   font-size: 12px;
   margin-top: 2px;

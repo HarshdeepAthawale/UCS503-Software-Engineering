@@ -17,11 +17,15 @@ import {
 } from "@/lib/client/api";
 import { statusClass, timeAgo, titleCase } from "@/lib/client/format";
 
-// Which forward moves a poster may make from each state (mirrors the server).
-// RECEIVED is no longer offered - APPLIED goes straight to SHORTLISTED/REJECTED
-// (see src/lib/domain/application-state.ts).
+// Which forward moves a poster may make from each state (mirrors the server -
+// see POSTER_TRANSITIONS in src/lib/domain/application-state.ts). New
+// applications skip RECEIVED entirely (APPLIED goes straight to
+// SHORTLISTED/REJECTED), but it stays a valid FROM-state here too: any
+// pre-existing RECEIVED row from before that change must still be movable,
+// or the poster is stuck with an applicant they can never act on.
 const NEXT: Record<string, Exclude<AppState, "APPLIED" | "WITHDRAWN" | "RECEIVED">[]> = {
   APPLIED: ["SHORTLISTED", "REJECTED"],
+  RECEIVED: ["SHORTLISTED", "REJECTED"],
   SHORTLISTED: ["INTERVIEW", "SELECTED", "REJECTED"],
   INTERVIEW: ["SELECTED", "REJECTED"],
 };
