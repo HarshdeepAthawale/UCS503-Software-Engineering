@@ -8,10 +8,13 @@
 -- `open_to` reuses the OppType vocabulary rather than free text, so "open to
 -- research" is the same token a posting carries and stays matchable later.
 -- All nullable / empty-defaulted: existing profiles are untouched and valid.
+-- IF NOT EXISTS on every clause: this migration's columns were previously
+-- applied by hand on production without an _app_migrations row, so the
+-- tracked run must be idempotent rather than fail on a column collision.
 ALTER TABLE "profiles"
-    ADD COLUMN "headline" TEXT,
-    ADD COLUMN "github_url" TEXT,
-    ADD COLUMN "linkedin_url" TEXT,
-    ADD COLUMN "website_url" TEXT,
-    ADD COLUMN "open_to" "OppType"[] NOT NULL DEFAULT ARRAY[]::"OppType"[],
-    ADD COLUMN "hours_per_week" INTEGER;
+    ADD COLUMN IF NOT EXISTS "headline" TEXT,
+    ADD COLUMN IF NOT EXISTS "github_url" TEXT,
+    ADD COLUMN IF NOT EXISTS "linkedin_url" TEXT,
+    ADD COLUMN IF NOT EXISTS "website_url" TEXT,
+    ADD COLUMN IF NOT EXISTS "open_to" "OppType"[] NOT NULL DEFAULT ARRAY[]::"OppType"[],
+    ADD COLUMN IF NOT EXISTS "hours_per_week" INTEGER;
