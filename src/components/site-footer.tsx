@@ -9,7 +9,7 @@ export function SiteFooter() {
         <div className="foot-grid">
           <div className="foot-brand">
             <Link className="brand" href="/">
-              <TiLogo size={30} className="ti-mark" /> Thapar&nbsp;Nexus
+              <TiLogo size={30} className="ti-mark" />
             </Link>
             <p>
               A verified opportunity pipeline for the institute - built to make sure an application

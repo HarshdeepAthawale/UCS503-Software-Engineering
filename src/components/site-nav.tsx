@@ -63,7 +63,6 @@ export function SiteNav() {
       <div className="dock-pill">
         <Link className="dock-brand" href="/">
           <TiLogo size={26} className="ti-mark" priority />
-          <span className="dock-wordmark">Thapar&nbsp;Nexus</span>
         </Link>
 
         <span className="dock-rule" aria-hidden="true" />
