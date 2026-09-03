@@ -176,6 +176,13 @@ export default function OpportunitiesPage() {
                     <span className={`pill ${statusClass(o.status)}`}>{titleCase(o.status)}</span>
                   </div>
                   <h3>{o.title}</h3>
+                  {/* Trust signal (docs/PRD §4): a student sees who is actually
+                      behind a posting before they even open it, not just once
+                      they click through. Plain text, not a nested link - the
+                      whole card is already one <Link>. */}
+                  <p className="tl-meta" style={{ marginBottom: 8 }}>
+                    Posted by {o.poster.name} · {titleCase(o.poster.role)}
+                  </p>
                   <p className="desc">{o.description}</p>
                   {o.skills.length > 0 && (
                     <div className="tagrow" style={{ marginBottom: 12 }}>
