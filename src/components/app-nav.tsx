@@ -34,28 +34,39 @@ export function AppNav({ user, unread = 0 }: { user: SessionUser | null; unread?
   return (
     <header className="appnav">
       <div className="appnav-inner wrap">
-        <Link className="brand" href="/opportunities">
-          <TiLogo size={26} className="ti-mark" /> Nexus
+        <Link className="brand" href={user ? "/opportunities" : "/"}>
+          <TiLogo size={26} className="ti-mark" />
         </Link>
-        <nav className="appnav-links">
-          {link("/opportunities", "Feed")}
-          {user?.role === "STUDENT" && link("/applications", "Applications")}
-          {link("/messages", "Messages")}
-          {link("/notifications", "Notifications", unread)}
-          {user?.role === "ADMIN" && link("/admin", "Admin")}
-          {link("/profile", "Profile")}
-        </nav>
-        <div className="appnav-cta">
-          <ThemeToggle />
-          {canPost && (
-            <Link className="btn btn-primary btn-sm" href="/opportunities/new">
-              + Post
-            </Link>
-          )}
-          <button className="btn btn-ghost btn-sm" type="button" onClick={onLogout}>
-            Sign out
-          </button>
-        </div>
+        {user ? (
+          <>
+            <nav className="appnav-links">
+              {link("/opportunities", "Feed")}
+              {user.role === "STUDENT" && link("/applications", "Applications")}
+              {canPost && link("/opportunities/mine", "My postings")}
+              {link("/messages", "Messages")}
+              {link("/notifications", "Notifications", unread)}
+              {user.role === "ADMIN" && link("/admin", "Admin")}
+              {link("/profile", "Profile")}
+            </nav>
+            <div className="appnav-cta">
+              <ThemeToggle />
+              {canPost && (
+                <Link className="btn btn-primary btn-sm" href="/opportunities/new">
+                  + Post
+                </Link>
+              )}
+              <button className="btn btn-ghost btn-sm" type="button" onClick={onLogout}>
+                Sign out
+              </button>
+            </div>
+          </>
+        ) : (
+          // No session - nothing here is worth linking to, only a way in.
+          <div className="appnav-cta">
+            <ThemeToggle />
+            <Link className="btn btn-primary btn-sm" href="/login">Sign in</Link>
+          </div>
+        )}
       </div>
     </header>
   );

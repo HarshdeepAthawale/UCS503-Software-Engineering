@@ -209,20 +209,16 @@ export default function ApplicantsPage() {
                     <option value="name_asc">Name — A to Z</option>
                   </select>
                 </div>
-              </div>
-
-              <div className="row" style={{ flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
-                {STATUS_TABS.map((tab) => (
-                  <button
-                    key={tab.value}
-                    type="button"
-                    className={`mini${statusFilter === tab.value ? " solid" : ""}`}
-                    onClick={() => setStatusFilter(tab.value)}
-                  >
-                    {tab.label}
-                    {tab.value !== "ALL" ? ` (${countByStatus.get(tab.value) ?? 0})` : ` (${applicants.length})`}
-                  </button>
-                ))}
+                <div className="field" style={{ minWidth: 180, marginBottom: 0 }}>
+                  <label htmlFor="statusFilter">Status</label>
+                  <select id="statusFilter" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as AppState | "ALL")}>
+                    {STATUS_TABS.map((tab) => (
+                      <option key={tab.value} value={tab.value}>
+                        {tab.label} ({tab.value === "ALL" ? applicants.length : countByStatus.get(tab.value) ?? 0})
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               {filtered.length === 0 ? (

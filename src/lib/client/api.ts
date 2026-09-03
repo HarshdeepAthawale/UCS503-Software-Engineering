@@ -419,6 +419,8 @@ export interface OpportunityListParams {
   stipend?: "true" | "false";
   skillId?: string;
   sort?: OpportunitySort;
+  /** Only the caller's own postings, every status (My Postings dashboard). */
+  mine?: "true";
   cursor?: string;
   limit?: number;
 }

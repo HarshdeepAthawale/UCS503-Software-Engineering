@@ -321,6 +321,11 @@ export const OpportunityListQuerySchema = z.object({
   skillId: z.string().trim().uuid("Invalid skill id.").optional(),
   sort: z.enum(["recent", "deadline", "seats"]).optional(),
   includeExpired: z.enum(["true", "false"]).optional(),
+  // "My postings" (docs/PRD M9-adjacent poster dashboard): the caller's own
+  // id, resolved server-side from the session - never a client-supplied
+  // posterId, so a faculty member can't page through anyone else's postings
+  // via this endpoint.
+  mine: z.enum(["true"]).optional(),
   cursor: z.string().trim().max(300).optional(),
   limit: z.coerce.number().int().gte(1).lte(100).optional(),
 });

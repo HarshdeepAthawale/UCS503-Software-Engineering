@@ -223,6 +223,10 @@ export async function listOpportunities(opts: {
   skillId?: string;
   sort?: string;
   includeExpired?: boolean;
+  /** Poster dashboard scope ("my postings"): every status of THIS poster's
+   *  own opportunities, expired/closed included - never a filter a viewer of
+   *  someone else's postings can trigger. */
+  posterId?: string;
   cursor?: string;
   limit?: number;
 }) {
@@ -232,7 +236,14 @@ export async function listOpportunities(opts: {
   const cfg = SORTS[sort];
 
   const conds: Prisma.Sql[] = [Prisma.sql`o.deleted_at IS NULL`];
-  if (!opts.includeExpired) conds.push(Prisma.sql`o.status <> 'EXPIRED'::"OppStatus"`);
+  // A poster viewing their own dashboard sees every status, including
+  // EXPIRED/CLOSED - the whole point is a complete record of what they've
+  // posted, not just what's currently live.
+  if (opts.posterId) {
+    conds.push(Prisma.sql`o.poster_id = ${opts.posterId}::uuid`);
+  } else if (!opts.includeExpired) {
+    conds.push(Prisma.sql`o.status <> 'EXPIRED'::"OppStatus"`);
+  }
   if (opts.type) conds.push(Prisma.sql`o.type = ${opts.type}::"OppType"`);
   if (opts.domain) conds.push(Prisma.sql`o.domain ILIKE ${"%" + opts.domain + "%"}`);
   if (opts.stipend === "true") conds.push(Prisma.sql`o.stipend = true`);
@@ -487,7 +498,7 @@ async function insertDeadlineReminders(tier: DeadlineTier): Promise<number> {
   const rows = await prisma.$queryRaw<{ id: string }[]>(Prisma.sql`
     INSERT INTO notifications (id, user_id, type, payload, created_at)
     SELECT gen_random_uuid(), o.poster_id, 'opportunity.deadline_reminder',
-           jsonb_build_object('opportunityId', o.id::text, 'tier', ${tier}, 'deadline', o.deadline),
+           jsonb_build_object('opportunityId', o.id::text, 'tier', ${tier}::text, 'deadline', o.deadline),
            now()
     FROM opportunities o
     WHERE o.deleted_at IS NULL
@@ -499,7 +510,7 @@ async function insertDeadlineReminders(tier: DeadlineTier): Promise<number> {
         WHERE n.user_id = o.poster_id
           AND n.type = 'opportunity.deadline_reminder'
           AND n.payload->>'opportunityId' = o.id::text
-          AND n.payload->>'tier' = ${tier}
+          AND n.payload->>'tier' = ${tier}::text
       )
     RETURNING id
   `);

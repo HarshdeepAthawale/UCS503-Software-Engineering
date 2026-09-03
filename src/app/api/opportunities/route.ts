@@ -17,7 +17,7 @@ export const runtime = "nodejs";
  * Requires `opportunity:create` (FACULTY / approved ALUMNI only in the matrix).
  */
 export const GET = handler(async (req) => {
-  await authorize(req, "opportunity:list");
+  const principal = await authorize(req, "opportunity:list");
 
   const params = Object.fromEntries(new URL(req.url).searchParams);
   const parsed = OpportunityListQuerySchema.safeParse(params);
@@ -34,6 +34,9 @@ export const GET = handler(async (req) => {
     skillId: parsed.data.skillId,
     sort: parsed.data.sort,
     includeExpired: parsed.data.includeExpired === "true",
+    // "mine" always resolves to the CALLER's own id - there is no way for a
+    // client to pass someone else's posterId through this query.
+    posterId: parsed.data.mine === "true" ? principal.userId : undefined,
     cursor: parsed.data.cursor,
     limit: parsed.data.limit,
   });
