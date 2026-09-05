@@ -48,8 +48,18 @@ services:
       REFRESH_TOKEN_TTL_DAYS: "7"
       ALLOWED_EMAIL_DOMAIN: thapar.edu
       APPLICATION_BUDGET: "10"
-      # Plain HTTP on localhost — required for cookies in a local container.
-      ALLOW_INSECURE_COOKIES: "true"
+      # True production settings, on purpose. A Secure cookie is never stored
+      # over plain http://localhost, so sign-in/session flows do not work in
+      # this stack - that is not fixable by flipping this to "true" (env.ts
+      # refuses ALLOW_INSECURE_COOKIES=true whenever NODE_ENV=production, B-05,
+      # and rightly so), nor by overriding NODE_ENV at the compose level:
+      # `middleware.ts` runs on every request and pulls in env.ts, and Next.js
+      # inlines `process.env.NODE_ENV` as a literal in the compiled Edge
+      # middleware bundle at `next build` time - the runtime env var here never
+      # reaches that check. This stack is for verifying the production build's
+      # pages and static assets are fresh, not for exercising authenticated
+      # flows; see the Dockerfile's `dev` stage for that.
+      ALLOW_INSECURE_COOKIES: "false"
       NODE_ENV: production
       SUPABASE_URL: ${SUPABASE_URL:-}
       SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
