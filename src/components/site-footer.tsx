@@ -1,21 +1,31 @@
 import Link from "next/link";
-import { TiLogo } from "@/components/ti-logo";
 
-/** Shared footer across the three landing pages. */
-export function SiteFooter() {
+/** Shared footer. `minimal` renders a single line for the landing page. */
+export function SiteFooter({ minimal = false }: { minimal?: boolean }) {
+  if (minimal) {
+    return (
+      <footer className="landing-foot">
+        <div className="wrap landing-foot-inner">
+          <span>© 2026 Thapar Institute of Engineering &amp; Technology</span>
+          <div className="landing-foot-links">
+            <Link href="/product">Product</Link>
+            <Link href="/about">About</Link>
+            <Link href="/errors">API errors</Link>
+          </div>
+        </div>
+      </footer>
+    );
+  }
+
   return (
     <footer>
       <div className="wrap">
         <div className="foot-grid">
           <div className="foot-brand">
             <Link className="brand" href="/">
-              <TiLogo size={30} className="ti-mark" />
-              <span>Nexus</span>
+              <span>Thapar Nexus</span>
             </Link>
-            <p>
-              A verified opportunity pipeline for the institute - built to make sure an application
-              reaches a decision, and to make it visible when it doesn&apos;t.
-            </p>
+            <p>Verified opportunity pipeline for the institute community.</p>
           </div>
           <div className="foot-team">
             <div className="h">Explore</div>

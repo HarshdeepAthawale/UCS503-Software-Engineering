@@ -300,12 +300,12 @@ export default function ApplicantsPage() {
               {/* Search + filters — this is how a 100+ applicant pipeline stays
                   usable: narrow first, then scan a page of 25 rows at a time,
                   rather than scrolling a wall of cards. */}
-              <div className="panel" style={{ padding: 16, marginBottom: 16, display: "flex", flexWrap: "wrap", gap: 12, alignItems: "flex-end" }}>
-                <div className="field" style={{ minWidth: 200, marginBottom: 0 }}>
+              <div className="panel filter-bar">
+                <div className="field" style={{ minWidth: 200 }}>
                   <label htmlFor="search">Search by name</label>
                   <input id="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="e.g. Priya" />
                 </div>
-                <div className="field" style={{ minWidth: 160, marginBottom: 0 }}>
+                <div className="field" style={{ minWidth: 160 }}>
                   <label htmlFor="cgpaFilter">Minimum CGPA</label>
                   <input
                     id="cgpaFilter"
@@ -318,7 +318,7 @@ export default function ApplicantsPage() {
                     placeholder="e.g. 7.5"
                   />
                 </div>
-                <div className="field" style={{ minWidth: 180, marginBottom: 0 }}>
+                <div className="field" style={{ minWidth: 180 }}>
                   <label htmlFor="sort">Sort by</label>
                   <select id="sort" value={sort} onChange={(e) => setSort(e.target.value as SortKey)}>
                     <option value="applied_desc">Applied — newest first</option>
@@ -327,7 +327,7 @@ export default function ApplicantsPage() {
                     <option value="name_asc">Name — A to Z</option>
                   </select>
                 </div>
-                <div className="field" style={{ minWidth: 180, marginBottom: 0 }}>
+                <div className="field" style={{ minWidth: 180 }}>
                   <label htmlFor="statusFilter">Status</label>
                   <select id="statusFilter" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as AppState | "ALL")}>
                     {STATUS_TABS.map((tab) => (

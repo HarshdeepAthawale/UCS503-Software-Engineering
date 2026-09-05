@@ -51,7 +51,7 @@ export default function MessagesPage() {
     <div className="app-shell">
       <AppNav user={me} />
       <main id="content" className="app-page">
-        <div className="wrap" style={{ maxWidth: 820 }}>
+        <div className="wrap wrap-narrow">
           <div className="page-head">
             <div>
               <h1>Messages</h1>

@@ -125,7 +125,7 @@ export default function NotificationsPage() {
     <div className="app-shell">
       <AppNav user={getUser()} unread={unread} />
       <main id="content" className="app-page">
-        <div className="wrap" style={{ maxWidth: 760 }}>
+        <div className="wrap wrap-medium">
           <div className="page-head">
             <div>
               <h1>Notifications</h1>

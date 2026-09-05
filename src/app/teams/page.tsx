@@ -80,8 +80,8 @@ export default function TeamsPage() {
 
           {error && <p className="form-err" role="alert">{error}</p>}
 
-          <div className="panel" style={{ padding: 16, marginBottom: 16, display: "flex", gap: 12, alignItems: "flex-end" }}>
-            <div className="field" style={{ minWidth: 240, marginBottom: 0 }}>
+          <div className="panel filter-bar">
+            <div className="field" style={{ minWidth: 240 }}>
               <label htmlFor="hackathon">Search by hackathon</label>
               <input
                 id="hackathon"
@@ -107,7 +107,7 @@ export default function TeamsPage() {
                 const totalSlots = t.roles.reduce((s, r) => s + r.slotCount, 0);
                 const filledSlots = t.roles.reduce((s, r) => s + r.slotsFilled, 0);
                 return (
-                  <Link key={t.id} href={`/teams/${t.id}`} className="panel-card" style={{ display: "block" }}>
+                  <Link key={t.id} href={`/teams/${t.id}`} className="panel-card is-link">
                     <h2>{t.name}</h2>
                     <p className="sub">{t.hackathon}</p>
                     <p className="empty-note" style={{ marginTop: 8 }}>

@@ -48,7 +48,7 @@ export default function ApplicationsPage() {
     <div className="app-shell">
       <AppNav user={getUser()} />
       <main id="content" className="app-page">
-        <div className="wrap" style={{ maxWidth: 820 }}>
+        <div className="wrap wrap-narrow">
           <div className="page-head">
             <div>
               <h1>My applications</h1>
