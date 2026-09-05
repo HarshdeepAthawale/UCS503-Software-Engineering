@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { BRANCH_GROUPS, BRANCH_HINTS, BRANCHES, isBranch } from "@/lib/domain/branch";
+import { BRANCH_HINTS, BRANCHES, isBranch } from "@/lib/domain/branch";
 import { FormSelect, type FormSelectOption } from "@/components/form-select";
 
 function buildOptions(legacy?: string | null): FormSelectOption[] {
@@ -17,28 +17,18 @@ function buildOptions(legacy?: string | null): FormSelectOption[] {
     });
   }
 
-  for (const group of BRANCH_GROUPS) {
-    for (const code of group.codes) {
-      opts.push({
-        value: code,
-        label: code,
-        hint: BRANCH_HINTS[code],
-        group: group.label,
-      });
-    }
-  }
-
-  // Any branch missing from groups (shouldn't happen) still appears.
   for (const code of BRANCHES) {
-    if (!opts.some((o) => o.value === code)) {
-      opts.push({ value: code, label: code, hint: BRANCH_HINTS[code] });
-    }
+    opts.push({
+      value: code,
+      label: code,
+      hint: BRANCH_HINTS[code],
+    });
   }
 
   return opts;
 }
 
-/** Searchable, grouped branch picker for the profile form. */
+/** Searchable branch picker for the profile form — flat list, no section headers. */
 export function BranchSelect({
   id,
   value,

@@ -47,14 +47,6 @@ export const BRANCH_HINTS: Record<Branch, string> = {
   EVD: "Electric Vehicle Design",
 };
 
-/** Groups for the searchable branch picker on the profile form. */
-export const BRANCH_GROUPS: { label: string; codes: readonly Branch[] }[] = [
-  { label: "Computing & electronics", codes: ["COE", "ENC", "ECE", "EIC", "CCA"] },
-  { label: "Core engineering", codes: ["ELECTRICAL", "MECHANICAL", "MECHATRONICS", "CIVIL"] },
-  { label: "Sciences & interdisciplinary", codes: ["BIOTECH", "BIOMED", "RAI", "EVD"] },
-  { label: "Other programmes", codes: ["COPC", "COBS"] },
-];
-
 export function isBranch(v: string): v is Branch {
   return (BRANCHES as readonly string[]).includes(v);
 }

@@ -152,17 +152,20 @@ type FacetTextInputProps = {
 export function FacetTextInput({ label, id, value, placeholder, onChange }: FacetTextInputProps) {
   return (
     <div className="facet-select">
-      <FacetTriggerShell label={label} className="facet-text-trigger" chevron="spacer">
-        <input
-          id={id}
-          className="facet-select-text"
-          type="text"
-          value={value}
-          placeholder={placeholder}
-          aria-label={label}
-          onChange={(e) => onChange(e.target.value)}
-        />
-      </FacetTriggerShell>
+      <label className="facet-select-trigger facet-text-trigger" htmlFor={id}>
+        <span className="facet-select-kicker">{label}</span>
+        <span className="facet-select-value">
+          <input
+            id={id}
+            className="facet-select-text"
+            type="text"
+            value={value}
+            placeholder={placeholder}
+            onChange={(e) => onChange(e.target.value)}
+          />
+        </span>
+        {CHEVRON_SPACER}
+      </label>
     </div>
   );
 }
