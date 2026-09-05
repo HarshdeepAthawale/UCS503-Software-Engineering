@@ -45,6 +45,12 @@ CMD ["./node_modules/.bin/next", "dev", "-H", "0.0.0.0"]
 # ── build ────────────────────────────────────────────────────────────────────
 FROM node:22-alpine AS build
 WORKDIR /app
+
+# Pass CACHEBUST=$(date +%s) on `docker compose build` to force a full rebuild
+# when Docker layer cache would otherwise serve an old .next bundle.
+ARG CACHEBUST=0
+RUN echo "cachebust=$CACHEBUST"
+
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 

@@ -50,6 +50,15 @@ docker compose run --rm app npm run db:migrate:deploy    # apply migrations (onc
 docker compose down -v                                   # stop, delete the volume
 ```
 
+**UI looks stale after a pull?** Dev compose keeps a cached `.next` volume that
+survives `docker compose up --build`, so you can still see old CSS/JS. Clear it
+and rebuild:
+
+```bash
+npm run docker:rebuild          # dev stack: down -v, build --no-cache, up
+npm run docker:prod             # production image baked into runner stage
+```
+
 App on http://localhost:3000, Postgres on 5432 (exposed so `npm run db:studio`
 and psql work from the host).
 

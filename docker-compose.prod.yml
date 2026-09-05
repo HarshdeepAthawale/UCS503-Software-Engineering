@@ -1,0 +1,63 @@
+# Production-like stack — bakes the latest code into the image (no bind mounts).
+#
+# Use this when dev compose looks stale: the dev stack keeps a cached .next volume
+# that can serve old CSS/JS even after you pull new code.
+#
+#   docker compose -f docker-compose.prod.yml up --build
+#   docker compose -f docker-compose.prod.yml run --rm app npm run db:migrate:deploy
+#   docker compose -f docker-compose.prod.yml down -v
+#
+# Or: npm run docker:prod
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: nexus
+      POSTGRES_PASSWORD: nexus
+      POSTGRES_DB: nexus
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - pgdata_prod:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nexus -d nexus"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+      args:
+        # Busts the build cache when you need a guaranteed fresh image.
+        CACHEBUST: ${CACHEBUST:-0}
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    environment:
+      DATABASE_URL: postgresql://nexus:nexus@db:5432/nexus?schema=public
+      DIRECT_URL: postgresql://nexus:nexus@db:5432/nexus?schema=public
+      JWT_ACCESS_SECRET: local-docker-access-secret-not-for-production
+      JWT_REFRESH_SECRET: local-docker-refresh-secret-not-for-production
+      ACCESS_TOKEN_TTL: 15m
+      REFRESH_TOKEN_TTL_DAYS: "7"
+      ALLOWED_EMAIL_DOMAIN: thapar.edu
+      APPLICATION_BUDGET: "10"
+      # Plain HTTP on localhost — required for cookies in a local container.
+      ALLOW_INSECURE_COOKIES: "true"
+      NODE_ENV: production
+      SUPABASE_URL: ${SUPABASE_URL:-}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      NEXT_PUBLIC_GOOGLE_ENABLED: ${NEXT_PUBLIC_GOOGLE_ENABLED:-false}
+      BACKEND_ORIGIN: ""
+
+volumes:
+  pgdata_prod:

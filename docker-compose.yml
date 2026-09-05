@@ -39,10 +39,10 @@ services:
       target: dev
     volumes:
       - .:/app
-      # Anonymous volume so the bind mount above does not shadow the Linux
-      # node_modules installed in the image; the host's is built for a different
-      # platform and would fail at runtime.
+      # Anonymous volume so the bind mount does not shadow Linux node_modules.
       - /app/node_modules
+      # Cached .next survives `docker compose up --build` and serves STALE UI.
+      # Run `npm run docker:rebuild` after pulling UI fixes, or use docker:prod.
       - /app/.next
     depends_on:
       db:
