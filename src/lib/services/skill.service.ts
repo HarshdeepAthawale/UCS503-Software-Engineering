@@ -191,6 +191,14 @@ export async function replaceOwnSkills(principal: Principal, input: UserSkillsRe
   }
 
   await prisma.$transaction(async (tx) => {
+    // user_skills.user_id is a FK to profiles.user_id, not users.id - ensure
+    // the profile row exists first for a member who hasn't saved one yet
+    // (mirrors the same upsert in profile.service.ts's addOwnProject).
+    await tx.profile.upsert({
+      where: { userId: principal.userId },
+      create: { userId: principal.userId },
+      update: {},
+    });
     await tx.userSkill.deleteMany({ where: { userId: principal.userId } });
     if (resolved.length > 0) {
       await tx.userSkill.createMany({
@@ -223,15 +231,22 @@ export async function addOwnSkill(principal: Principal, input: UserSkillAddInput
   });
   if (!skill) throw Errors.validation("Skill is not in the taxonomy.", "skillId");
 
-  await prisma.userSkill.upsert({
-    where: { userId_skillId: { userId: principal.userId, skillId: input.skillId } },
-    create: {
-      userId: principal.userId,
-      skillId: input.skillId,
-      proficiency: input.proficiency,
-    },
-    update: { proficiency: input.proficiency },
-  });
+  await prisma.$transaction([
+    prisma.profile.upsert({
+      where: { userId: principal.userId },
+      create: { userId: principal.userId },
+      update: {},
+    }),
+    prisma.userSkill.upsert({
+      where: { userId_skillId: { userId: principal.userId, skillId: input.skillId } },
+      create: {
+        userId: principal.userId,
+        skillId: input.skillId,
+        proficiency: input.proficiency,
+      },
+      update: { proficiency: input.proficiency },
+    }),
+  ]);
   await audit({
     action: "profile.skills_replaced",
     actorId: principal.userId,

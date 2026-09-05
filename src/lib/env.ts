@@ -58,6 +58,18 @@ const EnvSchema = z.object({
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
 
+  // Google Calendar meeting scheduling (incremental OAuth consent for the
+  // calendar.events scope). Optional - when unset, the calendar-connect and
+  // meeting-scheduling routes 404 and the UI hides the option, same pattern as
+  // GOOGLE_CLIENT_ID above. A stored Google refresh token is encrypted at rest
+  // with this key (AES-256-GCM) - never logged, never derived from anything
+  // else (codeguard-1-hardcoded-credentials). Generate with e.g.
+  // `openssl rand -base64 32`.
+  TOKEN_ENCRYPTION_KEY: z
+    .string()
+    .min(32, "TOKEN_ENCRYPTION_KEY must be >= 32 chars")
+    .optional(),
+
   // Supabase Storage for résumé PDFs (T-44, M2). The SERVICE ROLE key is
   // server-only and MUST NOT be exposed to the client - it is used solely to
   // upload to and mint short-lived signed URLs for a PRIVATE bucket. When either

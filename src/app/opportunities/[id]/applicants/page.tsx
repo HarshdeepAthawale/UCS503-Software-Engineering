@@ -8,13 +8,24 @@ import { ResumeViewer } from "@/components/resume-viewer";
 import {
   apiListApplicants,
   apiTransition,
+  apiIssueAttestation,
+  apiGetCalendarStatus,
+  apiListApplicationMeetings,
+  apiScheduleApplicationMeeting,
+  apiCancelMeeting,
+  googleCalendarConnectUrl,
   ApiError,
   bootstrapSession,
   getUser,
   type Applicant,
   type AppState,
   type RejectionCode,
+  type Meeting,
 } from "@/lib/client/api";
+import { RejectBar } from "@/components/reject-bar";
+import { AttestBar } from "@/components/attest-bar";
+import { MeetingScheduler } from "@/components/meeting-scheduler";
+import { MeetingList } from "@/components/meeting-list";
 import { statusClass, timeAgo, titleCase } from "@/lib/client/format";
 
 // Which forward moves a poster may make from each state (mirrors the server -
@@ -57,6 +68,15 @@ export default function ApplicantsPage() {
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [openResume, setOpenResume] = useState<string | null>(null);
+  const [rejectingId, setRejectingId] = useState<string | null>(null);
+  const [rejectCode, setRejectCode] = useState<RejectionCode>("STRONGER_APPLICANTS");
+  const [attestingId, setAttestingId] = useState<string | null>(null);
+  const [openMeetings, setOpenMeetings] = useState<string | null>(null);
+  const [schedulingId, setSchedulingId] = useState<string | null>(null);
+  const [meetingsByApp, setMeetingsByApp] = useState<Record<string, Meeting[]>>({});
+  const [calendarConnected, setCalendarConnected] = useState(false);
+  const [calendarEnabled, setCalendarEnabled] = useState(false);
+  const [info, setInfo] = useState<string | null>(null);
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<AppState | "ALL">("ALL");
@@ -77,9 +97,33 @@ export default function ApplicantsPage() {
       const ok = await bootstrapSession();
       setSignedIn(ok);
       setReady(true);
-      if (ok) await load();
+      if (ok) {
+        await load();
+        try {
+          const status = await apiGetCalendarStatus();
+          setCalendarConnected(status.connected);
+          setCalendarEnabled(status.enabled);
+        } catch {
+          /* calendar status is optional - schedule attempt surfaces the error */
+        }
+      }
     })();
   }, [load]);
+
+  // Feedback after the round trip to Google's consent screen (calendar/start ->
+  // callback -> back here). Read once, then strip so a refresh doesn't repeat it.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.has("calendarConnected")) {
+      setInfo("Google Calendar connected.");
+      setCalendarConnected(true);
+    } else if (params.has("calendarError")) {
+      setError(params.get("calendarError"));
+    } else {
+      return;
+    }
+    window.history.replaceState(null, "", window.location.pathname);
+  }, []);
 
   // Any filter/sort change invalidates the current page.
   useEffect(() => {
@@ -87,20 +131,89 @@ export default function ApplicantsPage() {
   }, [search, statusFilter, minCgpaFilter, sort]);
 
   async function move(app: Applicant, to: Exclude<AppState, "APPLIED" | "WITHDRAWN" | "RECEIVED">) {
+    if (to === "REJECTED") {
+      setRejectingId(app.id);
+      setRejectCode("STRONGER_APPLICANTS");
+      return;
+    }
+    await applyTransition(app, to);
+  }
+
+  async function applyTransition(
+    app: Applicant,
+    to: Exclude<AppState, "APPLIED" | "WITHDRAWN" | "RECEIVED">,
+    rejectionCode?: RejectionCode,
+  ) {
     setError(null);
     setBusyId(app.id);
     try {
-      const rejectionCode =
-        to === "REJECTED"
-          ? ((prompt(
-              "Rejection reason code (SKILL_MISMATCH, SEATS_FILLED, TIMING_CONFLICT, PROFILE_INCOMPLETE, STRONGER_APPLICANTS, OTHER):",
-              "STRONGER_APPLICANTS",
-            ) || "OTHER") as RejectionCode)
-          : undefined;
       await apiTransition(app.id, to, rejectionCode ? { rejectionCode } : {});
+      setRejectingId(null);
       await load();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not update the application.");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function issueAttestation(app: Applicant, skillId: string, context: string) {
+    setError(null);
+    setBusyId(app.id);
+    try {
+      await apiIssueAttestation(app.id, { skillId, context });
+      setAttestingId(null);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not issue the attestation.");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function toggleMeetings(appId: string) {
+    if (openMeetings === appId) {
+      setOpenMeetings(null);
+      return;
+    }
+    setOpenMeetings(appId);
+    if (!meetingsByApp[appId]) {
+      try {
+        const meetings = await apiListApplicationMeetings(appId);
+        setMeetingsByApp((prev) => ({ ...prev, [appId]: meetings }));
+      } catch (err) {
+        setError(err instanceof ApiError ? err.message : "Could not load meetings.");
+      }
+    }
+  }
+
+  async function scheduleMeeting(
+    app: Applicant,
+    input: { title: string; scheduledAt: string; durationMinutes: number },
+  ) {
+    setError(null);
+    setBusyId(app.id);
+    try {
+      const meeting = await apiScheduleApplicationMeeting(app.id, input);
+      setMeetingsByApp((prev) => ({ ...prev, [app.id]: [meeting, ...(prev[app.id] ?? [])] }));
+      setSchedulingId(null);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not schedule the meeting.");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function cancelMeeting(appId: string, meetingId: string) {
+    setError(null);
+    setBusyId(meetingId);
+    try {
+      await apiCancelMeeting(meetingId);
+      setMeetingsByApp((prev) => ({
+        ...prev,
+        [appId]: (prev[appId] ?? []).map((m) => (m.id === meetingId ? { ...m, status: "CANCELLED" } : m)),
+      }));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not cancel the meeting.");
     } finally {
       setBusyId(null);
     }
@@ -160,9 +273,9 @@ export default function ApplicantsPage() {
   return (
     <div className="app-shell">
       <AppNav user={getUser()} />
-      <main className="app-page">
+      <main id="content" className="app-page">
         <div className="wrap">
-          <Link href={`/opportunities/${id}`} className="appnav-link" style={{ marginBottom: 16, display: "inline-flex" }}>
+          <Link href={`/opportunities/${id}`} className="back-link">
             ← Back to posting
           </Link>
           <div className="page-head">
@@ -171,13 +284,14 @@ export default function ApplicantsPage() {
               <p className="sub">
                 {filtered.length} of {applicants.length} applicant{applicants.length === 1 ? "" : "s"} shown · click a row for the full profile.
               </p>
-              <Link href={`/opportunities/${id}/shortlisted`} className="appnav-link" style={{ display: "inline-flex", marginTop: 6 }}>
+              <Link href={`/opportunities/${id}/shortlisted`} className="link-quiet">
                 Shortlisted candidates →
               </Link>
             </div>
           </div>
 
           {error && <p className="form-err" role="alert">{error}</p>}
+          {info && <p className="empty-note" role="status">{info}</p>}
 
           {applicants.length === 0 ? (
             <div className="app-empty"><h3>No applicants yet</h3><p>They'll appear here as students apply.</p></div>
@@ -285,15 +399,69 @@ export default function ApplicantsPage() {
                                 >
                                   {openResume === a.id ? "Hide résumé" : "Résumé"}
                                 </button>
-                                <Link className="appnav-link" style={{ padding: "4px 8px", fontSize: 12 }} href={`/applications/${a.id}`}>
+                                {a.status === "SELECTED" && (
+                                  <button
+                                    type="button"
+                                    className="mini solid"
+                                    onClick={() => setAttestingId((cur) => (cur === a.id ? null : a.id))}
+                                  >
+                                    Attest a skill
+                                  </button>
+                                )}
+                                {calendarEnabled && (a.status === "SHORTLISTED" || a.status === "INTERVIEW") && (
+                                  <button type="button" className="mini" onClick={() => void toggleMeetings(a.id)}>
+                                    {openMeetings === a.id ? "Hide meetings" : "Meetings"}
+                                  </button>
+                                )}
+                                <Link className="link-quiet" href={`/applications/${a.id}`}>
                                   Timeline →
                                 </Link>
                               </div>
+                              {rejectingId === a.id && (
+                                <RejectBar
+                                  value={rejectCode}
+                                  busy={busyId === a.id}
+                                  onChange={setRejectCode}
+                                  onConfirm={() => void applyTransition(a, "REJECTED", rejectCode)}
+                                  onCancel={() => setRejectingId(null)}
+                                />
+                              )}
+                              {attestingId === a.id && (
+                                <AttestBar
+                                  skills={a.student.skills}
+                                  busy={busyId === a.id}
+                                  onConfirm={(skillId, context) => void issueAttestation(a, skillId, context)}
+                                  onCancel={() => setAttestingId(null)}
+                                />
+                              )}
+                              {openMeetings === a.id && (
+                                <div style={{ marginTop: 8 }}>
+                                  <MeetingList
+                                    meetings={meetingsByApp[a.id] ?? []}
+                                    currentUserId={getUser()?.id}
+                                    busyId={busyId}
+                                    onCancel={(meetingId) => void cancelMeeting(a.id, meetingId)}
+                                  />
+                                  {schedulingId === a.id ? (
+                                    <MeetingScheduler
+                                      busy={busyId === a.id}
+                                      connected={calendarConnected}
+                                      connectUrl={googleCalendarConnectUrl(`/opportunities/${id}/applicants`)}
+                                      onConfirm={(input) => void scheduleMeeting(a, input)}
+                                      onCancel={() => setSchedulingId(null)}
+                                    />
+                                  ) : (
+                                    <button type="button" className="mini solid" onClick={() => setSchedulingId(a.id)}>
+                                      Schedule Meet
+                                    </button>
+                                  )}
+                                </div>
+                              )}
                             </td>
                           </tr>
                           {openResume === a.id && (
                             <tr onClick={(e) => e.stopPropagation()}>
-                              <td colSpan={7} style={{ background: "var(--panel-2, var(--bg))" }}>
+                              <td colSpan={7} className="resume-expand">
                                 <ResumeViewer userId={a.student.id} />
                               </td>
                             </tr>

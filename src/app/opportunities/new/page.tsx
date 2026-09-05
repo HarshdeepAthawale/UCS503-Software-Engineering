@@ -112,7 +112,7 @@ export default function NewOpportunityPage() {
     return (
       <div className="app-shell">
         <AppNav user={getUser()} />
-        <main className="app-page">
+        <main id="content" className="app-page">
           <div className="wrap app-empty">
             <h3>Only faculty and approved alumni can post</h3>
             <p>Students discover and apply; posting is for opportunity owners.</p>
@@ -129,7 +129,7 @@ export default function NewOpportunityPage() {
   return (
     <div className="app-shell">
       <AppNav user={getUser()} />
-      <main className="app-page">
+      <main id="content" className="app-page">
         <div className="wrap" style={{ maxWidth: 760 }}>
           <div className="page-head">
             <div>

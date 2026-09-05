@@ -10,6 +10,10 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["tests/**/*.test.ts"],
+    // tests/integration/** needs a live Postgres (see vitest.integration.config.ts
+    // + `npm run test:integration`) - CI's `npm test` step provisions no
+    // database, so these must never be swept into the default run.
+    exclude: ["tests/integration/**", "node_modules/**"],
     setupFiles: ["tests/setup.ts"],
   },
 });

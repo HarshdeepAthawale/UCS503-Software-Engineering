@@ -235,9 +235,11 @@ The **Must** tier alone is a complete, demonstrable, gradeable product. Everythi
 
 ### 5.4 ⬜ WON'T — This Cycle _(scope boundary)_
 
-Native mobile apps · institutional SSO/LDAP · video interviews/calls · payment or stipend disbursement · public feed of any kind · AI-generated profile/posting content · resume parsing · cross-institute federation.
+Native mobile apps · institutional SSO/LDAP · payment or stipend disbursement · public feed of any kind · AI-generated profile/posting content · resume parsing · cross-institute federation.
 
 > Listing these explicitly is a **scope-management artifact** — it reads as deliberate rather than incomplete.
+
+**Reversed (2026-09-06):** "video interviews/calls" was originally on this list. It shipped anyway as Google Meet meeting scheduling — a poster schedules an interview once an application reaches SHORTLISTED/INTERVIEW, a team lead schedules a team sync — via incremental Google Calendar OAuth consent (`calendar.events` scope, separate from sign-in) rather than building any video-calling surface in the platform itself: the app only creates a Calendar event with an auto-generated Meet link and invites attendees by email, it never touches the call. The decision to build it anyway was a deliberate scope override, not a gap that was missed; C7's ".ics calendar export" is effectively subsumed by this (a scheduled meeting already appears on the organizer's real calendar).
 
 ---
 

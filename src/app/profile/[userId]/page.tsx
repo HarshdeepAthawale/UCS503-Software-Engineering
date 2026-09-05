@@ -119,7 +119,7 @@ export default function MemberProfilePage() {
   return (
     <div className="app-shell">
       <AppNav user={viewer} />
-      <main className="profile-shell">
+      <main id="content" className="profile-shell">
         <div className="wrap">
           {error && (
             <p className="form-err" role="alert">
@@ -211,16 +211,33 @@ export default function MemberProfilePage() {
                     {profile.skills.map((s) => (
                       <span
                         key={s.id}
-                        className="skill-chip"
-                        title={`${s.domain} · ${s.proficiency.toLowerCase()}`}
+                        className={`skill-chip${s.attestation ? " skill-chip-verified" : ""}`}
+                        title={
+                          s.attestation
+                            ? `Verified by ${s.attestation.issuerName} (${s.attestation.issuerRole.toLowerCase()}) — ${s.attestation.context}`
+                            : `${s.domain} · ${s.proficiency.toLowerCase()}`
+                        }
                       >
+                        {s.attestation && "✔ "}
                         {s.name} · {s.proficiency.toLowerCase()}
                       </span>
                     ))}
                   </div>
-                  {profile.skills.length > 0 && (
+                  {profile.skills.some((s) => s.attestation) && (
+                    <ul className="attestation-list" style={{ marginTop: 12 }}>
+                      {profile.skills
+                        .filter((s) => s.attestation)
+                        .map((s) => (
+                          <li key={s.id} className="empty-note">
+                            <strong>{s.name}</strong> verified by {s.attestation!.issuerName} (
+                            {s.attestation!.issuerRole.toLowerCase()}) — {s.attestation!.context}
+                          </li>
+                        ))}
+                    </ul>
+                  )}
+                  {profile.skills.some((s) => !s.attestation) && (
                     <p className="empty-note" style={{ marginTop: 12 }}>
-                      Self-claimed until an attestation verifies them.
+                      Unmarked skills are self-claimed until an attestation verifies them.
                     </p>
                   )}
                 </div>

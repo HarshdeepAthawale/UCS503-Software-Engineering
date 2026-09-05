@@ -68,7 +68,7 @@ export default function MyPostingsPage() {
     return (
       <div className="app-shell">
         <AppNav user={getUser()} />
-        <main className="app-page">
+        <main id="content" className="app-page">
           <div className="wrap app-empty">
             <h3>Only faculty and approved alumni post opportunities</h3>
             <p>This dashboard lists what you've posted - students see everyone's postings on the feed.</p>
@@ -82,7 +82,7 @@ export default function MyPostingsPage() {
   return (
     <div className="app-shell">
       <AppNav user={getUser()} />
-      <main className="app-page">
+      <main id="content" className="app-page">
         <div className="wrap">
           <div className="page-head">
             <div>

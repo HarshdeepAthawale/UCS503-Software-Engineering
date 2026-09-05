@@ -182,9 +182,9 @@ export default function OpportunityDetailPage() {
   return (
     <div className="app-shell">
       <AppNav user={user} />
-      <main className="app-page">
+      <main id="content" className="app-page">
         <div className="wrap">
-          <Link href="/opportunities" className="appnav-link" style={{ marginBottom: 16, display: "inline-flex" }}>
+          <Link href="/opportunities" className="back-link">
             ← Back to feed
           </Link>
 
@@ -306,7 +306,7 @@ export default function OpportunityDetailPage() {
                           <label htmlFor="rd">Details (optional)</label>
                           <textarea id="rd" value={reportDetail} maxLength={500} onChange={(e) => setReportDetail(e.target.value)} placeholder="What's wrong with this posting?" />
                         </div>
-                        <div className="row" style={{ gap: 8 }}>
+                        <div className="row">
                           <button className="mini" type="button" onClick={() => setReportOpen(false)} disabled={reportBusy}>Cancel</button>
                           <button className="mini solid" type="button" onClick={onReport} disabled={reportBusy}>
                             {reportBusy ? "Reporting…" : "Submit report"}

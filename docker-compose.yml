@@ -74,13 +74,21 @@ services:
       ALLOW_INSECURE_COOKIES: "true"
       NODE_ENV: development
 
-      # Left blank on purpose: résumé upload, email and Google sign-in each
-      # report cleanly when unconfigured rather than failing at runtime.
-      SUPABASE_URL: ""
-      SUPABASE_SERVICE_ROLE_KEY: ""
-      RESEND_API_KEY: ""
-      GOOGLE_CLIENT_ID: ""
-      GOOGLE_CLIENT_SECRET: ""
+      # Blank unless set on the host: résumé upload, email and Google sign-in
+      # each report cleanly when unconfigured rather than failing at runtime.
+      # Pulled from the shell/.env compose reads for variable substitution
+      # (NOT auto-injected into the container otherwise) so a real value in
+      # your .env actually reaches the app; a fresh clone with no .env still
+      # boots fine since these default to empty.
+      SUPABASE_URL: ${SUPABASE_URL:-}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      # The button component gates on this at build/dev-compile time
+      # (docs/TechSpecifications.md); without it the button stays hidden even
+      # once the two vars above are populated.
+      NEXT_PUBLIC_GOOGLE_ENABLED: ${NEXT_PUBLIC_GOOGLE_ENABLED:-false}
 
       # Blank so this container serves its OWN /api. Setting it would turn this
       # into a frontend proxying to a remote backend (see next.config.ts).

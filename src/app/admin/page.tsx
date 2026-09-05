@@ -59,6 +59,7 @@ const ROLES = ["STUDENT", "FACULTY", "ALUMNI"] as const;
 
 export default function AdminPage() {
   const [ready, setReady] = useState(false);
+  const [signedIn, setSignedIn] = useState(false);
   const [allowed, setAllowed] = useState(false);
   const [tab, setTab] = useState<Tab>("overview");
   const [error, setError] = useState<string | null>(null);
@@ -79,6 +80,7 @@ export default function AdminPage() {
   useEffect(() => {
     void (async () => {
       const ok = await bootstrapSession();
+      setSignedIn(ok);
       setAllowed(ok && getUser()?.role === "ADMIN");
       setReady(true);
       if (ok && getUser()?.role === "ADMIN") {
@@ -220,11 +222,23 @@ export default function AdminPage() {
   }
 
   if (!ready) return <main className="app-shell"><p className="app-loading">Loading…</p></main>;
+  if (!signedIn) {
+    return (
+      <main className="auth-shell">
+        <div className="auth-card">
+          <h1>Sign in required</h1>
+          <div className="hero-actions">
+            <Link className="btn btn-primary" href="/login">Sign in</Link>
+          </div>
+        </div>
+      </main>
+    );
+  }
   if (!allowed) {
     return (
       <div className="app-shell">
         <AppNav user={getUser()} />
-        <main className="app-page"><div className="wrap app-empty">
+        <main id="content" className="app-page"><div className="wrap app-empty">
           <h3>Administrators only</h3>
           <p>This console is restricted to the platform administrator.</p>
           <Link className="btn btn-ghost" href="/opportunities">← Back to app</Link>
@@ -236,7 +250,7 @@ export default function AdminPage() {
   return (
     <div className="app-shell">
       <AppNav user={getUser()} />
-      <main className="app-page">
+      <main id="content" className="app-page">
         <div className="wrap">
           <div className="page-head">
             <div>
@@ -385,7 +399,7 @@ export default function AdminPage() {
                   {flags.map((f) => (
                     <tr key={f.id}>
                       <td>
-                        <Link className="appnav-link" style={{ padding: 0 }} href={`/opportunities/${f.opportunity.id}`}>
+                        <Link href={`/opportunities/${f.opportunity.id}`}>
                           {f.opportunity.title}
                         </Link>
                         {f.detail && <div className="empty-note" style={{ marginTop: 4 }}>{f.detail}</div>}

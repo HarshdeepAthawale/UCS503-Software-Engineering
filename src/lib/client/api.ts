@@ -59,7 +59,19 @@ export interface Profile {
   cgpaPublic: boolean;
   /** Active/current backlogs (self-reported), matched against a posting's `maxBacklogs`. */
   backlogs: number | null;
-  skills: { id: string; name: string; domain: string; proficiency: string }[];
+  skills: {
+    id: string;
+    name: string;
+    domain: string;
+    proficiency: string;
+    /** Present once a poster has attested this skill (T-19); null = self-claimed only. */
+    attestation: {
+      issuerName: string;
+      issuerRole: string;
+      context: string;
+      createdAt: string;
+    } | null;
+  }[];
   projects: Project[];
   resume: ResumeMeta | null;
 }
@@ -555,6 +567,8 @@ export interface Applicant {
     branch: string | null;
     cgpa: number | null;
     backlogs: number | null;
+    /** The student's claimed skills - an attestation may only target one of these. */
+    skills: { id: string; name: string }[];
   };
   events: ApplicationEvent[];
 }
@@ -603,6 +617,232 @@ export async function apiWithdraw(
     { method: "POST" },
   );
   return body.application;
+}
+
+// ── Attestations (T-19) ──────────────────────────────────────────────────────
+
+export interface Attestation {
+  id: string;
+  skillId: string;
+  context: string;
+  createdAt: string;
+}
+
+export async function apiIssueAttestation(
+  applicationId: string,
+  input: { skillId: string; context: string },
+): Promise<Attestation> {
+  const body = await request<{ attestation: Attestation }>(
+    `/api/applications/${applicationId}/attestations`,
+    { method: "POST", body: JSON.stringify(input) },
+  );
+  return body.attestation;
+}
+
+// ── Team formation (T-22) ────────────────────────────────────────────────────
+
+export type TeamStatus = "FORMING" | "LOCKED" | "CLOSED";
+
+export interface SkillFit {
+  score: number;
+  matched: string[];
+  missing: string[];
+}
+
+export interface TeamRole {
+  id: string;
+  label: string;
+  slotCount: number;
+  slotsFilled: number;
+  skills: { id: string; name: string; domain: string }[];
+  /** Present only for a STUDENT viewer (not the lead) - how their own claimed skills fit this role. */
+  skillFit?: SkillFit;
+  /** Present only for a STUDENT viewer (not the lead) - their own request for this role, or null if they haven't requested it. */
+  myRequest?: { id: string; status: "PENDING" | "ACCEPTED" | "REJECTED" | "WITHDRAWN" } | null;
+}
+
+export interface TeamMemberRef {
+  userId: string;
+  roleId: string;
+  joinedAt: string;
+  name: string;
+}
+
+export interface Team {
+  id: string;
+  name: string;
+  hackathon: string;
+  description: string | null;
+  eventDate: string | null;
+  status: TeamStatus;
+  createdAt: string;
+  lead: { id: string; name: string };
+  roles: TeamRole[];
+  members: TeamMemberRef[];
+}
+
+export interface TeamRoleInput {
+  label: string;
+  slotCount: number;
+  skillIds: string[];
+}
+
+export interface TeamCreateInput {
+  name: string;
+  hackathon: string;
+  description?: string;
+  eventDate?: string;
+  roles: TeamRoleInput[];
+}
+
+export async function apiListTeams(
+  params: { hackathon?: string; status?: string; mine?: boolean; cursor?: string; limit?: number } = {},
+): Promise<{ teams: Team[]; nextCursor: string | null }> {
+  const qs = new URLSearchParams();
+  if (params.hackathon) qs.set("hackathon", params.hackathon);
+  if (params.status) qs.set("status", params.status);
+  if (params.mine) qs.set("mine", "1");
+  if (params.cursor) qs.set("cursor", params.cursor);
+  if (params.limit) qs.set("limit", String(params.limit));
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  return request<{ teams: Team[]; nextCursor: string | null }>(`/api/teams${suffix}`);
+}
+
+export async function apiGetTeam(id: string): Promise<Team> {
+  const body = await request<{ team: Team }>(`/api/teams/${id}`);
+  return body.team;
+}
+
+export async function apiCreateTeam(input: TeamCreateInput): Promise<Team> {
+  const body = await request<{ team: Team }>("/api/teams", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+  return body.team;
+}
+
+export async function apiCloseTeam(id: string): Promise<Team> {
+  const body = await request<{ team: Team }>(`/api/teams/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ status: "CLOSED" }),
+  });
+  return body.team;
+}
+
+export async function apiRequestToJoinRole(
+  teamId: string,
+  roleId: string,
+  message?: string,
+): Promise<{ id: string }> {
+  const body = await request<{ request: { id: string } }>(
+    `/api/teams/${teamId}/roles/${roleId}/request`,
+    { method: "POST", body: JSON.stringify(message ? { message } : {}) },
+  );
+  return body.request;
+}
+
+export async function apiWithdrawJoinRequest(teamId: string, requestId: string): Promise<void> {
+  await request<void>(`/api/teams/${teamId}/requests/${requestId}`, { method: "DELETE" });
+}
+
+export interface TeamJoinRequestView {
+  id: string;
+  status: "PENDING" | "ACCEPTED" | "REJECTED" | "WITHDRAWN";
+  message: string | null;
+  rejectionCode: RejectionCode | null;
+  createdAt: string;
+  role: { id: string; label: string };
+  student: { id: string; name: string };
+}
+
+export async function apiListTeamRequests(teamId: string): Promise<TeamJoinRequestView[]> {
+  const body = await request<{ requests: TeamJoinRequestView[] }>(`/api/teams/${teamId}/requests`);
+  return body.requests;
+}
+
+export async function apiDecideTeamRequest(
+  teamId: string,
+  requestId: string,
+  status: "ACCEPTED" | "REJECTED",
+  rejectionCode?: RejectionCode,
+): Promise<{ id: string; status: string }> {
+  const body = await request<{ request: { id: string; status: string } }>(
+    `/api/teams/${teamId}/requests/${requestId}`,
+    { method: "PATCH", body: JSON.stringify({ status, ...(rejectionCode ? { rejectionCode } : {}) }) },
+  );
+  return body.request;
+}
+
+// ── Meeting scheduling via Google Meet ───────────────────────────────────────
+
+export type MeetingStatus = "SCHEDULED" | "CANCELLED" | "COMPLETED";
+
+export interface Meeting {
+  id: string;
+  title: string;
+  scheduledAt: string;
+  durationMinutes: number;
+  meetLink: string;
+  status: MeetingStatus;
+  createdAt: string;
+  organizer: { id: string; name: string };
+}
+
+export interface MeetingCreateInput {
+  title: string;
+  description?: string;
+  scheduledAt: string;
+  durationMinutes?: number;
+}
+
+/** Where to send the browser to grant (or re-grant) Calendar access, returning to this page. */
+export function googleCalendarConnectUrl(returnTo: string): string {
+  return `/api/auth/google/calendar/start?returnTo=${encodeURIComponent(returnTo)}`;
+}
+
+export async function apiGetCalendarStatus(): Promise<{ connected: boolean; enabled: boolean }> {
+  return request<{ connected: boolean; enabled: boolean }>("/api/profiles/me/google-calendar");
+}
+
+export async function apiDisconnectCalendar(): Promise<void> {
+  await request<void>("/api/profiles/me/google-calendar", { method: "DELETE" });
+}
+
+export async function apiListApplicationMeetings(applicationId: string): Promise<Meeting[]> {
+  const body = await request<{ meetings: Meeting[] }>(`/api/applications/${applicationId}/meetings`);
+  return body.meetings;
+}
+
+export async function apiScheduleApplicationMeeting(
+  applicationId: string,
+  input: MeetingCreateInput,
+): Promise<Meeting> {
+  const body = await request<{ meeting: Meeting }>(`/api/applications/${applicationId}/meetings`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+  return body.meeting;
+}
+
+export async function apiListTeamMeetings(teamId: string): Promise<Meeting[]> {
+  const body = await request<{ meetings: Meeting[] }>(`/api/teams/${teamId}/meetings`);
+  return body.meetings;
+}
+
+export async function apiScheduleTeamMeeting(teamId: string, input: MeetingCreateInput): Promise<Meeting> {
+  const body = await request<{ meeting: Meeting }>(`/api/teams/${teamId}/meetings`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+  return body.meeting;
+}
+
+export async function apiCancelMeeting(meetingId: string): Promise<{ id: string; status: MeetingStatus }> {
+  const body = await request<{ meeting: { id: string; status: MeetingStatus } }>(
+    `/api/meetings/${meetingId}`,
+    { method: "DELETE" },
+  );
+  return body.meeting;
 }
 
 // ── Messaging (T-16) ─────────────────────────────────────────────────────────

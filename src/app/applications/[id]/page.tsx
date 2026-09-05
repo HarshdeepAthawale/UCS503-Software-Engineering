@@ -9,13 +9,17 @@ import {
   apiListMyApplications,
   apiSendMessage,
   apiWithdraw,
+  apiListApplicationMeetings,
+  apiCancelMeeting,
   ApiError,
   bootstrapSession,
   getUser,
   type Message,
   type MyApplication,
+  type Meeting,
 } from "@/lib/client/api";
 import { statusClass, timeAgo, titleCase } from "@/lib/client/format";
+import { MeetingList } from "@/components/meeting-list";
 
 export default function ApplicationConversationPage() {
   const id = useParams<{ id: string }>().id;
@@ -25,6 +29,8 @@ export default function ApplicationConversationPage() {
   const [signedIn, setSignedIn] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [mine, setMine] = useState<MyApplication | null>(null);
+  const [meetings, setMeetings] = useState<Meeting[]>([]);
+  const [cancelingMeetingId, setCancelingMeetingId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -46,6 +52,11 @@ export default function ApplicationConversationPage() {
       setReady(true);
       if (!ok) return;
       await loadMessages();
+      try {
+        setMeetings(await apiListApplicationMeetings(id));
+      } catch {
+        /* optional - not every viewer of this route is a participant */
+      }
       // Students also get a status header + withdraw (posters manage via pipeline).
       if (getUser()?.role === "STUDENT") {
         try {
@@ -83,6 +94,18 @@ export default function ApplicationConversationPage() {
       setError(err instanceof ApiError ? err.message : "Message not sent.");
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function onCancelMeeting(meetingId: string) {
+    setCancelingMeetingId(meetingId);
+    try {
+      await apiCancelMeeting(meetingId);
+      setMeetings((prev) => prev.map((m) => (m.id === meetingId ? { ...m, status: "CANCELLED" } : m)));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not cancel the meeting.");
+    } finally {
+      setCancelingMeetingId(null);
     }
   }
 
@@ -124,9 +147,9 @@ export default function ApplicationConversationPage() {
   return (
     <div className="app-shell">
       <AppNav user={me} />
-      <main className="app-page">
+      <main id="content" className="app-page">
         <div className="wrap" style={{ maxWidth: 720 }}>
-          <Link href={isStudent ? "/applications" : "/opportunities"} className="appnav-link" style={{ marginBottom: 16, display: "inline-flex" }}>
+          <Link href={isStudent ? "/applications" : "/opportunities"} className="back-link">
             ← Back
           </Link>
 
@@ -139,6 +162,18 @@ export default function ApplicationConversationPage() {
           </div>
 
           {error && <p className="form-err" role="alert">{error}</p>}
+
+          {meetings.length > 0 && (
+            <div className="panel-card" style={{ marginBottom: 16 }}>
+              <h2>Meetings</h2>
+              <MeetingList
+                meetings={meetings}
+                currentUserId={me?.id}
+                busyId={cancelingMeetingId}
+                onCancel={(meetingId) => void onCancelMeeting(meetingId)}
+              />
+            </div>
+          )}
 
           <div className="panel">
             <div className="thread" ref={threadRef}>

@@ -15,7 +15,8 @@ export type ErrorCode =
   | "DOMAIN_RULE"
   | "INTERNAL";
 
-const STATUS: Record<ErrorCode, number> = {
+/** Stable HTTP mapping — the `/errors` page and `AppError.status` share this. */
+export const ERROR_HTTP_STATUS: Record<ErrorCode, number> = {
   VALIDATION_ERROR: 400,
   UNAUTHENTICATED: 401,
   FORBIDDEN: 403,
@@ -36,7 +37,7 @@ export class AppError extends Error {
     super(message);
     this.name = "AppError";
     this.code = code;
-    this.status = STATUS[code];
+    this.status = ERROR_HTTP_STATUS[code];
     this.field = field;
   }
 }

@@ -24,16 +24,33 @@ const CASES: Array<[Role, Permission, boolean]> = [
   ["STUDENT", "application:create", true],
   ["STUDENT", "opportunity:create", false], // students cannot post
   ["STUDENT", "attestation:create", false], // cannot attest
+  // Team formation (T-22): peer-driven - students lead, faculty/alumni/admin
+  // may only view. team:manage is ownership-scoped, asserted below.
+  ["STUDENT", "team:create", true],
+  ["STUDENT", "team:read", true],
+  ["STUDENT", "team:join_request", true],
+  ["FACULTY", "team:create", false],
+  ["FACULTY", "team:read", true],
+  ["FACULTY", "team:join_request", false], // faculty/alumni don't join teams
+  ["ADMIN", "team:create", false],
+  ["ADMIN", "team:read", true],
+  // Meeting scheduling (Google Meet): meeting:create/cancel are ownership-
+  // scoped, asserted below with an ownerId. meeting:read is a plain role
+  // grant - the route itself checks membership (organizer/attendee), the same
+  // pattern as message:read.
+  ["STUDENT", "meeting:read", true],
+  ["FACULTY", "meeting:read", true],
+  ["ADMIN", "meeting:read", false], // admins don't organize or attend meetings
   ["STUDENT", "alumni_claim:approve", false], // not an admin
   ["STUDENT", "analytics:read", false],
   // Faculty
   ["FACULTY", "opportunity:create", true],
-  ["FACULTY", "attestation:create", true],
+  // attestation:create is ownership-scoped (T-19) - asserted with an ownerId
+  // in the ownership suite below, not here.
   ["FACULTY", "application:create", false], // faculty do not apply
   ["FACULTY", "alumni_claim:approve", false],
   // Alumni behave like faculty for posting/attesting
   ["ALUMNI", "opportunity:create", true],
-  ["ALUMNI", "attestation:create", true],
   ["ALUMNI", "alumni_claim:approve", false],
   // Admin governance
   ["ADMIN", "alumni_claim:approve", true],
@@ -138,6 +155,62 @@ describe("Ownership scoping (prevents IDOR / horizontal escalation)", () => {
   it("denies a faculty member updating ANOTHER poster's posting", () => {
     const poster = P("FACULTY");
     const r = decide(poster, "opportunity:update", { ownerId: "another-poster" });
+    expect(r.allowed).toBe(false);
+    if (!r.allowed) expect(r.reason).toBe("not_owner");
+  });
+
+  it("allows a faculty/alumni poster to issue an attestation on THEIR OWN posting (T-19)", () => {
+    expect(can(P("FACULTY"), "attestation:create", { ownerId: "user-1" })).toBe(true);
+    expect(can(P("ALUMNI"), "attestation:create", { ownerId: "user-1" })).toBe(true);
+  });
+
+  it("denies issuing an attestation via ANOTHER poster's application", () => {
+    const poster = P("FACULTY");
+    const r = decide(poster, "attestation:create", { ownerId: "another-poster" });
+    expect(r.allowed).toBe(false);
+    if (!r.allowed) expect(r.reason).toBe("not_owner");
+  });
+
+  it("fails closed when attestation ownership is unresolved", () => {
+    const r = decide(P("FACULTY"), "attestation:create", {});
+    expect(r.allowed).toBe(false);
+    if (!r.allowed) expect(r.reason).toBe("ownership_unresolved");
+  });
+
+  it("allows a team lead to manage (accept/reject/close) THEIR OWN team (T-22)", () => {
+    const lead = P("STUDENT");
+    expect(can(lead, "team:manage", { ownerId: lead.userId })).toBe(true);
+  });
+
+  it("denies managing ANOTHER student's team", () => {
+    const r = decide(P("STUDENT"), "team:manage", { ownerId: "another-lead" });
+    expect(r.allowed).toBe(false);
+    if (!r.allowed) expect(r.reason).toBe("not_owner");
+  });
+
+  it("allows withdrawing YOUR OWN join request but not someone else's", () => {
+    const me = P("STUDENT");
+    expect(can(me, "team:join_request_withdraw", { ownerId: me.userId })).toBe(true);
+    const r = decide(me, "team:join_request_withdraw", { ownerId: "another-student" });
+    expect(r.allowed).toBe(false);
+    if (!r.allowed) expect(r.reason).toBe("not_owner");
+  });
+
+  it("allows a poster/team-lead to schedule a meeting they organize", () => {
+    expect(can(P("FACULTY"), "meeting:create", { ownerId: "user-1" })).toBe(true);
+    expect(can(P("STUDENT"), "meeting:create", { ownerId: "user-1" })).toBe(true);
+  });
+
+  it("denies scheduling a meeting on someone else's application/team", () => {
+    const r = decide(P("FACULTY"), "meeting:create", { ownerId: "another-poster" });
+    expect(r.allowed).toBe(false);
+    if (!r.allowed) expect(r.reason).toBe("not_owner");
+  });
+
+  it("allows the organizer, and only the organizer, to cancel a meeting", () => {
+    const organizer = P("STUDENT");
+    expect(can(organizer, "meeting:cancel", { ownerId: organizer.userId })).toBe(true);
+    const r = decide(organizer, "meeting:cancel", { ownerId: "another-organizer" });
     expect(r.allowed).toBe(false);
     if (!r.allowed) expect(r.reason).toBe("not_owner");
   });

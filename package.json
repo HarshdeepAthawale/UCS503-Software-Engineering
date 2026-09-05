@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
     "db:generate": "prisma generate",
     "db:migrate:apply": "node --env-file=.env scripts/apply-migrations.mjs",
     "db:migrate:deploy": "node scripts/apply-migrations.mjs",
@@ -20,7 +21,7 @@
     "db:deploy": "prisma migrate deploy",
     "bootstrap:admin": "node --env-file=.env --import tsx prisma/bootstrap-admin.ts",
     "db:studio": "prisma studio",
-    "bench:search": "node --env-file=.env scripts/bench-search.mjs"
+    "link:cursor-skills": "node scripts/link-cursor-skills.mjs"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",

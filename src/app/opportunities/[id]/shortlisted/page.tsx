@@ -14,6 +14,7 @@ import {
   type Applicant,
   type RejectionCode,
 } from "@/lib/client/api";
+import { RejectBar } from "@/components/reject-bar";
 import { statusClass, timeAgo, titleCase } from "@/lib/client/format";
 
 // Re-fetches so a student withdrawing an accepted offer (or a stray change
@@ -35,6 +36,8 @@ export default function ShortlistedCandidatesPage() {
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [openResume, setOpenResume] = useState<string | null>(null);
+  const [rejectingId, setRejectingId] = useState<string | null>(null);
+  const [rejectCode, setRejectCode] = useState<RejectionCode>("STRONGER_APPLICANTS");
 
   const load = useCallback(async () => {
     try {
@@ -60,17 +63,24 @@ export default function ShortlistedCandidatesPage() {
   }, [signedIn, load]);
 
   async function decide(app: Applicant, to: "SELECTED" | "REJECTED") {
+    if (to === "REJECTED") {
+      setRejectingId(app.id);
+      setRejectCode("STRONGER_APPLICANTS");
+      return;
+    }
+    await applyDecision(app, to);
+  }
+
+  async function applyDecision(
+    app: Applicant,
+    to: "SELECTED" | "REJECTED",
+    rejectionCode?: RejectionCode,
+  ) {
     setError(null);
     setBusyId(app.id);
     try {
-      const rejectionCode =
-        to === "REJECTED"
-          ? ((prompt(
-              "Rejection reason code (SKILL_MISMATCH, SEATS_FILLED, TIMING_CONFLICT, PROFILE_INCOMPLETE, STRONGER_APPLICANTS, OTHER):",
-              "STRONGER_APPLICANTS",
-            ) || "OTHER") as RejectionCode)
-          : undefined;
       await apiTransition(app.id, to, rejectionCode ? { rejectionCode } : {});
+      setRejectingId(null);
       await load();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not update the application.");
@@ -98,9 +108,9 @@ export default function ShortlistedCandidatesPage() {
   return (
     <div className="app-shell">
       <AppNav user={getUser()} />
-      <main className="app-page">
+      <main id="content" className="app-page">
         <div className="wrap">
-          <Link href={`/opportunities/${id}/applicants`} className="appnav-link" style={{ marginBottom: 16, display: "inline-flex" }}>
+          <Link href={`/opportunities/${id}/applicants`} className="back-link">
             ← Full pipeline
           </Link>
 
@@ -156,6 +166,15 @@ export default function ShortlistedCandidatesPage() {
                         Decline
                       </button>
                     </div>
+                    {rejectingId === a.id && (
+                      <RejectBar
+                        value={rejectCode}
+                        busy={busyId === a.id}
+                        onChange={setRejectCode}
+                        onConfirm={() => void applyDecision(a, "REJECTED", rejectCode)}
+                        onCancel={() => setRejectingId(null)}
+                      />
+                    )}
                     <div className="row">
                       <button
                         type="button"
@@ -164,7 +183,7 @@ export default function ShortlistedCandidatesPage() {
                       >
                         {openResume === a.id ? "Hide résumé" : "View résumé"}
                       </button>
-                      <Link className="appnav-link" style={{ padding: "4px 8px", fontSize: 12 }} href={`/applications/${a.id}`}>
+                      <Link className="link-quiet" href={`/applications/${a.id}`}>
                         Message / timeline →
                       </Link>
                     </div>

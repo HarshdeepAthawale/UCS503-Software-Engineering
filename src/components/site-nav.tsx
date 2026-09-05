@@ -60,9 +60,13 @@ export function SiteNav() {
 
   return (
     <header className="dock">
+      <a className="skip-link" href="#top">
+        Skip to content
+      </a>
       <div className="dock-pill">
         <Link className="dock-brand" href="/">
           <TiLogo size={26} className="ti-mark" priority />
+          <span className="dock-wordmark">Nexus</span>
         </Link>
 
         <span className="dock-rule" aria-hidden="true" />

@@ -26,6 +26,7 @@ const FREQS: { value: NotifFreq; label: string }[] = [
 function describe(n: Notification): { text: string; href?: string } {
   const appId = typeof n.payload.applicationId === "string" ? n.payload.applicationId : undefined;
   const oppId = typeof n.payload.opportunityId === "string" ? n.payload.opportunityId : undefined;
+  const teamId = typeof n.payload.teamId === "string" ? n.payload.teamId : undefined;
   switch (n.type) {
     case "application.received":
       return { text: "A new application arrived on your posting.", href: oppId ? `/opportunities/${oppId}/applicants` : undefined };
@@ -39,6 +40,24 @@ function describe(n: Notification): { text: string; href?: string } {
       return { text: "A posting is at risk - an applicant is waiting past your SLA.", href: oppId ? `/opportunities/${oppId}/applicants` : undefined };
     case "opportunity.deadline_reminder":
       return { text: n.payload.tier === "T24" ? "A posting closes within 24 hours - review applicants before it expires." : "A posting closes within 72 hours - review applicants before it expires.", href: oppId ? `/opportunities/${oppId}/applicants` : undefined };
+    case "attestation.received":
+      return { text: "A poster verified one of your skills - it now shows as attested on your profile.", href: "/profile" };
+    case "team.join_requested":
+      return { text: "A student requested to join your team.", href: teamId ? `/teams/${teamId}/requests` : undefined };
+    case "team.request_accepted":
+      return { text: "Your request to join a team was accepted.", href: teamId ? `/teams/${teamId}` : undefined };
+    case "team.request_rejected":
+      return { text: "Your request to join a team was not accepted this time.", href: teamId ? `/teams/${teamId}` : undefined };
+    case "team.locked":
+      return { text: "Your team is complete - every role is filled.", href: teamId ? `/teams/${teamId}` : undefined };
+    case "meeting.scheduled": {
+      const href = appId ? `/applications/${appId}` : teamId ? `/teams/${teamId}` : undefined;
+      return { text: n.payload.reminder ? "Reminder: you have a meeting coming up." : "A Google Meet meeting was scheduled.", href };
+    }
+    case "meeting.cancelled": {
+      const href = appId ? `/applications/${appId}` : teamId ? `/teams/${teamId}` : undefined;
+      return { text: "A scheduled meeting was cancelled.", href };
+    }
     default:
       return { text: n.type };
   }
@@ -105,7 +124,7 @@ export default function NotificationsPage() {
   return (
     <div className="app-shell">
       <AppNav user={getUser()} unread={unread} />
-      <main className="app-page">
+      <main id="content" className="app-page">
         <div className="wrap" style={{ maxWidth: 760 }}>
           <div className="page-head">
             <div>
@@ -114,7 +133,7 @@ export default function NotificationsPage() {
             </div>
             <div className="nav-cta">
               <select aria-label="Digest cadence" value={freq} onChange={(e) => void changeFreq(e.target.value as NotifFreq)}
-                style={{ background: "var(--surface)", border: "1px solid var(--border-strong)", color: "var(--text)", borderRadius: 10, padding: "8px 12px", fontFamily: "inherit" }}>
+                className="compact-select">
                 {FREQS.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
               </select>
               {unread > 0 && <button className="btn btn-ghost btn-sm" type="button" onClick={() => void markAll()}>Mark all read</button>}

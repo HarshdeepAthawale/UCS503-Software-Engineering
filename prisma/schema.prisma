@@ -101,6 +101,29 @@ enum NotifFreq {
   WEEKLY
 }
 
+// ── Team formation (T-22; docs/PRD S6) ───────────────────────────────────────
+
+enum TeamStatus {
+  FORMING // still recruiting
+  LOCKED  // every role slot filled
+  CLOSED  // lead closed it early
+}
+
+enum TeamRequestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+}
+
+// ── Meeting scheduling via Google Meet ───────────────────────────────────────
+
+enum MeetingStatus {
+  SCHEDULED
+  CANCELLED
+  COMPLETED
+}
+
 // Moderation: why a posting was flagged, and where the flag stands (T-36, M9).
 enum FlagReason {
   SPAM
@@ -142,6 +165,12 @@ model User {
   messagesSent  Message[]      @relation("message_sender")
   notifications Notification[] @relation("notification_user")
   notificationPref NotificationPreference? @relation("notification_pref")
+  attestationsIssued Attestation[] @relation("attestation_issuer")
+  teamsLed        Team[]            @relation("team_lead")
+  teamMemberships TeamMember[]      @relation("team_member")
+  teamJoinRequests TeamJoinRequest[] @relation("team_join_requester")
+  googleCalendarCredential GoogleCalendarCredential?
+  meetingsOrganized Meeting[] @relation("meeting_organizer")
 
   @@index([role])
   @@index([status])
@@ -293,6 +322,8 @@ model Skill {
 
   userSkills UserSkill[]
   opportunitySkills OpportunitySkill[]
+  attestations Attestation[]
+  teamRoleSkills TeamRoleSkill[]
 
   @@index([domain])
   @@index([deletedAt])
@@ -395,6 +426,8 @@ model Application {
   student     User        @relation("student", fields: [studentId], references: [id], onDelete: Cascade)
   events      ApplicationEvent[]
   thread      MessageThread?
+  attestations Attestation[]
+  meetings    Meeting[]
 
   @@index([opportunityId])
   @@index([studentId])
@@ -421,6 +454,188 @@ model ApplicationEvent {
 
   @@index([applicationId])
   @@map("application_events")
+}
+
+// ── Attestations (T-19; docs/PRD S1, docs/Schema.md §6 constraint 1) ─────────
+
+// A skill endorsement anchored to a completed engagement — "unfarmable"
+// because it requires a real SELECTED application to exist between the
+// issuer and the student. That requirement is enforced by a Postgres
+// CONSTRAINT TRIGGER (see migration 20260906000000_attestations), not just the
+// service layer: a plain CHECK can't reference another table, and a composite
+// FK to a redundant (application_id, status) column would also block a later
+// legitimate transition away from SELECTED (e.g. withdrawing an offer), so a
+// trigger that only gates the moment of insertion is the correct mechanism.
+model Attestation {
+  id            String   @id @default(uuid()) @db.Uuid
+  applicationId String   @map("application_id") @db.Uuid
+  skillId       String   @map("skill_id") @db.Uuid
+  issuerId      String   @map("issuer_id") @db.Uuid
+  // Free-text description of the engagement, e.g. "NLP research assistant,
+  // Aug-Nov 2026" (docs/MasterPlan.md S1).
+  context       String
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  skill       Skill       @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  issuer      User        @relation("attestation_issuer", fields: [issuerId], references: [id], onDelete: Cascade)
+
+  // One attestation per skill per engagement - a poster can attest multiple
+  // skills for the same SELECTED application, but not duplicate the same one.
+  @@unique([applicationId, skillId])
+  @@index([skillId])
+  @@map("attestations")
+}
+
+// ── Team formation for hackathons (T-22; docs/PRD S6) ────────────────────────
+
+// Peer-driven, distinct from the faculty/alumni-gated Opportunity pipeline: any
+// STUDENT may lead a team. A team declares role slots with skill tags; students
+// request a slot, the lead accepts/rejects, and the team locks once every role
+// is full. The Jaccard "complementarity" scoring the spec describes is
+// deliberately deferred past v1 (S6 depends on S5, also unbuilt) - this ships
+// the core request/accept/lock flow first.
+model Team {
+  id          String     @id @default(uuid()) @db.Uuid
+  leadId      String     @map("lead_id") @db.Uuid
+  name        String
+  hackathon   String
+  description String?
+  eventDate   DateTime?  @map("event_date") @db.Timestamptz(6)
+  status      TeamStatus @default(FORMING)
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  lead    User         @relation("team_lead", fields: [leadId], references: [id], onDelete: Cascade)
+  roles   TeamRole[]
+  members TeamMember[]
+  meetings Meeting[]
+
+  @@index([leadId])
+  @@index([status])
+  @@map("teams")
+}
+
+// Required/preferred-style slot: `slotsFilled` can never exceed `slotCount`
+// (constraint mirrors `opportunities.seats_filled <= seat_count`).
+model TeamRole {
+  id          String @id @default(uuid()) @db.Uuid
+  teamId      String @map("team_id") @db.Uuid
+  label       String
+  slotCount   Int    @map("slot_count")
+  slotsFilled Int    @default(0) @map("slots_filled")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  team     Team              @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  skills   TeamRoleSkill[]
+  requests TeamJoinRequest[]
+  members  TeamMember[]
+
+  @@index([teamId])
+  @@map("team_roles")
+}
+
+// Skill tags for a role (admin-curated taxonomy, same as OpportunitySkill).
+model TeamRoleSkill {
+  teamRoleId String @map("team_role_id") @db.Uuid
+  skillId    String @map("skill_id") @db.Uuid
+
+  teamRole TeamRole @relation(fields: [teamRoleId], references: [id], onDelete: Cascade)
+  skill    Skill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@id([teamRoleId, skillId])
+  @@map("team_role_skills")
+}
+
+// A student's request to fill one role slot. One PENDING/ACCEPTED request per
+// (role, student) - `@@unique` blocks duplicate spam requests to the same slot.
+model TeamJoinRequest {
+  id            String             @id @default(uuid()) @db.Uuid
+  teamRoleId    String             @map("team_role_id") @db.Uuid
+  studentId     String             @map("student_id") @db.Uuid
+  message       String?
+  status        TeamRequestStatus  @default(PENDING)
+  // Reuses the Application pipeline's rejection-code vocabulary (e.g.
+  // SEATS_FILLED) rather than inventing a parallel enum for the same idea.
+  rejectionCode RejectionCode?     @map("rejection_code")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  teamRole TeamRole @relation(fields: [teamRoleId], references: [id], onDelete: Cascade)
+  student  User     @relation("team_join_requester", fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([teamRoleId, studentId])
+  @@index([studentId])
+  @@map("team_join_requests")
+}
+
+// A confirmed member, filling one specific role slot on one team.
+model TeamMember {
+  teamId   String   @map("team_id") @db.Uuid
+  userId   String   @map("user_id") @db.Uuid
+  roleId   String   @map("role_id") @db.Uuid
+  joinedAt DateTime @default(now()) @map("joined_at") @db.Timestamptz(6)
+
+  team Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User     @relation("team_member", fields: [userId], references: [id], onDelete: Cascade)
+  role TeamRole @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([teamId, userId])
+  @@map("team_members")
+}
+
+// ── Meeting scheduling via Google Meet ────────────────────────────────────────
+
+// One row per user who has granted the calendar.events scope (incremental
+// OAuth consent, separate from sign-in). The refresh token is encrypted at
+// rest (AES-256-GCM, key from TOKEN_ENCRYPTION_KEY - see google-calendar.ts);
+// only the person SCHEDULING a meeting needs this - attendees are added by
+// email on the organizer's own calendar event and never need their own grant.
+model GoogleCalendarCredential {
+  userId                String    @id @map("user_id") @db.Uuid
+  encryptedRefreshToken String    @map("encrypted_refresh_token")
+  googleEmail           String    @map("google_email")
+  scope                 String
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  revokedAt             DateTime? @map("revoked_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("google_calendar_credentials")
+}
+
+// A scheduled meeting belongs to EXACTLY ONE of an application (interview) or
+// a team (team sync) - enforced by a CHECK in a follow-up migration (Prisma
+// has no `num_nonnulls` equivalent in its schema DSL).
+model Meeting {
+  id              String        @id @default(uuid()) @db.Uuid
+  organizerId     String        @map("organizer_id") @db.Uuid
+  applicationId   String?       @map("application_id") @db.Uuid
+  teamId          String?       @map("team_id") @db.Uuid
+  title           String
+  scheduledAt     DateTime      @map("scheduled_at") @db.Timestamptz(6)
+  durationMinutes Int           @default(30) @map("duration_minutes")
+  googleEventId   String        @map("google_event_id")
+  meetLink        String        @map("meet_link")
+  status          MeetingStatus @default(SCHEDULED)
+  // Dedup marker for the reminder cron (mirrors deadline-reminder's approach).
+  remindedAt      DateTime?     @map("reminded_at") @db.Timestamptz(6)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  organizer   User         @relation("meeting_organizer", fields: [organizerId], references: [id], onDelete: Cascade)
+  application Application? @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  team        Team?        @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([organizerId])
+  @@index([scheduledAt])
+  @@map("meetings")
 }
 
 // ── Governance: faculty roster (Identity v2) ─────────────────────────────────

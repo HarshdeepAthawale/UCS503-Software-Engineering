@@ -20,6 +20,8 @@ export const RESOURCES = [
   "opportunity",
   "application",
   "attestation",
+  "team",
+  "meeting",
   "alumni_claim",
   "skill_taxonomy",
   "message",
@@ -39,6 +41,11 @@ export const OWNERSHIP_SCOPED: ReadonlySet<Permission> = new Set<Permission>([
   "application:withdraw",
   "opportunity:update",
   "opportunity:transition",
+  "attestation:create",
+  "team:manage",
+  "team:join_request_withdraw",
+  "meeting:create",
+  "meeting:cancel",
 ]);
 
 /**
@@ -56,6 +63,18 @@ const STUDENT: Permission[] = [
   "application:read", // OWN (scoped in policy)
   "application:withdraw", // OWN
   "attestation:read",
+  // Team formation (T-22) is peer-driven: any STUDENT may lead a team.
+  "team:create",
+  "team:read",
+  "team:list",
+  "team:join_request", // request a role slot (no existing resource to own yet)
+  "team:join_request_withdraw", // OWN - withdraw your own pending request
+  // Meeting scheduling: a team lead schedules team syncs (OWN, scoped to
+  // teams they lead); every participant reads their own meetings.
+  "meeting:create",
+  "meeting:cancel",
+  "meeting:read",
+  "team:manage", // OWN - accept/reject requests, close a team (only as its lead)
   "skill_taxonomy:read",
   "message:read", // membership-scoped in the service
   "message:send", // membership-scoped in the service
@@ -76,6 +95,13 @@ const FACULTY: Permission[] = [
   "application:read", // applicants to own postings (scoped in policy)
   "attestation:create", // gated further by SELECTED application (Phase 3 + DB CHECK)
   "attestation:read",
+  "team:read", // teams stay peer-run; faculty/alumni may only view, never lead
+  "team:list",
+  // Meeting scheduling: a poster schedules interview meetings (OWN, scoped to
+  // applications on their own postings); every participant reads their own.
+  "meeting:create",
+  "meeting:cancel",
+  "meeting:read",
   "skill_taxonomy:read",
   "message:read", // membership-scoped in the service
   "message:send", // membership-scoped in the service
@@ -97,6 +123,8 @@ const ADMIN: Permission[] = [
   "opportunity:list",
   "application:read",
   "attestation:read",
+  "team:read",
+  "team:list",
   "skill_taxonomy:read",
   "skill_taxonomy:manage",
   "message:read", // moderation

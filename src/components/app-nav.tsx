@@ -19,7 +19,11 @@ export function AppNav({ user, unread = 0 }: { user: SessionUser | null; unread?
   const link = (href: string, label: string, badge?: number) => {
     const active = pathname === href || pathname.startsWith(href + "/");
     return (
-      <Link href={href} className={`appnav-link${active ? " active" : ""}`}>
+      <Link
+        href={href}
+        className={`appnav-link${active ? " active" : ""}`}
+        aria-current={active ? "page" : undefined}
+      >
         {label}
         {badge ? <span className="appnav-badge">{badge}</span> : null}
       </Link>
@@ -33,9 +37,13 @@ export function AppNav({ user, unread = 0 }: { user: SessionUser | null; unread?
 
   return (
     <header className="appnav">
+      <a className="skip-link" href="#content">
+        Skip to content
+      </a>
       <div className="appnav-inner wrap">
         <Link className="brand" href={user ? "/opportunities" : "/"}>
           <TiLogo size={26} className="ti-mark" />
+          <span className="appnav-wordmark">Nexus</span>
         </Link>
         {user ? (
           <>
@@ -43,6 +51,8 @@ export function AppNav({ user, unread = 0 }: { user: SessionUser | null; unread?
               {link("/opportunities", "Feed")}
               {user.role === "STUDENT" && link("/applications", "Applications")}
               {canPost && link("/opportunities/mine", "My postings")}
+              {link("/teams", "Teams")}
+              {user.role === "STUDENT" && link("/teams/mine", "My Teams")}
               {link("/messages", "Messages")}
               {link("/notifications", "Notifications", unread)}
               {user.role === "ADMIN" && link("/admin", "Admin")}

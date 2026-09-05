@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { requireHttpEntry } from "@/lib/http/catalog";
+import { HttpStatusScreen } from "@/components/http-status-screen";
 
 /**
  * App Router 404.
@@ -9,23 +10,5 @@ import Link from "next/link";
  * pages/_document" while prerendering /500 and /_error.
  */
 export default function NotFound() {
-  return (
-    <main className="auth-shell">
-      <div className="auth-card">
-        <h1>Page not found</h1>
-        <p className="sub">
-          That link doesn&apos;t point anywhere on Nexus — it may have been moved
-          or the posting may have closed.
-        </p>
-        <div className="hero-actions">
-          <Link className="btn btn-primary" href="/opportunities">
-            Browse opportunities
-          </Link>
-          <Link className="btn btn-ghost" href="/">
-            Home
-          </Link>
-        </div>
-      </div>
-    </main>
-  );
+  return <HttpStatusScreen entry={requireHttpEntry(404)} />;
 }

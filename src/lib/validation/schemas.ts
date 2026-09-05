@@ -372,6 +372,85 @@ export const ApplicationTransitionSchema = z
 export type ApplicationCreateInput = z.infer<typeof ApplicationCreateSchema>;
 export type ApplicationTransitionInput = z.infer<typeof ApplicationTransitionSchema>;
 
+// ── Attestations (T-19) ──────────────────────────────────────────────────────
+
+// applicationId comes from the route path, not the body - see the SELECTED
+// gate and skill-ownership check in attestation.service.ts.
+export const AttestationCreateSchema = z
+  .object({
+    skillId: z.string().trim().uuid(),
+    context: z.string().trim().min(1, "Add a short description of the engagement.").max(500),
+  })
+  .strict();
+
+export type AttestationCreateInput = z.infer<typeof AttestationCreateSchema>;
+
+// ── Team formation (T-22) ────────────────────────────────────────────────────
+
+const teamRoleInput = z
+  .object({
+    label: z.string().trim().min(1).max(80),
+    slotCount: z.number().int().min(1).max(20),
+    skillIds: z.array(z.string().trim().uuid()).max(10).default([]),
+  })
+  .strict();
+
+export const TeamCreateSchema = z
+  .object({
+    name: z.string().trim().min(2).max(120),
+    hackathon: z.string().trim().min(2).max(160),
+    description: z.string().trim().max(2000).optional(),
+    eventDate: z.coerce.date().optional(),
+    roles: z.array(teamRoleInput).min(1, "Add at least one role.").max(10),
+  })
+  .strict();
+
+export const TeamUpdateSchema = z
+  .object({
+    name: z.string().trim().min(2).max(120).optional(),
+    description: z.string().trim().max(2000).nullable().optional(),
+    eventDate: z.coerce.date().nullable().optional(),
+    status: z.enum(["CLOSED"]).optional(), // the only client-driven status change
+  })
+  .strict();
+
+export const TeamJoinRequestSchema = z
+  .object({
+    message: z.string().trim().max(1000).optional(),
+  })
+  .strict();
+
+export const TeamRequestDecisionSchema = z
+  .object({
+    status: z.enum(["ACCEPTED", "REJECTED"]),
+    rejectionCode: rejectionCode.optional(),
+  })
+  .strict()
+  .refine((v) => v.status === "REJECTED" || v.rejectionCode === undefined, {
+    message: "A rejection code is only valid when rejecting a request.",
+    path: ["rejectionCode"],
+  });
+
+export type TeamCreateInput = z.infer<typeof TeamCreateSchema>;
+export type TeamUpdateInput = z.infer<typeof TeamUpdateSchema>;
+export type TeamJoinRequestInput = z.infer<typeof TeamJoinRequestSchema>;
+export type TeamRequestDecisionInput = z.infer<typeof TeamRequestDecisionSchema>;
+
+// ── Meeting scheduling via Google Meet ────────────────────────────────────────
+
+export const MeetingCreateSchema = z
+  .object({
+    title: z.string().trim().min(1).max(160),
+    description: z.string().trim().max(2000).optional(),
+    scheduledAt: z.coerce.date().refine((d) => d.getTime() > Date.now(), {
+      message: "The meeting must be scheduled in the future.",
+    }),
+    durationMinutes: z.number().int().min(15).max(240).default(30),
+  })
+  .strict();
+
+export type MeetingCreateInput = z.infer<typeof MeetingCreateSchema>;
+
 // ── Messaging (T-16) & notifications (T-17) ──────────────────────────────────
 
 export const MessageSendSchema = z

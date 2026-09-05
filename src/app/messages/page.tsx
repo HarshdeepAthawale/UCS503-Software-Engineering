@@ -50,7 +50,7 @@ export default function MessagesPage() {
   return (
     <div className="app-shell">
       <AppNav user={me} />
-      <main className="app-page">
+      <main id="content" className="app-page">
         <div className="wrap" style={{ maxWidth: 820 }}>
           <div className="page-head">
             <div>

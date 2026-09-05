@@ -11,3 +11,4 @@ process.env.DATABASE_URL ??= "postgresql://nexus:nexus@localhost:5432/nexus_test
 process.env.JWT_ACCESS_SECRET ??= "test-access-secret-that-is-long-enough-32";
 process.env.JWT_REFRESH_SECRET ??= "test-refresh-secret-that-is-long-enough-32";
 process.env.ALLOW_INSECURE_COOKIES ??= "true";
+process.env.TOKEN_ENCRYPTION_KEY ??= "test-token-encryption-key-that-is-long-enough-32";

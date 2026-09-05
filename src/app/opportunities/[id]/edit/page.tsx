@@ -161,7 +161,7 @@ export default function EditOpportunityPage() {
     return (
       <div className="app-shell">
         <AppNav user={getUser()} />
-        <main className="app-page">
+        <main id="content" className="app-page">
           <div className="wrap app-empty">
             <h3>Posting not found</h3>
             <Link className="btn btn-ghost" href="/opportunities">← Back to feed</Link>
@@ -175,7 +175,7 @@ export default function EditOpportunityPage() {
     return (
       <div className="app-shell">
         <AppNav user={getUser()} />
-        <main className="app-page">
+        <main id="content" className="app-page">
           <div className="wrap app-empty">
             <h3>Only the poster can edit this</h3>
             <Link className="btn btn-ghost" href={`/opportunities/${id}`}>← Back to posting</Link>
@@ -192,9 +192,9 @@ export default function EditOpportunityPage() {
   return (
     <div className="app-shell">
       <AppNav user={getUser()} />
-      <main className="app-page">
+      <main id="content" className="app-page">
         <div className="wrap" style={{ maxWidth: 760 }}>
-          <Link href={`/opportunities/${id}`} className="appnav-link" style={{ marginBottom: 16, display: "inline-flex" }}>
+          <Link href={`/opportunities/${id}`} className="back-link">
             ← Back to posting
           </Link>
           <div className="page-head">

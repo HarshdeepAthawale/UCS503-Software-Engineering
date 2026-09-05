@@ -118,7 +118,7 @@ export default function OpportunitiesPage() {
   return (
     <div className="app-shell">
       <AppNav user={getUser()} unread={unread} />
-      <main className="app-page">
+      <main id="content" className="app-page">
         <div className="wrap">
           <div className="page-head">
             <div>
@@ -180,12 +180,12 @@ export default function OpportunitiesPage() {
                       behind a posting before they even open it, not just once
                       they click through. Plain text, not a nested link - the
                       whole card is already one <Link>. */}
-                  <p className="tl-meta" style={{ marginBottom: 8 }}>
+                  <p className="tl-meta">
                     Posted by {o.poster.name} · {titleCase(o.poster.role)}
                   </p>
                   <p className="desc">{o.description}</p>
                   {o.skills.length > 0 && (
-                    <div className="tagrow" style={{ marginBottom: 12 }}>
+                    <div className="tagrow">
                       {o.skills.slice(0, 4).map((s) => (
                         <span key={s.id} className={`tag${s.requirement === "REQUIRED" ? " req" : ""}`}>
                           {s.name}

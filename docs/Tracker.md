@@ -95,13 +95,15 @@ The authoritative answer to *"what did we actually build?"* — one row per PRD 
 
 | ID | Requirement (PRD §5.2) | Status | Evidence / blocker |
 |---|---|---|---|
-| **S1** | Skill attestations anchored to `SELECTED` work | ⬜ | **Not started.** No `Attestation` model. PRD §3.3 and §5.2 both say *"lead with this"* — it is the single highest-value unbuilt item. The DB `CHECK` constraint (US-S1.1) is the whole point and must live in the migration, not the service. → **T-19** |
+| **S1** | Skill attestations anchored to `SELECTED` work | ✅ | `Attestation` model (migration `20260906000000_attestations`); the "unfarmable" rule is enforced by a Postgres constraint trigger (`attestations_require_selected`), not a service check alone — verified directly at the DB layer. `attestation.service.ts` + `POST /api/applications/[id]/attestations`; verified badge rendered in `profile/[userId]/page.tsx`. → **T-19** |
 | **S2** | Structured rejection feedback | ✅ | `RejectionCode` enum in schema, carried through `/api/applications/[id]` transition, rendered in `applications/page.tsx` and `opportunities/[id]/applicants/page.tsx`. *(Previously mis-tracked as not started.)* |
 | **S3** | Application budget (default 10 non-terminal) | ✅ | Enforced in `application.service.ts` inside the SERIALIZABLE transaction; `APPLICATION_BUDGET` env. *(Previously mis-tracked as not started.)* |
 | **S4** | Saved searches & alerts | ⬜ | Not started. No `SavedSearch` model. → **T-23** |
-| **S5** | Explainable matching (Jaccard) | ⬜ | Not started. Depends on M2 skill tags (present) — unblocked. → **T-21** |
-| **S6** | Team formation (complementarity) | ⬜ | Not started. Depends on S5. → **T-22** |
+| **S5** | Explainable matching (Jaccard) | 🟡 | Partial — `jaccard`/`skillFit` now live in `domain/matching.ts` (matched+missing tags, never a bare score) and power team-role browsing (see S6). Peer/opportunity matching (`/matches/peers`, `/matches/opportunities`) still not built. → **T-21** |
+| **S6** | Team formation (complementarity) | ✅ | Peer-driven (any STUDENT leads), distinct from the faculty/alumni Opportunity pipeline — `Team`/`TeamRole`/`TeamRoleSkill`/`TeamJoinRequest`/`TeamMember` (migration `20260906010000_team_formation`). Request → accept → auto-lock flow in `team.service.ts` + `/api/teams/*`; UI at `/teams`, `/teams/new`, `/teams/[id]`, `/teams/mine`, `/teams/[id]/requests`. The complementarity score (S5's `skillFit`) surfaces on open roles in both the browse feed and detail page. → **T-22** |
 | **S7** | Verified project artifacts | ⬜ | **Unblocked** — `ProfileProject.repoUrl` now exists (M2 / T-37 done). Verification of the link (e.g. ownership proof) is the remaining work. → **T-24** |
+
+**New, not in the original PRD/MasterPlan:** Google Meet meeting scheduling (interview + team-sync) via incremental Calendar OAuth consent, `GoogleCalendarCredential` (encrypted refresh token, AES-256-GCM) + `Meeting` models (migration `20260906020000_meeting_scheduling`), `meeting.service.ts` + `/api/applications/[id]/meetings`, `/api/teams/[id]/meetings`, `/api/meetings/[id]`, a `meeting-reminders` cron, and a "Connect Google Calendar" control in profile settings. This knowingly reverses the PRD §5.4 WON'T-this-cycle call on "video interviews/calls" — see PRD.md's updated §5.4 note.
 
 ### 3.3 🟩 COULD — Stretch (PRD §5.3)
 
@@ -230,16 +232,16 @@ Tasks carry a `Req` column tying them to §3. A task with **no requirement ID** 
 |---|---|---|---|---|---|---|---|---|
 | **T-34** | **CI workflow** (typecheck → test → production build) | — | Infra | HA | Must | 🟨 | GitHub Actions billing (G-01) | 0.5d |
 |  | ↳ `.github/workflows/ci.yml` written and the whole sequence verified locally (exit 0). Lint dropped: `next lint` is interactive/deprecated in 15.x. Inert until B-01 clears | | | | | | | | |
-| **T-19** | **Attestations, `SELECTED`-gated by DB `CHECK`** | **S1** | Profile | SD | Should | ⬜ | T-13 ✅ | 1d |
+| **T-19** | **Attestations, `SELECTED`-gated by DB `CHECK`** | **S1** | Profile | SD | Should | ✅ | T-13 ✅ | 1d |
 | T-38 | Integration + E2E harness (Supertest / Playwright) | — | QA | Shared | Must | ⬜ | T-34 | 1d |
 | T-40 | Back-fill user stories into PRD §6 for M2, M4, M7, M8, M9 | — | Docs | HA | Must | ⬜ | — | 0.5d |
 
 | T-41 | Redis token-bucket rate limiter | NFR-S4 | Infra | HA | Should | ⬜ | Redis instance | 0.5d |
 | T-42 | Email provider for OTP + digest delivery | M1, M8 | Infra | HA | Must | 🟨 | provider account | 0.5d |
-| T-21 | Explainable matching (Jaccard) | S5 | Matching | SD | Should | ⬜ | T-07 ✅ | 1d |
+| T-21 | Explainable matching (Jaccard) | S5 | Matching | SD | Should | 🟨 | T-07 ✅ | 1d |
 | T-23 | Saved searches + alerts | S4 | Opportunity | AC | Should | ⬜ | T-11 ✅ | 0.5d |
 | T-24 | Verified project artifacts | S7 | Profile | SD | Should | ⬜ | **T-37** | 0.5d |
-| T-22 | Team formation (complementarity) | S6 | Teams | SD | Should | ⬜ | T-21 | 1d |
+| T-22 | Team formation (complementarity) | S6 | Teams | SD | Should | ✅ | T-21 🟨 | 1d |
 | T-26 | Readiness meter | C1 | Analytics | AC | Could | ⬜ | T-25 | 0.5d |
 | T-27 | Interview archive | C2 | Content | SD | Could | ⬜ | T-06 ✅ | 0.5d |
 | T-28 | A11y (WCAG 2.1 AA audit) + perf + hardening pass | NFR-AC1 | Shared | Shared | Must | ⬜ | all | 1d |
@@ -341,6 +343,11 @@ Go/No-Go conditions from `ImplementationPlan.md` §5, assessed honestly.
 | Member | Done | Next | Blocked |
 |---|---|---|---|
 | SD | The profile Skills picker was an **empty dropdown** (taxonomy unseeded, G-08) — students couldn't add anything. Switched to a **text input + datalist suggestions**, capped at **8**. Server `replaceOwnSkills` now takes skill **names** and find-or-creates the taxonomy row (case-insensitive de-dupe, default domain "General"), so the `UserSkill → Skill` link is preserved and matching/search keep working (D-26, partially reverses D-04). Schema `UserSkillsReplaceSchema` → names + `max 8`; tests updated. **183 tests green**; build clean | Attestations (S1) · admin skill-merge tooling | — |
+
+### 2026-09-06 — S1 attestations, S6 team formation, and Google Meet scheduling
+| Member | Done | Next | Blocked |
+|---|---|---|---|
+| HA | **T-19 attestations** (S1, the flagship differentiator): `Attestation` model, DB constraint trigger for the `SELECTED` gate (deliberately not the composite-FK-to-status trick sketched in Schema.md — that would also block a later legitimate `SELECTED → WITHDRAWN`), `POST /api/applications/[id]/attestations`, verified badge on the profile. **T-22 team formation** (S6): peer-driven — any STUDENT leads a team, distinct from the faculty/alumni Opportunity pipeline — `Team`/`TeamRole`/`TeamRoleSkill`/`TeamJoinRequest`/`TeamMember`, request → accept → auto-lock, full UI at `/teams/*`. **T-21 partial**: `domain/matching.ts` (`jaccard`/`skillFit`, matched+missing tags, never a bare score) now powers a skill-fit hint on open team roles; peer/opportunity matching itself is still unbuilt. **New, beyond the PRD**: Google Meet meeting scheduling (interview + team-sync) via incremental Calendar OAuth consent — `GoogleCalendarCredential` (AES-256-GCM encrypted refresh token) + `Meeting` models, raw-`fetch` Calendar integration (no `googleapis` dependency, matching how Google sign-in already talks to Google), a reminder cron, "Connect Google Calendar" in profile settings. Knowingly reverses PRD §5.4's WON'T on "video interviews/calls" — see the updated §5.4 note. **Found and fixed a pre-existing bug** while verifying end-to-end: `replaceOwnSkills`/`addOwnSkill` never ensured a `Profile` row existed before inserting `UserSkill` rows (FK to `profiles`, not `users`) — any member who tried to add a skill before ever saving their profile hit a 500. All three migrations applied and smoke-tested against a local Postgres via the project's own `apply-migrations.mjs`; **255 tests green**; `tsc --noEmit` clean | T-23 saved searches · full S5 peer/opportunity matching · a DB-integration test harness (none exists yet — the attestation gate's IT-03 is still unwritten for lack of one) | Real Google Cloud OAuth credentials (calendar.events scope) needed before Meet scheduling can be exercised past the "not configured" gate |
 
 ### _(Template)_
 ```

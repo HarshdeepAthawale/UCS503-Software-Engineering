@@ -86,3 +86,12 @@ export function ttaLabel(hours: number | null): string {
   const days = Math.round(hours / 24);
   return `${days}d`;
 }
+
+export const REJECTION_REASONS: { value: string; label: string }[] = [
+  { value: "STRONGER_APPLICANTS", label: "Stronger applicants" },
+  { value: "SKILL_MISMATCH", label: "Skill mismatch" },
+  { value: "SEATS_FILLED", label: "Seats filled" },
+  { value: "TIMING_CONFLICT", label: "Timing conflict" },
+  { value: "PROFILE_INCOMPLETE", label: "Profile incomplete" },
+  { value: "OTHER", label: "Other" },
+];

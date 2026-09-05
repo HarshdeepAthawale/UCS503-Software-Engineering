@@ -35,6 +35,8 @@
 | 7 | [📊 Tracker](Tracker.md) | Task board, **traceability matrix**, standup log, decision log, bug register, metrics |
 | 8 | [📏 Rules](Rules.md) | Git strategy, commit/PR conventions, code & API & DB standards, DoD, security, docs |
 
+**Agent memory (not a ninth SRS):** root [`plan.md`](../plan.md) maps UCS503 concepts onto those eight docs and onto [mattpocock/skills](https://github.com/mattpocock/skills). Glossary: [`CONTEXT.md`](../CONTEXT.md). Skill config: [`agents/`](agents/).
+
 ---
 
 ## 🎯 What to Lead With

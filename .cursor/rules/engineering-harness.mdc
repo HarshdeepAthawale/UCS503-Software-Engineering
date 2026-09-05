@@ -1,0 +1,16 @@
+---
+description: Matt Pocock engineering harness — glossary, skills, and the idea-to-ship flow
+alwaysApply: true
+---
+
+# Engineering harness
+
+This repo uses [mattpocock/skills](https://github.com/mattpocock/skills). Canonical copies live in `.agents/skills/` (Cursor junction: `.cursor/skills`, `node scripts/link-cursor-skills.mjs`). Read the matching `SKILL.md` before doing the work it names.
+
+**Memory:** `CONTEXT.md` is the glossary. Use those terms; do not invent synonyms listed under `_Avoid_`. Domain-doc rules: `docs/agents/domain.md`. Course map: `plan.md` (UCS503 → artifacts → skills).
+
+**Tracker:** GitHub Issues via `gh` (`docs/agents/issue-tracker.md`). Course board stays in `docs/Tracker.md`.
+
+**Main flow:** `/grill-with-docs` → `/to-spec` → `/to-tickets` → `/implement` (internally `/tdd` then `/code-review`). Router: `/ask-matt`. Hard bugs: `/diagnosing-bugs` (tight red loop first). Incoming reports: `/triage`.
+
+**Product shape:** opportunity pipeline with accountability, not a feed. No likes, follower counts, or DMs unattached to an application.

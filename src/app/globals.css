@@ -70,6 +70,7 @@
 
   --maxw: 1152px;
   --logo-invert: 0;
+  color-scheme: light;
 
   /* Film grain: inline SVG fractal noise at 3% alpha, so it costs no request
      and never 404s. Applied once by `.grain::before` on <body>. */
@@ -118,6 +119,7 @@
     --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.55);
     --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
     --logo-invert: 1;
+    color-scheme: dark;
   }
 }
 
@@ -154,6 +156,7 @@
   --shadow-md: 0 6px 22px -6px rgba(25, 22, 17, 0.12);
   --shadow-lg: 0 26px 64px -18px rgba(25, 22, 17, 0.18);
   --logo-invert: 0;
+  color-scheme: light;
 }
 
 :root[data-theme="dark"] {
@@ -187,6 +190,7 @@
   --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.55);
   --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
   --logo-invert: 1;
+  color-scheme: dark;
 }
 
 * {
@@ -350,11 +354,11 @@ header.nav {
 }
 .btn-danger {
   background: transparent;
-  color: var(--st-rejected);
-  border-color: color-mix(in oklab, var(--st-rejected) 45%, var(--border));
+  color: var(--accent);
+  border-color: color-mix(in oklab, var(--accent) 45%, var(--border));
 }
 .btn-danger:hover {
-  background: color-mix(in oklab, var(--st-rejected) 12%, transparent);
+  background: var(--accent-soft);
 }
 .icon-btn {
   display: inline-flex;
@@ -1019,6 +1023,12 @@ section {
   border: 1px solid var(--border-strong);
   background: transparent;
   color: var(--text);
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  box-sizing: border-box;
 }
 .mini.solid {
   background: var(--accent);
@@ -1668,7 +1678,7 @@ button.skill-chip {
 .appnav {
   position: sticky;
   top: 0;
-  z-index: 40;
+  z-index: 70;
   background: color-mix(in oklab, var(--bg) 86%, transparent);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
@@ -2042,11 +2052,6 @@ button.skill-chip {
   font-weight: 600;
   font-size: 14px;
 }
-.timeline .tl-meta {
-  color: var(--faint);
-  font-size: 12.5px;
-  margin-top: 2px;
-}
 .timeline .tl-note {
   color: var(--muted);
   font-size: 13.5px;
@@ -2265,6 +2270,12 @@ button.skill-chip {
   width: 100%;
   border-collapse: collapse;
   font-size: 14px;
+}
+.atable a {
+  font-weight: 500;
+}
+.atable a:hover {
+  text-decoration: underline;
 }
 .atable th {
   text-align: left;
@@ -2746,7 +2757,7 @@ h4 {
 }
 
 h1 {
-  line-height: 0.94;
+  line-height: 1.15;
 }
 
 h2 {
@@ -2809,7 +2820,7 @@ a:hover > .sweep,
   content: "";
   position: fixed;
   inset: 0;
-  z-index: 50;
+  z-index: 1;
   opacity: 0.5;
   pointer-events: none;
   background-image: var(--grain);
@@ -3225,7 +3236,7 @@ html {
    wrapping keeps the bar a predictable height as links appear and disappear
    by role - an admin sees five, a student four, and a wrapping bar would
    change height between accounts. */
-@media (max-width: 720px) {
+@media (max-width: 1100px) {
   .appnav-inner {
     flex-wrap: wrap;
     height: auto;
@@ -3253,3 +3264,121 @@ html {
     padding: 8px 12px;
   }
 }
+
+/* ============================================================================
+   UX pass — missing utilities, skip link, HTTP catalogue, dense app chrome
+   ========================================================================== */
+
+.skip-link {
+  position: absolute;
+  left: 12px;
+  top: -48px;
+  z-index: 100;
+  padding: 8px 14px;
+  background: var(--accent);
+  color: var(--on-ink);
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 8px;
+}
+.skip-link:focus {
+  top: 12px;
+  outline: 2px solid var(--accent-ring);
+  outline-offset: 2px;
+}
+
+.appnav-wordmark {
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: -0.01em;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--muted);
+}
+.back-link:hover {
+  color: var(--accent);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+}
+
+.tl-meta {
+  color: var(--faint);
+  font-size: 12.5px;
+}
+.ocard .tl-meta {
+  margin: 0 0 8px;
+}
+
+.dock-item:focus-visible {
+  outline: 2px solid var(--accent-ring);
+  outline-offset: 2px;
+}
+
+.http-status-code {
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  margin: 0 0 8px;
+}
+.http-status-card h1 {
+  margin-top: 8px;
+}
+.http-catalog + .http-catalog {
+  margin-top: 28px;
+}
+.http-catalog-caption {
+  caption-side: top;
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  padding: 16px 20px 0;
+}
+.http-code-link {
+  color: var(--accent);
+  font-weight: 600;
+}
+.http-when,
+.http-catalog-foot {
+  margin: 0;
+  color: var(--faint);
+  font-size: 13.5px;
+}
+.http-catalog-foot {
+  margin-top: 20px;
+}
+
+@media (max-width: 560px) {
+  .skill-add-row {
+    flex-wrap: wrap;
+  }
+  .skill-add-row .mini {
+    width: 100%;
+  }
+  .composer {
+    flex-wrap: wrap;
+  }
+  .composer .btn {
+    width: 100%;
+  }
+  .appnav-wordmark {
+    display: none;
+  }
+  .icon-btn {
+    width: 44px;
+    height: 44px;
+    min-height: 44px;
+  }
+}
+

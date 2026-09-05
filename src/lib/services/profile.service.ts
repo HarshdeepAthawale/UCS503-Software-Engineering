@@ -63,6 +63,24 @@ export async function getProfile(viewer: Principal, targetUserId: string) {
   const isOwner = viewer.userId === targetUserId;
   const canSeeCgpa = isOwner || row.cgpaPublic || viewer.role === "ADMIN";
 
+  // Most recent attestation per skill, across every application this student
+  // has ever had SELECTED (T-19). A skill can accumulate attestations from
+  // several engagements; the profile shows the latest as the verified badge.
+  const attestations = await prisma.attestation.findMany({
+    where: { application: { studentId: targetUserId } },
+    orderBy: { createdAt: "desc" },
+    select: {
+      skillId: true,
+      context: true,
+      createdAt: true,
+      issuer: { select: { name: true, role: true } },
+    },
+  });
+  const attestationBySkill = new Map<string, (typeof attestations)[number]>();
+  for (const a of attestations) {
+    if (!attestationBySkill.has(a.skillId)) attestationBySkill.set(a.skillId, a);
+  }
+
   return {
     userId: row.userId,
     name: row.user.name,
@@ -79,12 +97,23 @@ export async function getProfile(viewer: Principal, targetUserId: string) {
     cgpa: canSeeCgpa ? row.cgpa : null,
     cgpaPublic: row.cgpaPublic,
     backlogs: row.backlogs,
-    skills: row.userSkills.map((us) => ({
-      id: us.skill.id,
-      name: us.skill.name,
-      domain: us.skill.domain,
-      proficiency: us.proficiency,
-    })),
+    skills: row.userSkills.map((us) => {
+      const attestation = attestationBySkill.get(us.skill.id);
+      return {
+        id: us.skill.id,
+        name: us.skill.name,
+        domain: us.skill.domain,
+        proficiency: us.proficiency,
+        attestation: attestation
+          ? {
+              issuerName: attestation.issuer.name,
+              issuerRole: attestation.issuer.role,
+              context: attestation.context,
+              createdAt: attestation.createdAt,
+            }
+          : null,
+      };
+    }),
     projects: row.projects.map((p) => ({
       id: p.id,
       title: p.title,

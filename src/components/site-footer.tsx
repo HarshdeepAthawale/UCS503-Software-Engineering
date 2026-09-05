@@ -10,6 +10,7 @@ export function SiteFooter() {
           <div className="foot-brand">
             <Link className="brand" href="/">
               <TiLogo size={30} className="ti-mark" />
+              <span>Nexus</span>
             </Link>
             <p>
               A verified opportunity pipeline for the institute - built to make sure an application
@@ -22,6 +23,7 @@ export function SiteFooter() {
             <div><Link href="/product">Product</Link></div>
             <div><Link href="/about">About</Link></div>
             <div><Link href="/register">Get started</Link></div>
+            <div><Link href="/errors">HTTP status codes</Link></div>
           </div>
           <div className="foot-team">
             <div className="h">Team · UCS503</div>

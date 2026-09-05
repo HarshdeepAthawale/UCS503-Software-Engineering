@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ResumeViewer } from "@/components/resume-viewer";
 import {
   apiAddProject,
+  apiUpdateProject,
   apiGetMyProfile,
   apiGetSkills,
   apiLogout,
@@ -15,11 +16,15 @@ import {
   apiReplaceSkills,
   apiUpdateProfile,
   apiUploadResume,
+  apiGetCalendarStatus,
+  apiDisconnectCalendar,
+  googleCalendarConnectUrl,
   ApiError,
   bootstrapSession,
   getUser,
   type OppType,
   type Profile,
+  type Project,
   type TaxonomySkill,
 } from "@/lib/client/api";
 import { BRANCHES } from "@/lib/domain/branch";
@@ -77,6 +82,7 @@ export default function ProfilePage() {
   const [pickerProficiency, setPickerProficiency] =
     useState<(typeof PROFICIENCIES)[number]>("INTERMEDIATE");
 
+  const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
   const [projTitle, setProjTitle] = useState("");
   const [projRepo, setProjRepo] = useState("");
   const [projLive, setProjLive] = useState("");
@@ -89,6 +95,11 @@ export default function ProfilePage() {
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  const [calendarEnabled, setCalendarEnabled] = useState(false);
+  const [calendarConnected, setCalendarConnected] = useState(false);
+  const [calendarBusy, setCalendarBusy] = useState(false);
+  const [calendarInfo, setCalendarInfo] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -142,6 +153,42 @@ export default function ProfilePage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const status = await apiGetCalendarStatus();
+        setCalendarEnabled(status.enabled);
+        setCalendarConnected(status.connected);
+      } catch {
+        /* calendar connection is optional */
+      }
+    })();
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.has("calendarConnected")) {
+      setCalendarInfo("Google Calendar connected.");
+      setCalendarConnected(true);
+    } else if (params.has("calendarError")) {
+      setError(params.get("calendarError"));
+    } else {
+      return;
+    }
+    window.history.replaceState(null, "", window.location.pathname);
+  }, []);
+
+  async function disconnectCalendar() {
+    setCalendarBusy(true);
+    setError(null);
+    try {
+      await apiDisconnectCalendar();
+      setCalendarConnected(false);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not disconnect Google Calendar.");
+    } finally {
+      setCalendarBusy(false);
+    }
+  }
 
   // MUST stay above the `loading` / `notSignedIn` early returns below. Hooks run
   // in call order, so a hook after a conditional return is called on some
@@ -205,27 +252,45 @@ export default function ProfilePage() {
     setSkills((prev) => prev.filter((s) => s.name.toLowerCase() !== name.toLowerCase()));
   }
 
-  // Projects use per-item CRUD (there is no batch-replace endpoint), so add and
-  // remove call the API immediately and reload — independent of the "Save
-  // profile" button, which owns the about/skills form.
-  async function addProject() {
+  // Projects use per-item CRUD (there is no batch-replace endpoint), so add,
+  // edit, and remove all call the API immediately and reload — independent
+  // of the "Save profile" button, which owns the about/skills form.
+  function clearProjectForm() {
+    setEditingProjectId(null);
+    setProjTitle("");
+    setProjRepo("");
+    setProjLive("");
+    setProjDesc("");
+  }
+
+  function startEditProject(p: Project) {
+    setEditingProjectId(p.id);
+    setProjTitle(p.title);
+    setProjRepo(p.repoUrl ?? "");
+    setProjLive(p.liveUrl ?? "");
+    setProjDesc(p.description ?? "");
+  }
+
+  async function saveProject() {
     if (!projTitle.trim()) return;
     setError(null);
     setProjBusy(true);
     try {
-      await apiAddProject({
+      const input = {
         title: projTitle.trim(),
         repoUrl: projRepo.trim() || null,
         liveUrl: projLive.trim() || null,
         description: projDesc.trim() || null,
-      });
-      setProjTitle("");
-      setProjRepo("");
-      setProjLive("");
-      setProjDesc("");
+      };
+      if (editingProjectId) {
+        await apiUpdateProject(editingProjectId, input);
+      } else {
+        await apiAddProject(input);
+      }
+      clearProjectForm();
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not add the project.");
+      setError(err instanceof ApiError ? err.message : "Could not save the project.");
     } finally {
       setProjBusy(false);
     }
@@ -236,6 +301,7 @@ export default function ProfilePage() {
     setProjBusy(true);
     try {
       await apiRemoveProject(id);
+      if (editingProjectId === id) clearProjectForm();
       await load();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not remove the project.");
@@ -327,7 +393,7 @@ export default function ProfilePage() {
     // except the browser's back button.
     <div className="app-shell">
       <AppNav user={user} />
-      <main className="profile-shell">
+      <main id="content" className="profile-shell">
         <div className="wrap">
           <div className="profile-head">
             <div>
@@ -675,12 +741,34 @@ export default function ProfilePage() {
             </div>
           </div>
 
+          {calendarEnabled && (
+            <div className="panel-grid">
+              <div className="panel-card">
+                <h2>Google Calendar</h2>
+                <p className="empty-note" style={{ marginBottom: 12 }}>
+                  Connect your Google account so you can schedule Meet interviews or
+                  team syncs with an automatic calendar invite and video link.
+                </p>
+                {calendarInfo && <p className="form-ok">{calendarInfo}</p>}
+                {calendarConnected ? (
+                  <button className="mini" type="button" disabled={calendarBusy} onClick={() => void disconnectCalendar()}>
+                    {calendarBusy ? "Working…" : "Disconnect Google Calendar"}
+                  </button>
+                ) : (
+                  <a className="btn btn-ghost" href={googleCalendarConnectUrl("/profile")}>
+                    Connect Google Calendar
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
+
           <div className="panel-grid">
             <div className="panel-card">
               <h2>Projects</h2>
               <p className="empty-note" style={{ marginBottom: 12 }}>
-                Portfolio work with a repository link. Added and removed
-                immediately — no need to press Save.
+                Portfolio work with a repository link. Changes save immediately
+                — no need to press the profile's own Save button.
               </p>
 
               <div className="proj-list">
@@ -707,20 +795,34 @@ export default function ProfilePage() {
                         )}
                       </div>
                     </div>
-                    <button
-                      className="mini"
-                      type="button"
-                      onClick={() => void removeProject(p.id)}
-                      disabled={projBusy}
-                      aria-label={`Remove ${p.title}`}
-                    >
-                      Remove
-                    </button>
+                    <div className="row" style={{ gap: 6 }}>
+                      <button
+                        className="mini"
+                        type="button"
+                        onClick={() => startEditProject(p)}
+                        disabled={projBusy}
+                        aria-label={`Edit ${p.title}`}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        className="mini"
+                        type="button"
+                        onClick={() => void removeProject(p.id)}
+                        disabled={projBusy}
+                        aria-label={`Remove ${p.title}`}
+                      >
+                        Remove
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
 
               <div className="form" style={{ marginTop: 16 }}>
+                {editingProjectId && (
+                  <p className="empty-note" style={{ marginBottom: 4 }}>Editing project - changes replace it in place.</p>
+                )}
                 <div className="field">
                   <label htmlFor="projTitle">Title</label>
                   <input
@@ -768,11 +870,16 @@ export default function ProfilePage() {
                   <button
                     className="btn btn-primary"
                     type="button"
-                    onClick={() => void addProject()}
+                    onClick={() => void saveProject()}
                     disabled={projBusy || !projTitle.trim()}
                   >
-                    {projBusy ? "Working…" : "Add project"}
+                    {projBusy ? "Working…" : editingProjectId ? "Update project" : "Add project"}
                   </button>
+                  {editingProjectId && (
+                    <button className="btn btn-ghost" type="button" onClick={clearProjectForm} disabled={projBusy}>
+                      Cancel
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

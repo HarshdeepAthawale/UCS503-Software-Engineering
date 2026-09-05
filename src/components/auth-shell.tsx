@@ -22,6 +22,7 @@ export function AuthShell({ children }: { children: ReactNode }) {
         <div className="auth-aside-inner">
           <Link className="brand" href="/">
             <TiLogo size={34} className="ti-mark" />
+            <span>Thapar&nbsp;Nexus</span>
           </Link>
           <h2>
             Apply once. <span className="grad-text">Always know where you stand.</span>

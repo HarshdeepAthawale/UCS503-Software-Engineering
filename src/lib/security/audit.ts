@@ -44,6 +44,16 @@ export type AuditAction =
   | "application.created"
   | "application.transitioned"
   | "application.withdrawn"
+  | "attestation.issued"
+  | "team.created"
+  | "team.join_requested"
+  | "team.request_decided"
+  | "team.request_withdrawn"
+  | "team.closed"
+  | "meeting.scheduled"
+  | "meeting.cancelled"
+  | "calendar.connected"
+  | "calendar.disconnected"
   | "authz.denied";
 
 export async function audit(params: {

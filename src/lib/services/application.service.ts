@@ -365,7 +365,14 @@ export async function listApplicantsForOpportunity(opportunityId: string) {
         select: {
           id: true,
           name: true,
-          profile: { select: { branch: true, cgpa: true, backlogs: true } },
+          profile: {
+            select: {
+              branch: true,
+              cgpa: true,
+              backlogs: true,
+              userSkills: { select: { skill: { select: { id: true, name: true } } } },
+            },
+          },
         },
       },
       events: {
@@ -383,6 +390,7 @@ export async function listApplicantsForOpportunity(opportunityId: string) {
         branch: a.student.profile?.branch ?? null,
         cgpa: a.student.profile?.cgpa == null ? null : Number(a.student.profile.cgpa),
         backlogs: a.student.profile?.backlogs ?? null,
+        skills: a.student.profile?.userSkills.map((us) => us.skill) ?? [],
       },
     })),
   };

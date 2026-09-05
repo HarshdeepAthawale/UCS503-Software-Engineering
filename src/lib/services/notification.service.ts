@@ -16,7 +16,14 @@ export type NotificationType =
   | "application.withdrawn" // → poster: an applicant withdrew
   | "message.received" // → the other thread participant
   | "opportunity.at_risk" // → poster: SLA breach nudge
-  | "opportunity.deadline_reminder"; // → poster: deadline at T−72h / T−24h (T-35)
+  | "opportunity.deadline_reminder" // → poster: deadline at T−72h / T−24h (T-35)
+  | "attestation.received" // → student: a poster verified one of their skills (T-19)
+  | "team.join_requested" // → team lead: a student requested a role slot (T-22)
+  | "team.request_accepted" // → student: their role-slot request was accepted
+  | "team.request_rejected" // → student: their role-slot request was rejected
+  | "team.locked" // → lead + members: every role slot is now filled
+  | "meeting.scheduled" // → attendee: a Meet interview/team sync was scheduled
+  | "meeting.cancelled"; // → attendee: a scheduled meeting was cancelled
 
 export async function notify(
   userId: string,
