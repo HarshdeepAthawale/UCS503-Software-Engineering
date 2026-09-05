@@ -12,7 +12,6 @@ function itemsFor(user: SessionUser, onLogout: () => void): Item[] {
   const rows: Item[] = [];
   if (user.role === "STUDENT") {
     rows.push({ href: "/teams", label: "Teams" });
-    rows.push({ href: "/teams/new", label: "Start a team" });
   }
   if (canPost) {
     rows.push({ href: "/opportunities/new", label: "Post opportunity" });

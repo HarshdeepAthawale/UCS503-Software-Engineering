@@ -12,7 +12,8 @@ export const HACKATHON_HINTS = [
 export const TEAM_ROLE_TEMPLATES = [
   { label: "Frontend", skills: ["React", "JavaScript", "TypeScript"] },
   { label: "Backend", skills: ["Python", "Node.js", "Java"] },
+  { label: "DevOps", skills: ["Docker", "AWS"] },
+  { label: "Security", skills: ["Cybersecurity", "Network Security"] },
   { label: "ML / AI", skills: ["Python", "Machine Learning"] },
   { label: "Designer", skills: ["Figma", "UI Design"] },
-  { label: "DevOps", skills: ["Docker", "AWS"] },
 ] as const;

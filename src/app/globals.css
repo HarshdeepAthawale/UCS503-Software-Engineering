@@ -2351,6 +2351,216 @@ button.skill-chip {
   text-decoration: underline;
 }
 
+.teams-hub-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.teams-how {
+  margin-bottom: 28px;
+  padding: 20px 22px;
+}
+
+.teams-how-eyebrow {
+  margin: 0 0 12px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.teams-how-steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.teams-how-step {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.teams-how-num {
+  flex: 0 0 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.teams-how-step strong {
+  display: block;
+  margin-bottom: 2px;
+}
+
+.teams-how-step p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.hackathon-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.hackathon-filter-field {
+  margin: 0;
+  flex: 1;
+}
+
+.hackathon-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.hackathon-chip {
+  border: 1px solid var(--border-strong);
+  background: var(--bg);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.hackathon-chip.is-on {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.team-recruit-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.team-recruit-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  height: 100%;
+}
+
+.team-recruit-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.team-recruit-head h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.team-recruit-desc {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.team-recruit-roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.team-role-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.team-role-open.is-full {
+  opacity: 0.55;
+}
+
+.team-role-open-count {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.team-recruit-skills {
+  margin-top: 0;
+}
+
+.team-recruit-actions {
+  margin-top: auto;
+  padding-top: 4px;
+}
+
+.team-inbox-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.team-inbox-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px;
+}
+
+.team-inbox-name {
+  font-weight: 600;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.team-inbox-name:hover {
+  text-decoration: underline;
+}
+
+.team-inbox-msg {
+  margin: 6px 0 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.team-inbox-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.role-template-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
 .team-invite-form {
   width: 100%;
   margin-top: 12px;

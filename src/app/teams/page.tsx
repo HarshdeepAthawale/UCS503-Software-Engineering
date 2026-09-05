@@ -2,12 +2,15 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AppNav } from "@/components/app-nav";
+import { HackathonFilter } from "@/components/hackathon-filter";
 import { TeamInviteForm } from "@/components/team-invite-form";
+import { TeamLeadInbox } from "@/components/team-lead-inbox";
+import { TeamRecruitCard } from "@/components/team-recruit-card";
+import { TeamsHowItWorks } from "@/components/teams-how-it-works";
 import {
   apiListTeams,
-  ApiError,
   bootstrapSession,
   getUser,
   type Team,
@@ -31,12 +34,9 @@ function yourRole(team: Team, userId: string | undefined): string {
   return req ? REQUEST_LABEL[req.status] ?? req.status : "—";
 }
 
-/**
- * Single teams hub — your hackathon teams and open teams to join, one place.
- * There is no separate "My teams" route; everything lives here.
- */
 export default function TeamsPage() {
   const router = useRouter();
+  const joinRef = useRef<HTMLElement>(null);
   const [ready, setReady] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
   const [yours, setYours] = useState<Team[]>([]);
@@ -89,6 +89,11 @@ export default function TeamsPage() {
 
   const user = getUser();
   const isStudent = user?.role === "STUDENT";
+  const leadTeams = yours.filter((t) => t.lead.id === user?.id && t.status === "FORMING");
+
+  function scrollToJoin() {
+    joinRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 
   if (!ready) return <main className="app-shell"><p className="app-loading">Loading…</p></main>;
   if (!signedIn) {
@@ -104,13 +109,27 @@ export default function TeamsPage() {
             <div>
               <h1>Teams</h1>
               <p className="sub">
-                Form a hackathon team, invite friends by email, and track every role slot to lock.
+                Post the roles you need for a hackathon, or join a team that is recruiting.
               </p>
             </div>
-            {isStudent && <Link className="btn btn-primary" href="/teams/new">+ Start a team</Link>}
           </div>
 
+          {isStudent && (
+            <div className="teams-hub-actions">
+              <Link className="btn btn-primary" href="/teams/new">Create your team</Link>
+              <button className="btn btn-ghost" type="button" onClick={scrollToJoin}>
+                Join a team
+              </button>
+            </div>
+          )}
+
           {error && <p className="form-err" role="alert">{error}</p>}
+
+          {isStudent && yours.length === 0 && <TeamsHowItWorks />}
+
+          {isStudent && leadTeams.length > 0 && (
+            <TeamLeadInbox leadTeams={leadTeams} onDecided={() => void loadYours()} />
+          )}
 
           {isStudent && (
             <section className="teams-section" aria-labelledby="your-teams-heading">
@@ -122,7 +141,7 @@ export default function TeamsPage() {
               {yours.length === 0 ? (
                 <div className="app-empty">
                   <h3>No teams yet</h3>
-                  <p>Start one with the button above, email invite links to teammates, or request a role below.</p>
+                  <p>Create your team to post open roles, or browse recruiting teams below.</p>
                 </div>
               ) : (
                 <div className="teams-yours-list">
@@ -142,12 +161,25 @@ export default function TeamsPage() {
                         <p className="empty-note">
                           {yourRole(t, user?.id)} · {filledSlots} of {totalSlots} slots filled
                         </p>
+                        <div className="team-recruit-roles">
+                          {t.roles.map((r) => (
+                            <span
+                              key={r.id}
+                              className={`team-role-open${r.slotsFilled >= r.slotCount ? " is-full" : ""}`}
+                            >
+                              {r.label}
+                              <span className="team-role-open-count">
+                                {r.slotsFilled}/{r.slotCount}
+                              </span>
+                            </span>
+                          ))}
+                        </div>
                         <div className="row" style={{ gap: 8, flexWrap: "wrap", marginTop: 10 }}>
                           <Link className="btn btn-ghost btn-sm" href={`/teams/${t.id}`}>Open team</Link>
                           {isLead && t.status === "FORMING" && (
                             <>
                               <Link className="btn btn-ghost btn-sm" href={`/teams/${t.id}/requests`}>
-                                Join requests
+                                All requests
                               </Link>
                               <TeamInviteForm teamId={t.id} teamName={t.name} roles={t.roles} />
                             </>
@@ -161,64 +193,45 @@ export default function TeamsPage() {
             </section>
           )}
 
-          <section className="teams-section" aria-labelledby="discover-teams-heading">
+          <section
+            ref={joinRef}
+            id="join-teams"
+            className="teams-section"
+            aria-labelledby="discover-teams-heading"
+          >
             <div className="teams-section-head">
               <h2 id="discover-teams-heading">
-                {isStudent ? "Teams recruiting" : "Hackathon teams"}
+                {isStudent ? "Join a team" : "Hackathon teams"}
               </h2>
               <p className="sub">
                 {isStudent
-                  ? "Other students recruiting for hackathons — request a role that fits you."
+                  ? "Teams recruiting for hackathons — frontend, backend, DevOps, security, and more."
                   : "Browse student-led hackathon teams (view only)."}
               </p>
             </div>
 
-            <div className="panel filter-bar">
-              <div className="field" style={{ minWidth: 240 }}>
-                <label htmlFor="hackathon">Filter by hackathon</label>
-                <input
-                  id="hackathon"
-                  value={hackathon}
-                  onChange={(e) => setHackathon(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") void loadDiscover(hackathon); }}
-                  placeholder="e.g. Smart India Hackathon"
-                />
-              </div>
-              <button className="btn btn-ghost" type="button" onClick={() => void loadDiscover(hackathon)}>
-                Search
-              </button>
+            <div className="panel">
+              <HackathonFilter
+                value={hackathon}
+                onChange={setHackathon}
+                onSearch={() => void loadDiscover(hackathon)}
+              />
             </div>
 
             {discover.length === 0 ? (
               <div className="app-empty">
                 <h3>No teams recruiting right now</h3>
-                <p>Try another hackathon name, or start your own team from the button above.</p>
+                <p>Try another hackathon name, or create your team to post the roles you need.</p>
               </div>
             ) : (
-              <div className="panel-grid">
-                {discover.map((t) => {
-                  const totalSlots = t.roles.reduce((s, r) => s + r.slotCount, 0);
-                  const filledSlots = t.roles.reduce((s, r) => s + r.slotsFilled, 0);
-                  const alreadyInvolved = yours.some((y) => y.id === t.id);
-                  return (
-                    <Link key={t.id} href={`/teams/${t.id}`} className="panel-card is-link">
-                      <h3>{t.name}</h3>
-                      <p className="sub">{t.hackathon}</p>
-                      <p className="empty-note" style={{ marginTop: 8 }}>
-                        Led by {t.lead.name} · {filledSlots} of {totalSlots} slots filled
-                        {alreadyInvolved ? " · You are already on this team" : ""}
-                      </p>
-                      <div className="skills-current" style={{ marginTop: 8 }}>
-                        {t.roles.map((r) => (
-                          <span key={r.id} className={`tag${r.skillFit?.matched.length ? " req" : ""}`}>
-                            {r.skillFit && r.skillFit.matched.length > 0 && "✔ "}
-                            {r.label} · {r.slotsFilled}/{r.slotCount}
-                          </span>
-                        ))}
-                      </div>
-                    </Link>
-                  );
-                })}
+              <div className="team-recruit-grid">
+                {discover.map((t) => (
+                  <TeamRecruitCard
+                    key={t.id}
+                    team={t}
+                    alreadyInvolved={yours.some((y) => y.id === t.id)}
+                  />
+                ))}
               </div>
             )}
 

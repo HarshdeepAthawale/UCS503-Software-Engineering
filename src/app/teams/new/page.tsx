@@ -13,6 +13,8 @@ import {
   type TeamRoleInput,
   type TaxonomySkill,
 } from "@/lib/client/api";
+import { TEAM_ROLE_TEMPLATES } from "@/lib/domain/hackathon";
+import { cleanTaxonomySkills } from "@/lib/domain/skill-taxonomy";
 
 interface DraftRole extends TeamRoleInput {
   key: string;
@@ -43,13 +45,23 @@ export default function NewTeamPage() {
       setReady(true);
       if (canLead) {
         try {
-          setTaxonomy(await apiGetSkills());
+          setTaxonomy(cleanTaxonomySkills(await apiGetSkills()));
         } catch {
           /* taxonomy optional */
         }
       }
     })();
   }, []);
+
+  function addRoleFromTemplate(label: string, skillNames: readonly string[]) {
+    const skillIds = taxonomy
+      .filter((s) => skillNames.some((n) => s.name.toLowerCase() === n.toLowerCase()))
+      .map((s) => s.id);
+    setRoles((prev) => [
+      ...prev,
+      { key: crypto.randomUUID(), label, slotCount: 1, skillIds },
+    ]);
+  }
 
   function addRole() {
     setRoles((prev) => [...prev, { key: crypto.randomUUID(), label: "", slotCount: 1, skillIds: [] }]);
@@ -148,7 +160,22 @@ export default function NewTeamPage() {
             </div>
 
             <div className="field">
-              <label>Roles needed</label>
+              <label>Roles you need</label>
+              <p className="empty-note" style={{ marginBottom: 10 }}>
+                Post the slots you are recruiting for — students will see these on the teams page.
+              </p>
+              <div className="role-template-row" role="group" aria-label="Quick-add roles">
+                {TEAM_ROLE_TEMPLATES.map((t) => (
+                  <button
+                    key={t.label}
+                    type="button"
+                    className="skill-chip"
+                    onClick={() => addRoleFromTemplate(t.label, t.skills)}
+                  >
+                    + {t.label}
+                  </button>
+                ))}
+              </div>
               {roles.map((r) => (
                 <div key={r.key} className="panel" style={{ padding: 12, marginBottom: 10 }}>
                   <div className="row" style={{ gap: 10, flexWrap: "wrap" }}>
