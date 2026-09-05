@@ -1823,6 +1823,65 @@ button.skill-chip {
 }
 
 /* Facet / search bar */
+.opp-facet-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 22px;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow-sm);
+}
+
+.opp-facet-search-input,
+.facet-bar-search input[type="search"] {
+  width: 100%;
+  box-sizing: border-box;
+  background-color: var(--bg);
+  border: 1px solid var(--border-strong);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 12px 14px;
+  min-height: 44px;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.opp-facet-search-input:focus,
+.facet-bar-search input[type="search"]:focus {
+  outline: none;
+  border-color: var(--accent-ring);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.opp-facet-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 4px;
+}
+
+.opp-facet-count {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.opp-page-head {
+  align-items: center;
+}
+
+.opp-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+}
+
 .facet-bar {
   display: flex;
   flex-direction: column;
@@ -1950,9 +2009,8 @@ button.skill-chip {
   line-height: 1.3;
 }
 
-/* Text facet: border lives on .facet-select-trigger only — never on the input */
-.facet-select-value .facet-select-text,
-.facet-select-trigger .facet-select-text {
+/* Text input in the value row — direct child of trigger, same slot as span.facet-select-value */
+input.facet-select-value.facet-select-text {
   display: block;
   width: 100%;
   margin: 0;
@@ -1973,25 +2031,32 @@ button.skill-chip {
   -webkit-appearance: none;
 }
 
-.facet-select-value .facet-select-text::placeholder,
-.facet-select-trigger .facet-select-text::placeholder {
+input.facet-select-value.facet-select-text::placeholder {
   color: var(--muted);
   font-weight: 400;
 }
 
-.facet-select-value .facet-select-text:focus,
-.facet-select-trigger .facet-select-text:focus {
+input.facet-select-value.facet-select-text:focus {
   outline: none;
   box-shadow: none;
 }
 
-.facet-bar .facet-select .facet-select-text,
+.facet-bar .facet-select input.facet-select-text,
 .facet-bar .facet-select-trigger input {
   border: none;
   box-shadow: none;
   background: transparent;
   min-height: 0;
   padding: 0;
+}
+
+.facet-select--compact .facet-select-trigger {
+  padding-top: 7px;
+  padding-bottom: 7px;
+}
+
+.facet-select--compact .facet-select-value {
+  font-size: 13px;
 }
 
 .facet-select-chevron {

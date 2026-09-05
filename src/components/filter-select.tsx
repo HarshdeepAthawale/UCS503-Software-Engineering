@@ -10,7 +10,6 @@ const CHEVRON = (
   </svg>
 );
 
-/** Spacer chevron — same grid cell as FilterSelect so text facets share height/width. */
 const CHEVRON_SPACER = (
   <svg
     className="facet-select-chevron facet-select-chevron--spacer"
@@ -25,17 +24,14 @@ const CHEVRON_SPACER = (
 
 type FacetTriggerShellProps = {
   label: string;
-  labelId?: string;
+  labelId: string;
   className?: string;
   children: ReactNode;
   chevron?: "menu" | "spacer";
   buttonProps?: React.ButtonHTMLAttributes<HTMLButtonElement>;
 };
 
-/**
- * Shared trigger chrome for every facet control. FilterSelect and FacetTextInput
- * must both render through this so markup and grid placement never drift apart.
- */
+/** Shared bordered shell — one kicker row + one value row + chevron column. */
 function FacetTriggerShell({
   label,
   labelId,
@@ -44,15 +40,13 @@ function FacetTriggerShell({
   chevron = "menu",
   buttonProps,
 }: FacetTriggerShellProps) {
-  const generatedId = useId();
-  const kickerId = labelId ?? generatedId;
   const triggerClass = `facet-select-trigger${className ? ` ${className}` : ""}`;
   const chevronNode = chevron === "menu" ? CHEVRON : CHEVRON_SPACER;
 
   if (buttonProps) {
     return (
-      <button type="button" className={triggerClass} aria-labelledby={kickerId} {...buttonProps}>
-        <span className="facet-select-kicker" id={kickerId}>{label}</span>
+      <button type="button" className={triggerClass} aria-labelledby={labelId} {...buttonProps}>
+        <span className="facet-select-kicker" id={labelId}>{label}</span>
         <span className="facet-select-value">{children}</span>
         {chevronNode}
       </button>
@@ -60,9 +54,9 @@ function FacetTriggerShell({
   }
 
   return (
-    <div className={triggerClass} role="group" aria-labelledby={kickerId}>
-      <span className="facet-select-kicker" id={kickerId}>{label}</span>
-      <span className="facet-select-value">{children}</span>
+    <div className={triggerClass} role="group" aria-labelledby={labelId}>
+      <span className="facet-select-kicker" id={labelId}>{label}</span>
+      {children}
       {chevronNode}
     </div>
   );
@@ -73,13 +67,14 @@ type FilterSelectProps = {
   value: string;
   options: FilterSelectOption[];
   onChange: (value: string) => void;
+  compact?: boolean;
 };
 
-/** Accessible custom select for filter bars — avoids native option styling bugs in dark mode. */
-export function FilterSelect({ label, value, options, onChange }: FilterSelectProps) {
+export function FilterSelect({ label, value, options, onChange, compact = false }: FilterSelectProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const listId = useId();
+  const labelId = useId();
   const selected = options.find((o) => o.value === value) ?? options[0];
 
   useEffect(() => {
@@ -99,9 +94,10 @@ export function FilterSelect({ label, value, options, onChange }: FilterSelectPr
   }, [open]);
 
   return (
-    <div className="facet-select" ref={rootRef}>
+    <div className={`facet-select${compact ? " facet-select--compact" : ""}`} ref={rootRef}>
       <FacetTriggerShell
         label={label}
+        labelId={labelId}
         className={open ? "is-open" : ""}
         buttonProps={{
           "aria-haspopup": "listbox",
@@ -129,7 +125,9 @@ export function FilterSelect({ label, value, options, onChange }: FilterSelectPr
                   }}
                 >
                   <span className="facet-select-option-label">{o.label}</span>
-                  {o.hint ? <span className="facet-select-option-hint">{o.hint}</span> : null}
+                  {o.hint && !compact ? (
+                    <span className="facet-select-option-hint">{o.hint}</span>
+                  ) : null}
                 </button>
               </li>
             );
@@ -148,24 +146,26 @@ type FacetTextInputProps = {
   onChange: (value: string) => void;
 };
 
-/** Text facet — same trigger shell and value row as FilterSelect. */
+/**
+ * Text facet — input is a direct child of the trigger (same slot as .facet-select-value)
+ * so the kicker + value always share one bordered box.
+ */
 export function FacetTextInput({ label, id, value, placeholder, onChange }: FacetTextInputProps) {
+  const labelId = useId();
+
   return (
-    <div className="facet-select">
-      <label className="facet-select-trigger facet-text-trigger" htmlFor={id}>
-        <span className="facet-select-kicker">{label}</span>
-        <span className="facet-select-value">
-          <input
-            id={id}
-            className="facet-select-text"
-            type="text"
-            value={value}
-            placeholder={placeholder}
-            onChange={(e) => onChange(e.target.value)}
-          />
-        </span>
-        {CHEVRON_SPACER}
-      </label>
+    <div className="facet-select facet-select--compact">
+      <FacetTriggerShell label={label} labelId={labelId} className="facet-text-trigger" chevron="spacer">
+        <input
+          id={id}
+          className="facet-select-value facet-select-text"
+          type="text"
+          value={value}
+          placeholder={placeholder}
+          aria-labelledby={labelId}
+          onChange={(e) => onChange(e.target.value)}
+        />
+      </FacetTriggerShell>
     </div>
   );
 }
