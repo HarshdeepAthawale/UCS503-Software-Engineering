@@ -27,7 +27,9 @@ import {
   type Project,
   type TaxonomySkill,
 } from "@/lib/client/api";
-import { BRANCHES } from "@/lib/domain/branch";
+import { BranchSelect } from "@/components/branch-select";
+import { ProfileSkillAddRow, type Proficiency } from "@/components/profile-skill-add-row";
+import { handleLoadError } from "@/lib/client/handle-load-error";
 
 const MAX_RESUME_MB = 4;
 
@@ -41,18 +43,11 @@ const OPEN_TO_OPTIONS: { value: OppType; label: string }[] = [
   { value: "REFERRAL", label: "Referral" },
 ];
 
-const PROFICIENCIES = [
-  "BEGINNER",
-  "INTERMEDIATE",
-  "ADVANCED",
-  "EXPERT",
-] as const;
-
 const SKILL_LIMIT = 8; // mirrors PROFILE_SKILL_LIMIT in the server schema
 
 interface PendingSkill {
   name: string;
-  proficiency: (typeof PROFICIENCIES)[number];
+  proficiency: Proficiency;
 }
 
 export default function ProfilePage() {
@@ -79,8 +74,7 @@ export default function ProfilePage() {
   const [hoursPerWeek, setHoursPerWeek] = useState("");
 
   const [pickerName, setPickerName] = useState("");
-  const [pickerProficiency, setPickerProficiency] =
-    useState<(typeof PROFICIENCIES)[number]>("INTERMEDIATE");
+  const [pickerProficiency, setPickerProficiency] = useState<Proficiency>("INTERMEDIATE");
 
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
   const [projTitle, setProjTitle] = useState("");
@@ -140,6 +134,8 @@ export default function ProfilePage() {
       // succeed until they sign in again.
       if (err instanceof ApiError && err.status === 401) {
         setNotSignedIn(true);
+      } else if (handleLoadError(router, err)) {
+        return;
       } else {
         setError(
           err instanceof ApiError ? err.message : "Failed to load your profile.",
@@ -148,7 +144,7 @@ export default function ProfilePage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     void load();
@@ -437,18 +433,7 @@ export default function ProfilePage() {
                 </div>
                 <div className="field">
                   <label htmlFor="branch">Branch</label>
-                  <select id="branch" value={branch} onChange={(e) => setBranch(e.target.value)}>
-                    <option value="">Not set</option>
-                    {/* A pre-existing value outside the current vocabulary (e.g. saved
-                        before it was fixed to a list) stays selectable so saving the
-                        rest of the form doesn't silently clear it. */}
-                    {branch && !(BRANCHES as readonly string[]).includes(branch) && (
-                      <option value={branch}>{branch} (legacy value — pick one below)</option>
-                    )}
-                    {BRANCHES.map((b) => (
-                      <option key={b} value={b}>{b}</option>
-                    ))}
-                  </select>
+                  <BranchSelect id="branch" value={branch} onChange={setBranch} />
                   <p className="empty-note">
                     Used to match branch-restricted opportunity postings.
                   </p>
@@ -627,53 +612,16 @@ export default function ProfilePage() {
               </div>
 
               <div className="skill-picker">
-                <div className="skill-add-row">
-                  <input
-                    type="text"
-                    list="skill-suggestions"
-                    aria-label="Skill name"
-                    placeholder={atSkillLimit ? `Limit of ${SKILL_LIMIT} reached` : "Type a skill…"}
-                    value={pickerName}
-                    maxLength={80}
-                    disabled={atSkillLimit}
-                    onChange={(e) => setPickerName(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        addSkill();
-                      }
-                    }}
-                  />
-                  <datalist id="skill-suggestions">
-                    {suggestions.map((t) => (
-                      <option key={t.id} value={t.name} />
-                    ))}
-                  </datalist>
-                  <select
-                    aria-label="Proficiency"
-                    value={pickerProficiency}
-                    disabled={atSkillLimit}
-                    onChange={(e) =>
-                      setPickerProficiency(
-                        e.target.value as typeof pickerProficiency,
-                      )
-                    }
-                  >
-                    {PROFICIENCIES.map((p) => (
-                      <option key={p} value={p}>
-                        {p.charAt(0) + p.slice(1).toLowerCase()}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    className="mini solid"
-                    type="button"
-                    onClick={addSkill}
-                    disabled={!pickerName.trim() || atSkillLimit}
-                  >
-                    Add
-                  </button>
-                </div>
+                <ProfileSkillAddRow
+                  name={pickerName}
+                  proficiency={pickerProficiency}
+                  suggestions={suggestions}
+                  atLimit={atSkillLimit}
+                  limit={SKILL_LIMIT}
+                  onNameChange={setPickerName}
+                  onProficiencyChange={setPickerProficiency}
+                  onAdd={addSkill}
+                />
                 {atSkillLimit && (
                   <p className="empty-note" style={{ marginTop: 8 }}>
                     You&apos;ve added the maximum of {SKILL_LIMIT} skills. Remove one to add another.

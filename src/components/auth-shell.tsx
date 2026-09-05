@@ -14,7 +14,7 @@ export function AuthShell({ children }: { children: ReactNode }) {
             <TiLogo size={34} className="ti-mark" />
             <span>Thapar&nbsp;Nexus</span>
           </Link>
-          <h2>Sign in to your pipeline.</h2>
+          <h2>Welcome to Thapar Nexus.</h2>
           <p className="auth-aside-lede">
             Postings, applications, and decisions — all in one place.
           </p>

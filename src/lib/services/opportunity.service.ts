@@ -27,6 +27,7 @@ const OPP_SELECT = {
   domain: true,
   duration: true,
   stipend: true,
+  stipendAmount: true,
   seatCount: true,
   seatsFilled: true,
   deadline: true,
@@ -59,6 +60,7 @@ function toDto(row: OppRow) {
     domain: row.domain,
     duration: row.duration,
     stipend: row.stipend,
+    stipendAmount: row.stipendAmount === null ? null : Number(row.stipendAmount),
     seatCount: row.seatCount,
     seatsFilled: row.seatsFilled,
     deadline: row.deadline,
@@ -103,6 +105,7 @@ export async function createOpportunity(principal: Principal, input: Opportunity
         domain: input.domain,
         duration: input.duration ?? null,
         stipend: input.stipend ?? false,
+        stipendAmount: input.stipend ? input.stipendAmount ?? null : null,
         seatCount: input.seatCount ?? 1,
         deadline: input.deadline,
         slaPledge: input.slaPledge,
@@ -353,6 +356,12 @@ export async function updateOpportunity(
         domain: input.domain,
         duration: input.duration === undefined ? undefined : input.duration,
         stipend: input.stipend,
+        stipendAmount:
+          input.stipend === false
+            ? null
+            : input.stipendAmount === undefined
+              ? undefined
+              : input.stipendAmount,
         seatCount: input.seatCount,
         deadline: input.deadline,
         slaPledge: input.slaPledge,

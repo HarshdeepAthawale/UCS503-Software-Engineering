@@ -32,7 +32,7 @@ export async function notify(
 ): Promise<void> {
   try {
     await prisma.notification.create({
-      data: { userId, type, payload: payload as object },
+      data: { userId, type, payload: payload as object, deliveredAt: new Date() },
     });
   } catch (e) {
     console.error("notify failed", e);
@@ -63,7 +63,7 @@ export async function markRead(userId: string, ids?: string[]): Promise<number> 
 export async function getPreference(userId: string) {
   const pref = await prisma.notificationPreference.findUnique({ where: { userId } });
   return {
-    frequency: pref?.frequency ?? ("DAILY" as NotifFreq),
+    frequency: pref?.frequency ?? ("IMMEDIATE" as NotifFreq),
     lastDigestAt: pref?.lastDigestAt ?? null,
   };
 }

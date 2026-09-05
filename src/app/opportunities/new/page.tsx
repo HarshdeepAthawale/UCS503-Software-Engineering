@@ -15,14 +15,16 @@ import {
   type SlaPledge,
   type TaxonomySkill,
 } from "@/lib/client/api";
-import { oppTypeLabel } from "@/lib/client/format";
+import { OpportunityTypeSelect } from "@/components/opportunity-type-select";
+import { FormSelect } from "@/components/form-select";
+import { SkillAddRow } from "@/components/skill-add-row";
 import { BRANCHES } from "@/lib/domain/branch";
+import { cleanTaxonomySkills } from "@/lib/domain/skill-taxonomy";
 
-const TYPES: OppType[] = ["RESEARCH", "INTERNSHIP", "TA", "HACKATHON_TEAM", "MICRO_TASK", "REFERRAL"];
-const PLEDGES: { value: SlaPledge; label: string }[] = [
-  { value: "H24", label: "Reply within 24 hours" },
-  { value: "H48", label: "Reply within 48 hours" },
-  { value: "WEEK", label: "Reply within a week" },
+const PLEDGES: { value: SlaPledge; label: string; hint: string }[] = [
+  { value: "H24", label: "Reply within 24 hours", hint: "Best for urgent shortlists" },
+  { value: "H48", label: "Reply within 48 hours", hint: "Recommended default" },
+  { value: "WEEK", label: "Reply within a week", hint: "For longer review cycles" },
 ];
 
 interface PickedSkill {
@@ -42,6 +44,7 @@ export default function NewOpportunityPage() {
   const [domain, setDomain] = useState("");
   const [duration, setDuration] = useState("");
   const [stipend, setStipend] = useState(false);
+  const [stipendAmount, setStipendAmount] = useState("");
   const [seatCount, setSeatCount] = useState("1");
   const [deadline, setDeadline] = useState("");
   const [slaPledge, setSlaPledge] = useState<SlaPledge>("H48");
@@ -64,7 +67,7 @@ export default function NewOpportunityPage() {
       setReady(true);
       if (canPost) {
         try {
-          setTaxonomy(await apiGetSkills());
+          setTaxonomy(cleanTaxonomySkills(await apiGetSkills()));
         } catch {
           /* taxonomy optional */
         }
@@ -91,6 +94,7 @@ export default function NewOpportunityPage() {
         domain: domain.trim(),
         duration: duration.trim() || null,
         stipend,
+        stipendAmount: stipend && stipendAmount ? Number(stipendAmount) : null,
         seatCount: Number(seatCount) || 1,
         deadline: new Date(deadline).toISOString(),
         slaPledge,
@@ -147,9 +151,7 @@ export default function NewOpportunityPage() {
             </div>
             <div className="field">
               <label htmlFor="type">Type</label>
-              <select id="type" value={type} onChange={(e) => setType(e.target.value as OppType)}>
-                {TYPES.map((t) => <option key={t} value={t}>{oppTypeLabel(t)}</option>)}
-              </select>
+              <OpportunityTypeSelect id="type" value={type} onChange={(v) => setType(v as OppType)} />
             </div>
             <div className="field">
               <label htmlFor="description">Description</label>
@@ -164,9 +166,32 @@ export default function NewOpportunityPage() {
               <input id="duration" value={duration} maxLength={80} onChange={(e) => setDuration(e.target.value)} placeholder="e.g. 3 months" />
             </div>
             <div className="check-row">
-              <input id="stipend" type="checkbox" checked={stipend} onChange={(e) => setStipend(e.target.checked)} />
+              <input
+                id="stipend"
+                type="checkbox"
+                checked={stipend}
+                onChange={(e) => {
+                  setStipend(e.target.checked);
+                  if (!e.target.checked) setStipendAmount("");
+                }}
+              />
               <label htmlFor="stipend">This opportunity offers a stipend</label>
             </div>
+            {stipend && (
+              <div className="field">
+                <label htmlFor="stipendAmount">Monthly stipend (₹)</label>
+                <input
+                  id="stipendAmount"
+                  type="number"
+                  min={1}
+                  step={1}
+                  required
+                  value={stipendAmount}
+                  onChange={(e) => setStipendAmount(e.target.value)}
+                  placeholder="e.g. 15000"
+                />
+              </div>
+            )}
             <div className="field">
               <label htmlFor="seats">Seats</label>
               <input id="seats" type="number" min={1} max={500} value={seatCount} onChange={(e) => setSeatCount(e.target.value)} />
@@ -177,9 +202,13 @@ export default function NewOpportunityPage() {
             </div>
             <div className="field">
               <label htmlFor="sla">SLA pledge</label>
-              <select id="sla" value={slaPledge} onChange={(e) => setSlaPledge(e.target.value as SlaPledge)}>
-                {PLEDGES.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
-              </select>
+              <FormSelect
+                id="sla"
+                value={slaPledge}
+                onChange={(v) => setSlaPledge(v as SlaPledge)}
+                options={PLEDGES.map((p) => ({ value: p.value, label: p.label, hint: p.hint }))}
+                placeholder="Select reply window"
+              />
             </div>
 
             <div className="field">
@@ -246,17 +275,14 @@ export default function NewOpportunityPage() {
                   </span>
                 ))}
               </div>
-              <div className="skill-add-row">
-                <select aria-label="Pick a skill" value={pick} onChange={(e) => setPick(e.target.value)}>
-                  <option value="">Choose a skill…</option>
-                  {available.map((t) => <option key={t.id} value={t.id}>{t.name} · {t.domain}</option>)}
-                </select>
-                <select aria-label="Requirement" value={pickReq} onChange={(e) => setPickReq(e.target.value as SkillRequirement)}>
-                  <option value="REQUIRED">Required</option>
-                  <option value="PREFERRED">Preferred</option>
-                </select>
-                <button className="mini solid" type="button" onClick={addSkill} disabled={!pick}>Add</button>
-              </div>
+              <SkillAddRow
+                available={available}
+                pick={pick}
+                pickReq={pickReq}
+                onPickChange={setPick}
+                onPickReqChange={setPickReq}
+                onAdd={addSkill}
+              />
             </div>
 
             <div className="save-bar">

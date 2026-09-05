@@ -24,16 +24,20 @@ const CASES: Array<[Role, Permission, boolean]> = [
   ["STUDENT", "application:create", true],
   ["STUDENT", "opportunity:create", false], // students cannot post
   ["STUDENT", "attestation:create", false], // cannot attest
-  // Team formation (T-22): peer-driven - students lead, faculty/alumni/admin
-  // may only view. team:manage is ownership-scoped, asserted below.
+  // Team formation (T-22): peer-driven — students only; faculty/alumni use postings.
   ["STUDENT", "team:create", true],
   ["STUDENT", "team:read", true],
+  ["STUDENT", "team:list", true],
   ["STUDENT", "team:join_request", true],
   ["FACULTY", "team:create", false],
-  ["FACULTY", "team:read", true],
-  ["FACULTY", "team:join_request", false], // faculty/alumni don't join teams
+  ["FACULTY", "team:read", false],
+  ["FACULTY", "team:list", false],
+  ["FACULTY", "team:join_request", false],
+  ["ALUMNI", "team:read", false],
+  ["ALUMNI", "team:list", false],
   ["ADMIN", "team:create", false],
   ["ADMIN", "team:read", true],
+  ["ADMIN", "team:list", true],
   // Meeting scheduling (Google Meet): meeting:create/cancel are ownership-
   // scoped, asserted below with an ownerId. meeting:read is a plain role
   // grant - the route itself checks membership (organizer/attendee), the same

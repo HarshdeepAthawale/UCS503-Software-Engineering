@@ -9,6 +9,7 @@ import type {
   UserSkillAddInput,
   UserSkillsReplaceInput,
 } from "@/lib/validation/schemas";
+import { isFixtureSkillName } from "@/lib/domain/skill-taxonomy";
 
 /**
  * Skill taxonomy + user-skill assignment (docs/PRD M2, tracker T-07).
@@ -26,11 +27,12 @@ import type {
 
 /** The public taxonomy (any authenticated role, `skill_taxonomy:read`). */
 export async function listSkills() {
-  return prisma.skill.findMany({
+  const rows = await prisma.skill.findMany({
     where: { deletedAt: null },
     orderBy: [{ domain: "asc" }, { name: "asc" }],
     select: { id: true, name: true, domain: true },
   });
+  return rows.filter((s) => !isFixtureSkillName(s.name));
 }
 
 /** Admin console view - includes soft-deleted rows so restores are visible. */

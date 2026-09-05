@@ -52,3 +52,33 @@ export function loginCodeEmail(code: string): Omit<EmailMessage, "to"> {
     ),
   };
 }
+
+export function teamInviteEmail(opts: {
+  teamName: string;
+  hackathon: string;
+  leadName: string;
+  joinUrl: string;
+  inviteCode: string;
+  roleLabel: string;
+}): Omit<EmailMessage, "to"> {
+  const text = [
+    `${opts.leadName} invited you to join their hackathon team on ${PRODUCT}.`,
+    "",
+    `Team: ${opts.teamName}`,
+    `Event: ${opts.hackathon}`,
+    `Role: ${opts.roleLabel}`,
+    "",
+    `Team code: ${opts.inviteCode}`,
+    `Join link: ${opts.joinUrl}`,
+    "",
+    "Open the link, sign in with your institute account, and request the role that fits you.",
+    "",
+    "--",
+    `${PRODUCT} - verified opportunity pipeline for the institute`,
+  ].join("\n");
+
+  return {
+    subject: `Join ${opts.teamName} on ${PRODUCT}`,
+    text,
+  };
+}

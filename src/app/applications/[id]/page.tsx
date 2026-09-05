@@ -15,10 +15,12 @@ import {
   bootstrapSession,
   getUser,
   type Message,
+  type MessageThreadContext,
   type MyApplication,
   type Meeting,
 } from "@/lib/client/api";
 import { statusClass, timeAgo, titleCase } from "@/lib/client/format";
+import { handleLoadError, loadErrorMessage } from "@/lib/client/handle-load-error";
 import { MeetingList } from "@/components/meeting-list";
 
 export default function ApplicationConversationPage() {
@@ -28,6 +30,7 @@ export default function ApplicationConversationPage() {
   const [ready, setReady] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [context, setContext] = useState<MessageThreadContext | null>(null);
   const [mine, setMine] = useState<MyApplication | null>(null);
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [cancelingMeetingId, setCancelingMeetingId] = useState<string | null>(null);
@@ -38,12 +41,14 @@ export default function ApplicationConversationPage() {
 
   const loadMessages = useCallback(async () => {
     try {
-      const m = await apiListMessages(id);
-      setMessages(m);
+      const res = await apiListMessages(id);
+      setMessages(res.messages);
+      setContext(res.context);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not load the conversation.");
+      if (handleLoadError(router, err)) return;
+      setError(loadErrorMessage(err, "Could not load the conversation."));
     }
-  }, [id]);
+  }, [id, router]);
 
   useEffect(() => {
     void (async () => {
@@ -139,6 +144,12 @@ export default function ApplicationConversationPage() {
 
   const me = getUser();
   const isStudent = me?.role === "STUDENT";
+  const threadTitle = context
+    ? isStudent
+      ? context.poster.name
+      : context.student.name
+    : mine?.opportunity.title ?? "Conversation";
+  const threadSubtitle = context?.opportunity.title ?? null;
   // Matches canWithdraw() in application-state.ts - withdrawal is allowed from
   // SELECTED too (declining an accepted offer), just not from an already
   // resolved REJECTED/WITHDRAWN state.
@@ -149,16 +160,24 @@ export default function ApplicationConversationPage() {
       <AppNav user={me} />
       <main id="content" className="app-page">
         <div className="wrap" style={{ maxWidth: 720 }}>
-          <Link href={isStudent ? "/applications" : "/opportunities"} className="back-link">
+          <Link href={isStudent ? "/applications" : "/messages"} className="back-link">
             ← Back
           </Link>
 
           <div className="page-head">
             <div>
-              <h1>{mine ? mine.opportunity.title : "Conversation"}</h1>
-              <p className="sub">Messages are scoped to this application - only you and the other party can see them.</p>
+              <h1>{threadTitle}</h1>
+              <p className="sub">
+                {threadSubtitle
+                  ? `${threadSubtitle} · messages stay inside this application only.`
+                  : "Messages are scoped to this application — only you and the other party can see them."}
+              </p>
             </div>
-            {mine && <span className={`pill ${statusClass(mine.status)}`}>{titleCase(mine.status)}</span>}
+            {(mine || context) && (
+              <span className={`pill ${statusClass((mine ?? context)!.status)}`}>
+                {titleCase((mine ?? context)!.status)}
+              </span>
+            )}
           </div>
 
           {error && <p className="form-err" role="alert">{error}</p>}
@@ -182,6 +201,9 @@ export default function ApplicationConversationPage() {
               ) : (
                 messages.map((m) => (
                   <div key={m.id} className={`bubble ${m.senderId === me?.id ? "me" : "them"}`}>
+                    {m.senderId !== me?.id && (
+                      <span className="bubble-sender">{m.senderName}</span>
+                    )}
                     {m.body}
                     <span className="when">{timeAgo(m.createdAt)}</span>
                   </div>

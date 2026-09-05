@@ -359,6 +359,7 @@ model Opportunity {
   domain     String
   duration   String?
   stipend    Boolean   @default(false)
+  stipendAmount Decimal? @map("stipend_amount") @db.Decimal(10, 2)
   seatCount  Int       @default(1) @map("seat_count")
   seatsFilled Int      @default(0) @map("seats_filled")
   deadline   DateTime  @db.Timestamptz(6)

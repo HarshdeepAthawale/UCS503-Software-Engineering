@@ -2,8 +2,8 @@ import Link from "next/link";
 import type { HttpCatalogEntry } from "@/lib/http/catalog";
 
 /**
- * Shared chrome for a single HTTP status: live 404/500 screens and `/errors/:code`.
- * Does not render machine internals — only the catalogue copy and a correlation id.
+ * Member-facing screen for a single HTTP status (404, 500, etc.).
+ * Does not render machine internals — only human copy and a correlation id.
  */
 export function HttpStatusScreen({
   entry,
@@ -14,11 +14,13 @@ export function HttpStatusScreen({
   reference?: string;
   retry?: () => void;
 }) {
+  const primaryHref = entry.status === 401 ? "/login" : "/opportunities";
+  const primaryLabel = entry.status === 401 ? "Sign in" : "Browse opportunities";
+
   return (
     <main className="auth-shell" id="content">
       <div className="auth-card http-status-card">
         <p className="http-status-code mono">{entry.status}</p>
-        <p className="eyebrow">{entry.code.replaceAll("_", " ")}</p>
         <h1>{entry.title}</h1>
         <p className="sub">{entry.meaning}</p>
         <p className="empty-note">{entry.when}</p>
@@ -28,18 +30,13 @@ export function HttpStatusScreen({
             <button className="btn btn-primary" type="button" onClick={retry}>
               Try again
             </button>
-          ) : null}
-          {entry.status === 401 ? (
-            <Link className="btn btn-primary" href="/login">
-              Sign in
-            </Link>
           ) : (
-            <Link className="btn btn-primary" href="/opportunities">
-              Browse opportunities
+            <Link className="btn btn-primary" href={primaryHref}>
+              {primaryLabel}
             </Link>
           )}
-          <Link className="btn btn-ghost" href="/errors">
-            All HTTP codes
+          <Link className="btn btn-ghost" href="/">
+            Go home
           </Link>
         </div>
       </div>

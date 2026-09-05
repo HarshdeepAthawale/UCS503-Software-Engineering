@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { SiteNav } from "@/components/site-nav";
 import { SiteFooter } from "@/components/site-footer";
 import { HTTP_ERRORS, HTTP_SUCCESS } from "@/lib/http/catalog";
@@ -50,7 +51,12 @@ function Table({
   );
 }
 
+/** Developer catalogue — not linked in member UI; production sends people home. */
 export default function HttpErrorsPage() {
+  if (process.env.NODE_ENV === "production") {
+    redirect("/");
+  }
+
   return (
     <>
       <SiteNav />

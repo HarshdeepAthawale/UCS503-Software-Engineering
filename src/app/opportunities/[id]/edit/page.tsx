@@ -18,6 +18,9 @@ import {
 } from "@/lib/client/api";
 import { oppTypeLabel } from "@/lib/client/format";
 import { BRANCHES } from "@/lib/domain/branch";
+import { handleLoadError, loadErrorMessage } from "@/lib/client/handle-load-error";
+import { cleanTaxonomySkills } from "@/lib/domain/skill-taxonomy";
+import { SkillAddRow } from "@/components/skill-add-row";
 
 const PLEDGES: { value: SlaPledge; label: string }[] = [
   { value: "H24", label: "Reply within 24 hours" },
@@ -53,6 +56,7 @@ export default function EditOpportunityPage() {
   const [domain, setDomain] = useState("");
   const [duration, setDuration] = useState("");
   const [stipend, setStipend] = useState(false);
+  const [stipendAmount, setStipendAmount] = useState("");
   const [seatCount, setSeatCount] = useState("1");
   const [deadline, setDeadline] = useState("");
   const [slaPledge, setSlaPledge] = useState<SlaPledge>("H48");
@@ -87,12 +91,13 @@ export default function EditOpportunityPage() {
           return;
         }
         setOpportunity(opp);
-        setTaxonomy(tax);
+        setTaxonomy(cleanTaxonomySkills(tax));
         setTitle(opp.title);
         setDescription(opp.description);
         setDomain(opp.domain);
         setDuration(opp.duration ?? "");
         setStipend(opp.stipend);
+        setStipendAmount(opp.stipendAmount != null ? String(opp.stipendAmount) : "");
         setSeatCount(String(opp.seatCount));
         setDeadline(toLocalInputValue(opp.deadline));
         setSlaPledge(opp.slaPledge);
@@ -101,9 +106,8 @@ export default function EditOpportunityPage() {
         setMinCgpa(opp.minCgpa != null ? String(opp.minCgpa) : "");
         setMaxBacklogs(opp.maxBacklogs != null ? String(opp.maxBacklogs) : "");
       } catch (err) {
-        if (err instanceof ApiError && err.status === 404) setNotFound(true);
-        else if (err instanceof ApiError && err.status === 403) setForbidden(true);
-        else setError(err instanceof ApiError ? err.message : "Could not load this posting.");
+        if (handleLoadError(router, err)) return;
+        setError(loadErrorMessage(err, "Could not load this posting."));
       } finally {
         setReady(true);
       }
@@ -128,6 +132,7 @@ export default function EditOpportunityPage() {
         domain: domain.trim(),
         duration: duration.trim() || null,
         stipend,
+        stipendAmount: stipend && stipendAmount ? Number(stipendAmount) : null,
         seatCount: Number(seatCount) || 1,
         deadline: new Date(deadline).toISOString(),
         slaPledge,
@@ -237,9 +242,32 @@ export default function EditOpportunityPage() {
                 <input id="duration" value={duration} maxLength={80} onChange={(e) => setDuration(e.target.value)} placeholder="e.g. 3 months" />
               </div>
               <div className="check-row">
-                <input id="stipend" type="checkbox" checked={stipend} onChange={(e) => setStipend(e.target.checked)} />
+                <input
+                  id="stipend"
+                  type="checkbox"
+                  checked={stipend}
+                  onChange={(e) => {
+                    setStipend(e.target.checked);
+                    if (!e.target.checked) setStipendAmount("");
+                  }}
+                />
                 <label htmlFor="stipend">This opportunity offers a stipend</label>
               </div>
+              {stipend && (
+                <div className="field">
+                  <label htmlFor="stipendAmount">Monthly stipend (₹)</label>
+                  <input
+                    id="stipendAmount"
+                    type="number"
+                    min={1}
+                    step={1}
+                    required
+                    value={stipendAmount}
+                    onChange={(e) => setStipendAmount(e.target.value)}
+                    placeholder="e.g. 15000"
+                  />
+                </div>
+              )}
               <div className="field">
                 <label htmlFor="seats">Seats</label>
                 <input id="seats" type="number" min={opportunity?.seatsFilled || 1} max={500} value={seatCount} onChange={(e) => setSeatCount(e.target.value)} />
@@ -320,17 +348,14 @@ export default function EditOpportunityPage() {
                     </span>
                   ))}
                 </div>
-                <div className="skill-add-row">
-                  <select aria-label="Pick a skill" value={pick} onChange={(e) => setPick(e.target.value)}>
-                    <option value="">Choose a skill…</option>
-                    {available.map((t) => <option key={t.id} value={t.id}>{t.name} · {t.domain}</option>)}
-                  </select>
-                  <select aria-label="Requirement" value={pickReq} onChange={(e) => setPickReq(e.target.value as SkillRequirement)}>
-                    <option value="REQUIRED">Required</option>
-                    <option value="PREFERRED">Preferred</option>
-                  </select>
-                  <button className="mini solid" type="button" onClick={addSkill} disabled={!pick}>Add</button>
-                </div>
+                <SkillAddRow
+                  available={available}
+                  pick={pick}
+                  pickReq={pickReq}
+                  onPickChange={setPick}
+                  onPickReqChange={setPickReq}
+                  onAdd={addSkill}
+                />
               </div>
 
               <div className="save-bar">

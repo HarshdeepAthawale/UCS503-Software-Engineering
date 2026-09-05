@@ -16,8 +16,31 @@ const OPP_TYPE_LABEL: Record<string, string> = {
   MICRO_TASK: "Micro-task",
   REFERRAL: "Referral",
 };
+
+export const OPP_TYPE_HINT: Record<string, string> = {
+  RESEARCH: "Faculty-led research assistant or project role",
+  INTERNSHIP: "Industry, lab, or summer internship",
+  TA: "Teaching assistant for a course",
+  HACKATHON_TEAM: "Hackathon team recruitment (legacy)",
+  MICRO_TASK: "Short scoped task or gig",
+  REFERRAL: "Introduction or referral opening",
+};
+
+/** Types faculty/alumni can publish — hackathon teams use the Teams tab instead. */
+export const POSTING_OPP_TYPES = [
+  "RESEARCH",
+  "INTERNSHIP",
+  "TA",
+  "MICRO_TASK",
+  "REFERRAL",
+] as const;
+
 export function oppTypeLabel(t: string): string {
   return OPP_TYPE_LABEL[t] ?? titleCase(t);
+}
+
+export function oppTypeHint(t: string): string | undefined {
+  return OPP_TYPE_HINT[t];
 }
 
 const BADGE_LABEL: Record<string, string> = {
@@ -38,6 +61,13 @@ const SLA_LABEL: Record<string, string> = {
 };
 export function slaLabel(s: string): string {
   return SLA_LABEL[s] ?? s;
+}
+
+/** Card/detail copy for stipend vs unpaid postings. */
+export function stipendLabel(stipend: boolean, amount: number | null): string {
+  if (!stipend) return "Unpaid";
+  if (amount != null) return `₹${amount.toLocaleString("en-IN")}/mo`;
+  return "Stipend";
 }
 
 /** Modifier class for a `.pill`, e.g. "p-selected" / "p-atrisk". */

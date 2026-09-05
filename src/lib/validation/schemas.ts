@@ -248,6 +248,25 @@ const eligibleBranches = z
   .transform((v) => Array.from(new Set(v)));
 const minCgpa = z.coerce.number().gte(0).lte(10);
 const maxBacklogs = z.coerce.number().int().gte(0).lte(50);
+const stipendAmount = z.coerce
+  .number()
+  .positive("Stipend amount must be greater than zero.")
+  .max(10_000_000, "Stipend amount is too large.");
+
+function stipendFieldsRefine(
+  data: { stipend?: boolean; stipendAmount?: number | null },
+  ctx: z.RefinementCtx,
+) {
+  if (data.stipend) {
+    if (data.stipendAmount == null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Enter the monthly stipend amount.",
+        path: ["stipendAmount"],
+      });
+    }
+  }
+}
 
 export const OpportunityCreateSchema = z
   .object({
@@ -257,6 +276,7 @@ export const OpportunityCreateSchema = z
     domain: z.string().trim().min(1, "Domain is required.").max(80),
     duration: z.string().trim().max(80).nullable().optional(),
     stipend: z.boolean().optional(),
+    stipendAmount: stipendAmount.nullable().optional(),
     seatCount: z.coerce.number().int().gte(1).lte(500).default(1),
     deadline: z.coerce.date().refine((d) => d > new Date(), {
       message: "Deadline must be in the future.",
@@ -277,7 +297,12 @@ export const OpportunityCreateSchema = z
     minCgpa: minCgpa.nullable().optional(),
     maxBacklogs: maxBacklogs.nullable().optional(),
   })
-  .strict(); // no mass assignment of posterId/status/seatsFilled
+  .strict()
+  .superRefine(stipendFieldsRefine)
+  .transform((data) => ({
+    ...data,
+    stipendAmount: data.stipend ? data.stipendAmount ?? null : null,
+  })); // no mass assignment of posterId/status/seatsFilled
 
 export const OpportunityUpdateSchema = z
   .object({
@@ -286,6 +311,7 @@ export const OpportunityUpdateSchema = z
     domain: z.string().trim().min(1).max(80).optional(),
     duration: z.string().trim().max(80).nullable().optional(),
     stipend: z.boolean().optional(),
+    stipendAmount: stipendAmount.nullable().optional(),
     seatCount: z.coerce.number().int().gte(1).lte(500).optional(),
     deadline: z.coerce
       .date()
@@ -308,7 +334,8 @@ export const OpportunityUpdateSchema = z
     maxBacklogs: maxBacklogs.nullable().optional(),
   })
   .strict()
-  .refine((v) => Object.keys(v).length > 0, { message: "Provide at least one field to update." });
+  .refine((v) => Object.keys(v).length > 0, { message: "Provide at least one field to update." })
+  .superRefine(stipendFieldsRefine);
 
 // Faceted discovery query (T-11). Parsed from URL search params; unknown params
 // are ignored (clients may append cache-busters). All values are validated and
@@ -431,10 +458,18 @@ export const TeamRequestDecisionSchema = z
     path: ["rejectionCode"],
   });
 
+export const TeamInviteSchema = z
+  .object({
+    email: z.string().trim().toLowerCase().email("Enter a valid email address."),
+    roleId: z.string().trim().uuid().optional(),
+  })
+  .strict();
+
 export type TeamCreateInput = z.infer<typeof TeamCreateSchema>;
 export type TeamUpdateInput = z.infer<typeof TeamUpdateSchema>;
 export type TeamJoinRequestInput = z.infer<typeof TeamJoinRequestSchema>;
 export type TeamRequestDecisionInput = z.infer<typeof TeamRequestDecisionSchema>;
+export type TeamInviteInput = z.infer<typeof TeamInviteSchema>;
 
 // ── Meeting scheduling via Google Meet ────────────────────────────────────────
 

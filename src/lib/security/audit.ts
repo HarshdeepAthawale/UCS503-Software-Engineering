@@ -49,6 +49,7 @@ export type AuditAction =
   | "team.join_requested"
   | "team.request_decided"
   | "team.request_withdrawn"
+  | "team.invite_sent"
   | "team.closed"
   | "meeting.scheduled"
   | "meeting.cancelled"

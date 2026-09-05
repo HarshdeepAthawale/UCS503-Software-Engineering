@@ -1,6 +1,5 @@
 import { handler, ok } from "@/lib/http/respond";
 import { Errors } from "@/lib/http/errors";
-import { env } from "@/lib/env";
 import { mailer } from "@/lib/email/mailer";
 import { loginCodeEmail } from "@/lib/email/templates";
 import { OtpLoginRequestSchema } from "@/lib/validation/schemas";
@@ -38,10 +37,8 @@ export const POST = handler(async (req) => {
     }
   }
 
-  const devOtp =
-    env.NODE_ENV !== "production" && otp ? { devOtp: otp } : {};
   return ok(
-    { message: "If that account exists, a sign-in code has been sent.", ...devOtp },
+    { message: "If that account exists, a sign-in code has been sent." },
     202,
   );
 });

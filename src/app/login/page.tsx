@@ -23,7 +23,6 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
-  const [devOtp, setDevOtp] = useState<string | undefined>();
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -53,9 +52,8 @@ export default function LoginPage() {
     setError(null);
     setBusy(true);
     try {
-      const res = await apiRequestLoginOtp(email.trim());
+      await apiRequestLoginOtp(email.trim());
       setCodeSent(true);
-      setDevOtp(res.devOtp);
       setNotice("If that account exists, a sign-in code has been sent to your email.");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not send a code.");
@@ -84,7 +82,6 @@ export default function LoginPage() {
     setNotice(null);
     setCodeSent(false);
     setOtp("");
-    setDevOtp(undefined);
   }
 
   return (
@@ -102,7 +99,6 @@ export default function LoginPage() {
 
         {error && <p className="form-err" role="alert">{error}</p>}
         {notice && <p className="form-ok">{notice}</p>}
-        {devOtp && <p className="form-ok">Dev code: <strong>{devOtp}</strong></p>}
 
         {mode === "password" ? (
           <form className="form" onSubmit={onPassword} noValidate>

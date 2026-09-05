@@ -203,3 +203,53 @@ function fillTrend(rows: { day: Date; n: number }[]): { day: string; count: numb
 function iso(d: Date): string {
   return d.toISOString().slice(0, 10); // YYYY-MM-DD
 }
+
+/** Public, non-sensitive aggregates for the landing monitoring panel. */
+export interface PublicInstituteStats {
+  livePostings: number;
+  atRiskPostings: number;
+  totalApplications: number;
+  resolvedApplications: number;
+  resolutionRate: number;
+  medianTtaHours: number | null;
+  activeUsers: number;
+  asOf: string;
+}
+
+export async function getPublicInstituteStats(): Promise<PublicInstituteStats> {
+  const [livePostings, atRiskPostings, totalApplications, activeUsers, headline] =
+    await Promise.all([
+      prisma.opportunity.count({ where: { deletedAt: null, status: "LIVE" } }),
+      prisma.opportunity.count({ where: { deletedAt: null, status: "AT_RISK" } }),
+      prisma.application.count({ where: { deletedAt: null } }),
+      prisma.user.count({ where: { deletedAt: null, status: "ACTIVE" } }),
+      prisma.$queryRaw<
+        { total: number; resolved: number; median_tta_seconds: number | null }[]
+      >(Prisma.sql`
+        SELECT
+          count(*)::int AS total,
+          count(*) FILTER (WHERE status IN ('SELECTED','REJECTED','WITHDRAWN'))::int AS resolved,
+          percentile_cont(0.5) WITHIN GROUP (
+            ORDER BY extract(epoch FROM (first_transition_at - applied_at))
+          ) FILTER (WHERE first_transition_at IS NOT NULL) AS median_tta_seconds
+        FROM applications
+        WHERE deleted_at IS NULL
+      `),
+    ]);
+
+  const h = headline[0] ?? { total: 0, resolved: 0, median_tta_seconds: null };
+  const total = h.total;
+  const resolved = h.resolved;
+
+  return {
+    livePostings,
+    atRiskPostings,
+    totalApplications: total,
+    resolvedApplications: resolved,
+    resolutionRate: total === 0 ? 0 : resolved / total,
+    medianTtaHours:
+      h.median_tta_seconds == null ? null : Math.round(h.median_tta_seconds / 3600),
+    activeUsers,
+    asOf: new Date().toISOString(),
+  };
+}

@@ -10,7 +10,6 @@ export function SiteFooter({ minimal = false }: { minimal?: boolean }) {
           <div className="landing-foot-links">
             <Link href="/product">Product</Link>
             <Link href="/about">About</Link>
-            <Link href="/errors">API errors</Link>
           </div>
         </div>
       </footer>
@@ -33,7 +32,6 @@ export function SiteFooter({ minimal = false }: { minimal?: boolean }) {
             <div><Link href="/product">Product</Link></div>
             <div><Link href="/about">About</Link></div>
             <div><Link href="/register">Get started</Link></div>
-            <div><Link href="/errors">HTTP status codes</Link></div>
           </div>
           <div className="foot-team">
             <div className="h">Team · UCS503</div>

@@ -21,6 +21,7 @@ import { verifyAccessToken } from "@/lib/security/access-token";
 // route layer, not by a user token - see http/cron-auth.ts).
 const PUBLIC_API = [
   "/api/health",
+  "/api/public",
   "/api/auth/register",
   "/api/auth/verify-otp",
   "/api/auth/login",
@@ -104,6 +105,17 @@ function originOf(url: string | undefined): string | null {
 
 export async function middleware(req: NextRequest): Promise<NextResponse> {
   const { pathname } = req.nextUrl;
+
+  // Local dev: 127.0.0.1 and localhost are different origins to Google OAuth.
+  // Canonicalise to localhost so the redirect_uri matches Google Cloud Console.
+  if (
+    process.env.NODE_ENV !== "production" &&
+    req.nextUrl.hostname === "127.0.0.1"
+  ) {
+    const url = req.nextUrl.clone();
+    url.hostname = "localhost";
+    return NextResponse.redirect(url);
+  }
 
   // One nonce per response. `crypto` is the WebCrypto global on the edge
   // runtime; `Math.random` would not be acceptable here because a guessable

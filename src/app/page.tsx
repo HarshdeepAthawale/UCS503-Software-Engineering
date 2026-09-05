@@ -1,5 +1,5 @@
 import Link from "next/link";
-import PipelineDemo from "@/components/pipeline-demo";
+import { InstituteStats } from "@/components/institute-stats";
 import { SiteNav } from "@/components/site-nav";
 import { SiteFooter } from "@/components/site-footer";
 
@@ -10,7 +10,7 @@ const POINTS = [
 ] as const;
 
 /**
- * Landing — split layout with product visual and a short sign-in funnel.
+ * Landing — split layout with live DB metrics and a short sign-in funnel.
  */
 export default function Home() {
   return (
@@ -46,8 +46,7 @@ export default function Home() {
           </div>
 
           <div className="landing-visual">
-            <p className="landing-visual-label">Live application tracker</p>
-            <PipelineDemo />
+            <InstituteStats />
           </div>
         </div>
       </main>

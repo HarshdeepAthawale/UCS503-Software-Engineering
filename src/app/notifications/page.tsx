@@ -4,23 +4,15 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AppNav } from "@/components/app-nav";
 import {
-  apiGetNotificationPref,
   apiListNotifications,
   apiMarkNotificationsRead,
-  apiSetNotificationPref,
   ApiError,
   bootstrapSession,
   getUser,
-  type NotifFreq,
   type Notification,
 } from "@/lib/client/api";
 import { timeAgo } from "@/lib/client/format";
-
-const FREQS: { value: NotifFreq; label: string }[] = [
-  { value: "IMMEDIATE", label: "Immediate" },
-  { value: "DAILY", label: "Daily digest" },
-  { value: "WEEKLY", label: "Weekly digest" },
-];
+import { SignInRequired } from "@/components/sign-in-required";
 
 // Human sentences for each notification type + a deep link where useful.
 function describe(n: Notification): { text: string; href?: string } {
@@ -68,7 +60,6 @@ export default function NotificationsPage() {
   const [signedIn, setSignedIn] = useState(false);
   const [items, setItems] = useState<Notification[]>([]);
   const [unread, setUnread] = useState(0);
-  const [freq, setFreq] = useState<NotifFreq>("DAILY");
   const [error, setError] = useState<string | null>(null);
 
   async function refresh() {
@@ -85,7 +76,6 @@ export default function NotificationsPage() {
       if (!ok) return;
       try {
         await refresh();
-        setFreq((await apiGetNotificationPref()).frequency);
       } catch (err) {
         setError(err instanceof ApiError ? err.message : "Could not load notifications.");
       }
@@ -101,24 +91,9 @@ export default function NotificationsPage() {
     }
   }
 
-  async function changeFreq(next: NotifFreq) {
-    setFreq(next);
-    try {
-      await apiSetNotificationPref(next);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not save preference.");
-    }
-  }
-
   if (!ready) return <main className="app-shell"><p className="app-loading">Loading…</p></main>;
   if (!signedIn) {
-    return (
-      <main className="auth-shell">
-        <div className="auth-card"><h1>Sign in required</h1>
-          <div className="hero-actions"><Link className="btn btn-primary" href="/login">Sign in</Link></div>
-        </div>
-      </main>
-    );
+    return <SignInRequired message="Sign in to view your notifications." />;
   }
 
   return (
@@ -129,13 +104,9 @@ export default function NotificationsPage() {
           <div className="page-head">
             <div>
               <h1>Notifications</h1>
-              <p className="sub">{unread} unread · your digest cadence controls batched delivery.</p>
+              <p className="sub">{unread} unread</p>
             </div>
             <div className="nav-cta">
-              <select aria-label="Digest cadence" value={freq} onChange={(e) => void changeFreq(e.target.value as NotifFreq)}
-                className="compact-select">
-                {FREQS.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
-              </select>
               {unread > 0 && <button className="btn btn-ghost btn-sm" type="button" onClick={() => void markAll()}>Mark all read</button>}
             </div>
           </div>

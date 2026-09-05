@@ -14,18 +14,23 @@ function itemsFor(user: SessionUser | null): Item[] {
       { href: "/about", label: "About", hint: "Thesis & team", group: "Go to" },
       { href: "/login", label: "Sign in", hint: "Existing account", group: "Account" },
       { href: "/register", label: "Get started", hint: "Create an account", group: "Account" },
-      { href: "/errors", label: "HTTP status codes", hint: "API contract", group: "Go to" },
     ];
   }
   const canPost = user.role === "FACULTY" || user.role === "ALUMNI";
   const rows: Item[] = [
     { href: "/opportunities", label: "Opportunities", hint: "Faceted discovery", group: "Go to" },
     { href: "/messages", label: "Messages", hint: "Scoped to applications", group: "Go to" },
-    { href: "/notifications", label: "Notifications", hint: "Digest + alerts", group: "Go to" },
+    { href: "/notifications", label: "Notifications", hint: "Application alerts", group: "Go to" },
     { href: "/profile", label: "Profile", hint: "Skills, résumé, projects", group: "Go to" },
-    { href: "/teams", label: "Teams", hint: "Hackathon / project teams", group: "Go to" },
-    { href: "/errors", label: "HTTP status codes", hint: "API contract", group: "Go to" },
   ];
+  if (user.role === "STUDENT") {
+    rows.splice(4, 0, {
+      href: "/teams",
+      label: "Teams",
+      hint: "Hackathon team formation",
+      group: "Go to",
+    });
+  }
   if (user.role === "STUDENT") {
     rows.splice(1, 0, {
       href: "/applications",
@@ -33,7 +38,6 @@ function itemsFor(user: SessionUser | null): Item[] {
       hint: "Pipeline tracker",
       group: "Go to",
     });
-    rows.push({ href: "/teams/mine", label: "My teams", hint: "Roles you hold", group: "Go to" });
   }
   if (canPost) {
     rows.push(

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { AppNav } from "@/components/app-nav";
 import { ResumeViewer } from "@/components/resume-viewer";
@@ -14,6 +14,7 @@ import {
   type Profile,
 } from "@/lib/client/api";
 import { timeAgo } from "@/lib/client/format";
+import { handleLoadError, loadErrorMessage } from "@/lib/client/handle-load-error";
 
 /** Display labels for the posting-type vocabulary used by `openTo`. */
 const OPEN_TO_LABEL: Record<OppType, string> = {
@@ -42,6 +43,7 @@ const OPEN_TO_LABEL: Record<OppType, string> = {
  */
 export default function MemberProfilePage() {
   const userId = useParams<{ userId: string }>().userId;
+  const router = useRouter();
 
   const [ready, setReady] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
@@ -55,9 +57,10 @@ export default function MemberProfilePage() {
       if (p) setProfile(p);
       else setNotFound(true);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not load this profile.");
+      if (handleLoadError(router, err)) return;
+      setError(loadErrorMessage(err, "Could not load this profile."));
     }
-  }, [userId]);
+  }, [userId, router]);
 
   useEffect(() => {
     void (async () => {

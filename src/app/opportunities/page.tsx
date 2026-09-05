@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AppNav } from "@/components/app-nav";
+import { FacetTextInput, FilterSelect } from "@/components/filter-select";
 import {
   apiListNotifications,
   apiListOpportunities,
@@ -13,24 +15,21 @@ import {
   type OppType,
   type OpportunitySort,
 } from "@/lib/client/api";
+import { closesLabel, oppTypeHint, oppTypeLabel, POSTING_OPP_TYPES, slaLabel, statusClass, stipendLabel, titleCase } from "@/lib/client/format";
+import { handleLoadError, loadErrorMessage } from "@/lib/client/handle-load-error";
+import { SignInRequired } from "@/components/sign-in-required";
 
 const SORTS: { value: OpportunitySort; label: string }[] = [
   { value: "recent", label: "Newest first" },
   { value: "deadline", label: "Closing soon" },
   { value: "seats", label: "Most seats open" },
 ];
-import { closesLabel, oppTypeLabel, slaLabel, statusClass, titleCase } from "@/lib/client/format";
 
-const TYPES: OppType[] = [
-  "RESEARCH",
-  "INTERNSHIP",
-  "TA",
-  "HACKATHON_TEAM",
-  "MICRO_TASK",
-  "REFERRAL",
-];
+/** Feed filter includes legacy hackathon postings still in the database. */
+const FILTER_TYPES = [...POSTING_OPP_TYPES, "HACKATHON_TEAM"] as const;
 
 export default function OpportunitiesPage() {
+  const router = useRouter();
   const [ready, setReady] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
   const [unread, setUnread] = useState(0);
@@ -64,12 +63,13 @@ export default function OpportunitiesPage() {
         setItems((prev) => (reset ? res.opportunities : [...prev, ...res.opportunities]));
         setCursor(res.nextCursor);
       } catch (err) {
-        setError(err instanceof ApiError ? err.message : "Could not load opportunities.");
+        if (handleLoadError(router, err)) return;
+        setError(loadErrorMessage(err, "Could not load opportunities."));
       } finally {
         setLoading(false);
       }
     },
-    [q, type, domain, stipend, sort, cursor],
+    [q, type, domain, stipend, sort, cursor, router],
   );
 
   // Initial session bootstrap.
@@ -102,16 +102,9 @@ export default function OpportunitiesPage() {
   }
   if (!signedIn) {
     return (
-      <main className="auth-shell">
-        <div className="auth-card">
-          <h1>Sign in required</h1>
-          <p className="sub">Sign in to browse opportunities.</p>
-          <div className="hero-actions">
-            <Link className="btn btn-primary" href="/login">Sign in</Link>
-            <Link className="btn btn-ghost" href="/register">Create account</Link>
-          </div>
-        </div>
-      </main>
+      <SignInRequired message="Sign in to browse opportunities.">
+        <Link className="btn btn-ghost" href="/register">Create account</Link>
+      </SignInRequired>
     );
   }
 
@@ -128,36 +121,54 @@ export default function OpportunitiesPage() {
           </div>
 
           <div className="facet-bar">
-            <input
-              type="search"
-              placeholder="Search titles & descriptions…"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              aria-label="Search opportunities"
-            />
-            <select value={type} onChange={(e) => setType(e.target.value as typeof type)} aria-label="Type">
-              <option value="">All types</option>
-              {TYPES.map((t) => (
-                <option key={t} value={t}>{oppTypeLabel(t)}</option>
-              ))}
-            </select>
-            <input
-              type="text"
-              placeholder="Domain (e.g. ML)"
-              value={domain}
-              onChange={(e) => setDomain(e.target.value)}
-              aria-label="Domain"
-            />
-            <select value={stipend} onChange={(e) => setStipend(e.target.value as typeof stipend)} aria-label="Stipend">
-              <option value="">Any stipend</option>
-              <option value="true">Stipend</option>
-              <option value="false">Unpaid</option>
-            </select>
-            <select value={sort} onChange={(e) => setSort(e.target.value as OpportunitySort)} aria-label="Sort by">
-              {SORTS.map((s) => (
-                <option key={s.value} value={s.value}>{s.label}</option>
-              ))}
-            </select>
+            <div className="facet-bar-search">
+              <label className="sr-only" htmlFor="opp-search">Search opportunities</label>
+              <input
+                id="opp-search"
+                type="search"
+                placeholder="Search titles & descriptions…"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+              />
+            </div>
+            <div className="facet-bar-filters">
+              <FilterSelect
+                label="Type"
+                value={type}
+                onChange={(v) => setType(v as typeof type)}
+                options={[
+                  { value: "", label: "All types", hint: "No type filter" },
+                  ...FILTER_TYPES.map((t) => ({
+                    value: t,
+                    label: oppTypeLabel(t),
+                    hint: oppTypeHint(t),
+                  })),
+                ]}
+              />
+              <FacetTextInput
+                id="opp-domain"
+                label="Domain"
+                value={domain}
+                placeholder="e.g. ML"
+                onChange={setDomain}
+              />
+              <FilterSelect
+                label="Stipend"
+                value={stipend}
+                onChange={(v) => setStipend(v as typeof stipend)}
+                options={[
+                  { value: "", label: "Any stipend" },
+                  { value: "true", label: "Stipend" },
+                  { value: "false", label: "Unpaid" },
+                ]}
+              />
+              <FilterSelect
+                label="Sort"
+                value={sort}
+                onChange={(v) => setSort(v as OpportunitySort)}
+                options={SORTS.map((s) => ({ value: s.value, label: s.label }))}
+              />
+            </div>
           </div>
 
           {error && <p className="form-err" role="alert">{error}</p>}
@@ -195,7 +206,7 @@ export default function OpportunitiesPage() {
                   )}
                   <div className="ocard-meta">
                     <span className="m">{o.domain}</span>
-                    <span className="m">{o.stipend ? "Stipend" : "Unpaid"}</span>
+                    <span className="m">{stipendLabel(o.stipend, o.stipendAmount)}</span>
                     <span className="m">{o.seatCount - o.seatsFilled} of {o.seatCount} seats</span>
                     <span className="m">{closesLabel(o.deadline)}</span>
                     <span className="m">{slaLabel(o.slaPledge)}</span>

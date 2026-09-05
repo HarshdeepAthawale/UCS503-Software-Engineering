@@ -95,10 +95,8 @@ const FACULTY: Permission[] = [
   "application:read", // applicants to own postings (scoped in policy)
   "attestation:create", // gated further by SELECTED application (Phase 3 + DB CHECK)
   "attestation:read",
-  "team:read", // teams stay peer-run; faculty/alumni may only view, never lead
-  "team:list",
-  // Meeting scheduling: a poster schedules interview meetings (OWN, scoped to
-  // applications on their own postings); every participant reads their own.
+  // Hackathon teams are student-only (peer formation); faculty/alumni use the
+  // opportunity pipeline, not team formation.
   "meeting:create",
   "meeting:cancel",
   "meeting:read",

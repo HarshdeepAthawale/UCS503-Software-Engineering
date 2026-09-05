@@ -3,6 +3,8 @@ import { prisma } from "@/lib/db";
 import { Errors } from "@/lib/http/errors";
 import { audit } from "@/lib/security/audit";
 import { skillFit } from "@/lib/domain/matching";
+import { teamInviteEmail } from "@/lib/email/templates";
+import { mailer } from "@/lib/email/mailer";
 import { notify } from "./notification.service";
 import type { Principal } from "@/lib/iam/policy";
 import type {
@@ -10,6 +12,7 @@ import type {
   TeamUpdateInput,
   TeamJoinRequestInput,
   TeamRequestDecisionInput,
+  TeamInviteInput,
 } from "@/lib/validation/schemas";
 
 /**
@@ -525,4 +528,74 @@ export async function decideJoinRequest(
     }
     throw e;
   }
+}
+
+/** Short code derived from the team id — shown in invite emails for manual entry. */
+export function teamInviteCode(teamId: string): string {
+  return teamId.replace(/-/g, "").slice(0, 8).toUpperCase();
+}
+
+/** Email a join link + team code to a friend. Only the lead may send invites. */
+export async function inviteToTeam(
+  principal: Principal,
+  teamId: string,
+  input: TeamInviteInput,
+  joinOrigin: string,
+): Promise<{ inviteCode: string; joinUrl: string }> {
+  const leadId = await getTeamLeadId(teamId);
+  if (!leadId) throw Errors.notFound();
+  if (leadId !== principal.userId) {
+    throw Errors.forbidden("Only the team lead can send invitations.");
+  }
+
+  const team = await prisma.team.findFirst({
+    where: { id: teamId, deletedAt: null },
+    select: {
+      name: true,
+      hackathon: true,
+      status: true,
+      lead: { select: { name: true } },
+      roles: { select: { id: true, label: true } },
+    },
+  });
+  if (!team) throw Errors.notFound();
+  if (team.status !== "FORMING") {
+    throw Errors.conflict("This team is no longer recruiting.");
+  }
+
+  let roleLabel = "any open role";
+  if (input.roleId) {
+    const role = team.roles.find((r) => r.id === input.roleId);
+    if (!role) throw Errors.validation("That role does not belong to this team.", "roleId");
+    roleLabel = role.label;
+  }
+
+  const inviteCode = teamInviteCode(teamId);
+  const joinUrl = `${joinOrigin.replace(/\/$/, "")}/teams/${teamId}`;
+
+  try {
+    await mailer.send({
+      to: input.email,
+      ...teamInviteEmail({
+        teamName: team.name,
+        hackathon: team.hackathon,
+        leadName: team.lead.name,
+        joinUrl,
+        inviteCode,
+        roleLabel,
+      }),
+    });
+  } catch (e) {
+    console.error("[team/invite] email failed to send", e);
+    throw Errors.internal("Could not send the invitation email. Try again later.");
+  }
+
+  await audit({
+    action: "team.invite_sent",
+    actorId: principal.userId,
+    target: teamId,
+    metadata: { email: input.email, roleId: input.roleId ?? null },
+  });
+
+  return { inviteCode, joinUrl };
 }

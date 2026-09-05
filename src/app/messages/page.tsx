@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AppNav } from "@/components/app-nav";
 import {
@@ -11,8 +12,32 @@ import {
   type MessageThreadSummary,
 } from "@/lib/client/api";
 import { statusClass, timeAgo, titleCase } from "@/lib/client/format";
+import { handleLoadError, loadErrorMessage } from "@/lib/client/handle-load-error";
+import { SignInRequired } from "@/components/sign-in-required";
+
+function threadTitle(t: MessageThreadSummary, isStudent: boolean): string {
+  return isStudent ? t.poster.name : t.student.name;
+}
+
+function threadPreview(t: MessageThreadSummary, myId: string | undefined): string {
+  const fromMe = t.lastMessage.senderId === myId;
+  const prefix = fromMe ? "You: " : `${t.lastMessage.senderName}: `;
+  const body =
+    t.lastMessage.body.length > 72 ? `${t.lastMessage.body.slice(0, 72)}…` : t.lastMessage.body;
+  return `${prefix}${body}`;
+}
+
+function initials(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase() ?? "")
+    .join("");
+}
 
 export default function MessagesPage() {
+  const router = useRouter();
   const [ready, setReady] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
   const [threads, setThreads] = useState<MessageThreadSummary[]>([]);
@@ -27,7 +52,8 @@ export default function MessagesPage() {
         try {
           setThreads(await apiListMyThreads());
         } catch (err) {
-          setError(err instanceof ApiError ? err.message : "Could not load your conversations.");
+          if (handleLoadError(router, err)) return;
+          setError(loadErrorMessage(err, "Could not load your conversations."));
         }
       }
     })();
@@ -35,13 +61,7 @@ export default function MessagesPage() {
 
   if (!ready) return <main className="app-shell"><p className="app-loading">Loading…</p></main>;
   if (!signedIn) {
-    return (
-      <main className="auth-shell">
-        <div className="auth-card"><h1>Sign in required</h1>
-          <div className="hero-actions"><Link className="btn btn-primary" href="/login">Sign in</Link></div>
-        </div>
-      </main>
-    );
+    return <SignInRequired message="Sign in to view your conversations." />;
   }
 
   const me = getUser();
@@ -57,8 +77,8 @@ export default function MessagesPage() {
               <h1>Messages</h1>
               <p className="sub">
                 {isStudent
-                  ? "Every conversation you've had with a professor, across all your applications."
-                  : "Every conversation with an applicant, across all your postings."}
+                  ? "One thread per application — each professor you message appears by name."
+                  : "One thread per application — each student who messages you appears by name."}
               </p>
             </div>
           </div>
@@ -71,30 +91,32 @@ export default function MessagesPage() {
               <p>
                 {isStudent
                   ? "Message a professor from one of your applications and it'll show up here."
-                  : "Message an applicant from your applicant pipeline and it'll show up here."}
+                  : "When a student messages you about an application, their name will appear here."}
               </p>
             </div>
           ) : (
-            <div className="notif-list">
-              {threads.map((t) => (
-                <Link key={t.applicationId} href={`/applications/${t.applicationId}`} className="notif">
-                  <span className="body">
-                    <span className="t">
-                      {t.counterpart.name}
-                      {isStudent && t.counterpart.role === "FACULTY" ? " (Faculty)" : ""}
+            <div className="msg-thread-list">
+              {threads.map((t) => {
+                const title = threadTitle(t, isStudent);
+                return (
+                  <Link
+                    key={t.applicationId}
+                    href={`/applications/${t.applicationId}`}
+                    className="msg-thread-item"
+                  >
+                    <span className="msg-thread-avatar" aria-hidden="true">{initials(title)}</span>
+                    <span className="msg-thread-body">
+                      <span className="msg-thread-top">
+                        <span className="msg-thread-name">{title}</span>
+                        <span className="msg-thread-time">{timeAgo(t.lastMessage.createdAt)}</span>
+                      </span>
+                      <span className="msg-thread-sub">{t.opportunity.title}</span>
+                      <span className="msg-thread-preview">{threadPreview(t, me?.id)}</span>
                     </span>
-                    <span className="when">
-                      {t.opportunity.title} · {t.lastMessage.senderId === me?.id ? "You: " : ""}
-                      {t.lastMessage.body.length > 80
-                        ? `${t.lastMessage.body.slice(0, 80)}…`
-                        : t.lastMessage.body}
-                      {" · "}
-                      {timeAgo(t.lastMessage.createdAt)}
-                    </span>
-                  </span>
-                  <span className={`pill ${statusClass(t.status)}`}>{titleCase(t.status)}</span>
-                </Link>
-              ))}
+                    <span className={`pill pill-sm ${statusClass(t.status)}`}>{titleCase(t.status)}</span>
+                  </Link>
+                );
+              })}
             </div>
           )}
         </div>

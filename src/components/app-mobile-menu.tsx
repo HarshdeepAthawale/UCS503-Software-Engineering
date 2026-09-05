@@ -9,11 +9,10 @@ type Item = { href?: string; label: string; action?: () => void };
 
 function itemsFor(user: SessionUser, onLogout: () => void): Item[] {
   const canPost = user.role === "FACULTY" || user.role === "ALUMNI";
-  const rows: Item[] = [
-    { href: "/teams", label: "Teams" },
-  ];
+  const rows: Item[] = [];
   if (user.role === "STUDENT") {
-    rows.push({ href: "/teams/mine", label: "My teams" });
+    rows.push({ href: "/teams", label: "Teams" });
+    rows.push({ href: "/teams/new", label: "Start a team" });
   }
   if (canPost) {
     rows.push({ href: "/opportunities/new", label: "Post opportunity" });
@@ -21,7 +20,6 @@ function itemsFor(user: SessionUser, onLogout: () => void): Item[] {
   if (user.role === "ADMIN") {
     rows.push({ href: "/admin", label: "Admin console" });
   }
-  rows.push({ href: "/errors", label: "HTTP status codes" });
   rows.push({ label: "Sign out", action: onLogout });
   return rows;
 }

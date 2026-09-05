@@ -17,7 +17,6 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
-  const [devOtp, setDevOtp] = useState<string | undefined>(undefined);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -28,7 +27,6 @@ export default function RegisterPage() {
     setBusy(true);
     try {
       const result = await apiRegister(name.trim(), email.trim(), password);
-      setDevOtp(result.devOtp);
       setNotice(result.message);
       setStage("otp");
     } catch (err) {
@@ -67,7 +65,6 @@ export default function RegisterPage() {
 
         {error && <p className="form-err" role="alert">{error}</p>}
         {notice && <p className="form-ok">{notice}</p>}
-        {devOtp && <p className="hint">Dev code (email not configured): {devOtp}</p>}
 
         {stage === "form" ? (
           <form className="form" onSubmit={onSubmit} noValidate>
@@ -138,7 +135,6 @@ export default function RegisterPage() {
               onClick={() => {
                 setStage("form");
                 setNotice(null);
-                setDevOtp(undefined);
                 setError(null);
               }}
             >

@@ -223,7 +223,6 @@ export async function apiLogin(email: string, password: string): Promise<Session
 
 export interface RegisterResult {
   message: string;
-  devOtp?: string;
 }
 
 export async function apiRegister(name: string, email: string, password: string): Promise<RegisterResult> {
@@ -399,6 +398,7 @@ export interface Opportunity {
   domain: string;
   duration: string | null;
   stipend: boolean;
+  stipendAmount: number | null;
   seatCount: number;
   seatsFilled: number;
   deadline: string;
@@ -462,6 +462,7 @@ export interface OpportunityCreateInput {
   domain: string;
   duration?: string | null;
   stipend?: boolean;
+  stipendAmount?: number | null;
   seatCount?: number;
   deadline: string;
   slaPledge: SlaPledge;
@@ -487,6 +488,7 @@ export interface OpportunityUpdateInput {
   domain?: string;
   duration?: string | null;
   stipend?: boolean;
+  stipendAmount?: number | null;
   seatCount?: number;
   deadline?: string;
   slaPledge?: SlaPledge;
@@ -729,6 +731,17 @@ export async function apiCloseTeam(id: string): Promise<Team> {
   return body.team;
 }
 
+export async function apiInviteToTeam(
+  teamId: string,
+  email: string,
+  roleId?: string,
+): Promise<{ inviteCode: string; joinUrl: string }> {
+  return request<{ inviteCode: string; joinUrl: string }>(`/api/teams/${teamId}/invite`, {
+    method: "POST",
+    body: JSON.stringify({ email, ...(roleId ? { roleId } : {}) }),
+  });
+}
+
 export async function apiRequestToJoinRole(
   teamId: string,
   roleId: string,
@@ -850,15 +863,26 @@ export async function apiCancelMeeting(meetingId: string): Promise<{ id: string;
 export interface Message {
   id: string;
   senderId: string;
+  senderName: string;
   body: string;
   createdAt: string;
 }
 
-export async function apiListMessages(applicationId: string): Promise<Message[]> {
-  const body = await request<{ messages: Message[] }>(
+export interface MessageThreadContext {
+  applicationId: string;
+  status: AppState;
+  opportunity: { id: string; title: string };
+  student: { id: string; name: string };
+  poster: { id: string; name: string };
+}
+
+export async function apiListMessages(
+  applicationId: string,
+): Promise<{ messages: Message[]; context: MessageThreadContext }> {
+  const body = await request<{ messages: Message[]; context: MessageThreadContext }>(
     `/api/applications/${applicationId}/messages`,
   );
-  return body.messages;
+  return { messages: body.messages, context: body.context };
 }
 
 export async function apiSendMessage(applicationId: string, text: string): Promise<Message> {
@@ -874,10 +898,12 @@ export interface MessageThreadSummary {
   applicationId: string;
   opportunity: { id: string; title: string };
   status: AppState;
+  student: { id: string; name: string; role: string };
+  poster: { id: string; name: string; role: string };
   /** The other participant - the professor/poster for a student, the
    *  applicant for a poster. */
   counterpart: { id: string; name: string; role: string };
-  lastMessage: { body: string; createdAt: string; senderId: string };
+  lastMessage: { body: string; createdAt: string; senderId: string; senderName: string };
 }
 
 /**
@@ -892,8 +918,6 @@ export async function apiListMyThreads(): Promise<MessageThreadSummary[]> {
 }
 
 // ── Notifications (T-17) ─────────────────────────────────────────────────────
-
-export type NotifFreq = "IMMEDIATE" | "DAILY" | "WEEKLY";
 
 export interface Notification {
   id: string;
@@ -918,28 +942,10 @@ export async function apiMarkNotificationsRead(ids?: string[]): Promise<number> 
   return body.marked;
 }
 
-export async function apiGetNotificationPref(): Promise<{
-  frequency: NotifFreq;
-  lastDigestAt: string | null;
-}> {
-  const body = await request<{ preference: { frequency: NotifFreq; lastDigestAt: string | null } }>(
-    "/api/notifications/preferences",
-  );
-  return body.preference;
-}
-
-export async function apiSetNotificationPref(frequency: NotifFreq): Promise<NotifFreq> {
-  const body = await request<{ preference: { frequency: NotifFreq } }>(
-    "/api/notifications/preferences",
-    { method: "PUT", body: JSON.stringify({ frequency }) },
-  );
-  return body.preference.frequency;
-}
-
 // ── Passwordless OTP login (alumni + convenience) ────────────────────────────
 
-export async function apiRequestLoginOtp(email: string): Promise<{ devOtp?: string }> {
-  return request<{ devOtp?: string }>("/api/auth/otp-login/request", {
+export async function apiRequestLoginOtp(email: string): Promise<void> {
+  await request("/api/auth/otp-login/request", {
     method: "POST",
     body: JSON.stringify({ email }),
   });

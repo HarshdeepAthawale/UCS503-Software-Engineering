@@ -5,6 +5,13 @@
  */
 process.env.DATABASE_URL = "postgresql://nexus:nexus@localhost:5432/nexus_test?schema=public";
 process.env.DIRECT_URL = "postgresql://nexus:nexus@localhost:5432/nexus_test?schema=public";
+
+const url = process.env.DATABASE_URL;
+if (!url.includes("nexus_test") && !url.includes("localhost")) {
+  throw new Error(
+    "Integration tests must use a local nexus_test database — never production Supabase.",
+  );
+}
 process.env.JWT_ACCESS_SECRET ??= "test-access-secret-that-is-long-enough-32";
 process.env.JWT_REFRESH_SECRET ??= "test-refresh-secret-that-is-long-enough-32";
 process.env.ALLOW_INSECURE_COOKIES ??= "true";

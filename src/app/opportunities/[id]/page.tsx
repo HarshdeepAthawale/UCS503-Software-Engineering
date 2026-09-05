@@ -31,9 +31,11 @@ import {
   oppTypeLabel,
   slaLabel,
   statusClass,
+  stipendLabel,
   titleCase,
   ttaLabel,
 } from "@/lib/client/format";
+import { handleLoadError, loadErrorMessage } from "@/lib/client/handle-load-error";
 
 export default function OpportunityDetailPage() {
   const params = useParams<{ id: string }>();
@@ -60,9 +62,10 @@ export default function OpportunityDetailPage() {
     try {
       setOpp(await apiGetOpportunity(id));
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not load this opportunity.");
+      if (handleLoadError(router, err)) return;
+      setError(loadErrorMessage(err, "Could not load this opportunity."));
     }
-  }, [id]);
+  }, [id, router]);
 
   useEffect(() => {
     void (async () => {
@@ -220,7 +223,7 @@ export default function OpportunityDetailPage() {
               <aside className="panel">
                 <div className="kv"><span className="k">Posted by</span><span className="v"><Link href={`/profile/${opp.poster.id}`}>{opp.poster.name}</Link></span></div>
                 <div className="kv"><span className="k">Domain</span><span className="v">{opp.domain}</span></div>
-                <div className="kv"><span className="k">Stipend</span><span className="v">{opp.stipend ? "Yes" : "No"}</span></div>
+                <div className="kv"><span className="k">Stipend</span><span className="v">{stipendLabel(opp.stipend, opp.stipendAmount)}</span></div>
                 {opp.duration && <div className="kv"><span className="k">Duration</span><span className="v">{opp.duration}</span></div>}
                 <div className="kv"><span className="k">Seats</span><span className="v">{opp.seatCount - opp.seatsFilled} of {opp.seatCount} open</span></div>
                 <div className="kv"><span className="k">Deadline</span><span className="v">{closesLabel(opp.deadline)}</span></div>

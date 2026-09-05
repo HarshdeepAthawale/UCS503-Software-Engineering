@@ -28,6 +28,33 @@ export const BRANCHES = [
 
 export type Branch = (typeof BRANCHES)[number];
 
+/** Short descriptions shown in the profile branch picker. */
+export const BRANCH_HINTS: Record<Branch, string> = {
+  COE: "Computer Engineering",
+  ENC: "Electronics & Computer Engineering",
+  ECE: "Electronics & Communication Engineering",
+  ELECTRICAL: "Electrical Engineering",
+  MECHANICAL: "Mechanical Engineering",
+  MECHATRONICS: "Mechatronics Engineering",
+  CIVIL: "Civil Engineering",
+  CCA: "Computer Science & Applications",
+  EIC: "Electronics Instrumentation & Control",
+  BIOTECH: "Biotechnology",
+  BIOMED: "Biomedical Engineering",
+  COPC: "Chemical & Pharmaceutical Sciences",
+  COBS: "Commerce & Business Studies",
+  RAI: "Robotics & Artificial Intelligence",
+  EVD: "Electric Vehicle Design",
+};
+
+/** Groups for the searchable branch picker on the profile form. */
+export const BRANCH_GROUPS: { label: string; codes: readonly Branch[] }[] = [
+  { label: "Computing & electronics", codes: ["COE", "ENC", "ECE", "EIC", "CCA"] },
+  { label: "Core engineering", codes: ["ELECTRICAL", "MECHANICAL", "MECHATRONICS", "CIVIL"] },
+  { label: "Sciences & interdisciplinary", codes: ["BIOTECH", "BIOMED", "RAI", "EVD"] },
+  { label: "Other programmes", codes: ["COPC", "COBS"] },
+];
+
 export function isBranch(v: string): v is Branch {
   return (BRANCHES as readonly string[]).includes(v);
 }

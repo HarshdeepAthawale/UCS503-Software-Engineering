@@ -4,7 +4,6 @@ import { mailer } from "@/lib/email/mailer";
 import { verificationEmail } from "@/lib/email/templates";
 import { RegisterSchema } from "@/lib/validation/schemas";
 import { authRateLimiter, clientIp } from "@/lib/security/rate-limit";
-import { env } from "@/lib/env";
 import { register } from "@/lib/services/auth.service";
 
 // Password hashing (scrypt) requires the Node runtime (not edge).
@@ -57,17 +56,9 @@ export const POST = handler(async (req) => {
     }
   }
 
-  // In dev/test only, surface the OTP so the flow is testable without email.
-  // In production the OTP is delivered exclusively by email.
-  const devOtp =
-    env.NODE_ENV !== "production" && result.otpForDelivery
-      ? { devOtp: result.otpForDelivery }
-      : {};
-
   return ok(
     {
       message: "If the address is eligible, a verification code has been sent.",
-      ...devOtp,
     },
     202,
   );

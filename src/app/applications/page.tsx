@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AppNav } from "@/components/app-nav";
 import {
@@ -11,8 +12,11 @@ import {
   type MyApplication,
 } from "@/lib/client/api";
 import { deadlineLabel, oppTypeLabel, statusClass, timeAgo, titleCase } from "@/lib/client/format";
+import { handleLoadError, loadErrorMessage } from "@/lib/client/handle-load-error";
+import { SignInRequired } from "@/components/sign-in-required";
 
 export default function ApplicationsPage() {
+  const router = useRouter();
   const [ready, setReady] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
   const [apps, setApps] = useState<MyApplication[]>([]);
@@ -27,7 +31,8 @@ export default function ApplicationsPage() {
         try {
           setApps(await apiListMyApplications());
         } catch (err) {
-          setError(err instanceof ApiError ? err.message : "Could not load your applications.");
+          if (handleLoadError(router, err)) return;
+          setError(loadErrorMessage(err, "Could not load your applications."));
         }
       }
     })();
@@ -36,11 +41,9 @@ export default function ApplicationsPage() {
   if (!ready) return <main className="app-shell"><p className="app-loading">Loading…</p></main>;
   if (!signedIn) {
     return (
-      <main className="auth-shell">
-        <div className="auth-card"><h1>Sign in required</h1>
-          <div className="hero-actions"><Link className="btn btn-primary" href="/login">Sign in</Link></div>
-        </div>
-      </main>
+      <SignInRequired message="Sign in to track your applications.">
+        <Link className="btn btn-ghost" href="/register">Create account</Link>
+      </SignInRequired>
     );
   }
 
