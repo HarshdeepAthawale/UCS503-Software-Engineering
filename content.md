@@ -1,122 +1,97 @@
-# Thapar Nexus — PPT Content (7 slides)
+# Thapar Nexus — PPT Content (6 slides)
 
-Course: **UCS503 Software Engineering** · Thapar Institute of Engineering & Technology, Patiala
+Prof's brief: Introduction · Motivation · Societal Impact · Target Audience · Technology & Deployment · Limitations.
 Team: **Harshdeep Athawale (1024031062) · Aakriti Chauhan (1024031055) · Sehaj Dhillon (1024030620)**
 
-Covers exactly what's required: problem statement → why we chose it → target audience → solution → completion status (feature-wise + engineering-wise). Content pulled from `docs/PRD.md`, `docs/Tracker.md`, and a live repo/test check on 2026-09-04.
+Written for a non-technical audience — no engineering/infrastructure terms (no CI/CD pipelines, GitHub Actions, rate limiting internals). Every slide is feature/product-level and written in depth, since this needs to stand fully on its own in front of the professor. The one exception is Slide 5, added at the professor's request to name the stack and deployment — kept light, not deep.
 
 ---
 
-## Slide 1 — Title
+## Slide 1 — Introduction
 
-**Title:** Thapar Nexus
-**Subtitle:** A verified opportunity pipeline for the institute
+**Title:** Thapar Nexus — A Verified Opportunity Pipeline for the Institute
 **Content:**
-- UCS503 Software Engineering · Thapar Institute of Engineering & Technology, Patiala
-- Harshdeep Athawale · Aakriti Chauhan · Sehaj Dhillon
+- A single, verified platform where every real opportunity inside the institute — research assistantships, teaching assistantships, internships, hackathon teams, and alumni referrals — is posted, discovered, and tracked in one place, instead of scattered across WhatsApp groups and noticeboards.
+- Every member's identity is verified before they can use the platform: students and faculty sign up with their official institute email and a one-time password, while alumni go through a manual claim-and-approve process — so postings and applicants are always genuine.
+- Profiles are structured, not just a bio: branch, year, a verified list of skills, and past projects, giving faculty and alumni a real picture of a student instead of a resume that can say anything.
+- Every posting is structured too — clear eligibility (branch, CGPA, backlogs), required skills, number of seats, a deadline, and a promised response time — so students know exactly what they're applying for and by when they'll hear back.
+- Once a student applies, the application moves through a visible, tracked pipeline — Applied, Shortlisted, Interview, Selected or Rejected — and every step is time-stamped and permanent, so nothing gets quietly lost or edited after the fact.
+- The platform's signature idea is accountability for silence: it measures exactly how long a poster takes to respond, and shows that as a public reliability score, so slow or unresponsive posters can no longer hide behind silence.
+- Built-in messaging, notifications, and an admin oversight panel round out the experience — but every conversation is tied to a real application, not an open inbox, keeping the platform focused and safe.
+- In one line: Thapar Nexus is not a social network or a feed — it's a pipeline that guarantees every application ends in a decision, and makes it visible when it doesn't.
 
-**Speaker notes:** Open with the one-liner: *"Thapar Nexus exists to make sure a student's application reaches a decision — and to make it visible when it doesn't."* Not a network. Not a feed. A pipeline with accountability.
+**Speaker notes:** This slide should do the heavy lifting — walk through it slowly enough that the professor understands the full shape of the product (who joins, what they post, what happens to an application, and the responsiveness score) before the later slides build on it.
 
 ---
 
-## Slide 2 — Problem Statement
+## Slide 2 — Motivation
 
-**Title:** Opportunities inside the institute die of silence
+**Title:** Why We Built This
 **Content:**
-- Research assistantships, TA roles, internships, hackathon teams, referrals — all circulate through **WhatsApp groups, noticeboards, word of mouth**.
-- Four failures result, ranked:
-  | # | Failure | What actually happens |
-  |---|---|---|
-  | **F3 — Primary** | **Resolution failure** | An application sent by email vanishes. Can't tell *rejected* from *still reading* from *never opened*. No accountability for silence. |
-  | F1 | Discovery failure | Miss the posting if you're not in the right group |
-  | F2 | Authenticity failure | Forwarded messages lose provenance — deadlines drift |
-  | F4 | Competency failure | Every skill on a profile is self-claimed, unverifiable |
+- Inside the institute, real opportunities — a research seat with a professor, a TA position, an internship referral from an alumnus, a spot on a hackathon team — travel almost entirely through informal channels: WhatsApp groups, noticeboards, and word of mouth.
+- That means visibility depends on who you know, not what you're capable of — a student outside the "right" group simply never hears about the opportunity in time to apply.
+- The deeper, more painful problem is what happens after a student does apply: an email to a professor or a message to an alumnus can vanish into silence, with no way to know if it was rejected, still being considered, or never even opened.
+- Every member of this team has lived this exact moment — writing to five or six professors, hearing back from none of them, and being left to guess whether to keep waiting, follow up, or give up and move on.
+- That silence isn't just an inconvenience — it wastes a student's time, damages their confidence, and can quietly cost them a real opportunity they were genuinely qualified for.
+- We wanted to fix this at the root instead of papering over it: rather than build one more place to "post and hope," we built a pipeline where every application is tracked to a real outcome, and every poster's responsiveness is visible and measured.
 
-**Speaker notes:** Say the ranking out loud. The disease is ghosting (F3); the other three are enablers we fix along the way, not the headline.
+**Speaker notes:** Ground this in the lived, personal version of the story — the professor should recognize the "emailed five professors, heard back from none" moment as something real, not a hypothetical.
 
 ---
 
-## Slide 3 — Why We Chose This
+## Slide 3 — Societal Impact
 
-**Title:** Why this problem, and why this shape of solution
+**Title:** Why It Matters Beyond the App
 **Content:**
-- It's the failure every one of us has actually lived: emailing 5–6 professors, hearing back from none, no way to tell if the email was even opened.
-- It's **solvable with a database, not a UX trick** — the fix is structural: immutable state transitions + measured timestamps. That made it a real software-engineering problem, not a CRUD app with a chat feature bolted on.
-- A structurally similar campus project exists in the same cohort — we made the difference **visible in the schema and the metrics**, not just the pitch:
-  | Dimension | Social / feed app | Thapar Nexus |
-  |---|---|---|
-  | Success metric | Engagement, time-on-app | **Time-to-Acknowledgement** |
-  | Content lifetime | Permanent | **Deadline-bound, auto-expiring** |
-  | Optimal behavior | Use it more | **Use it less, get a result faster** |
-- Deliberately excluded: no feed, no likes, no follower counts, no DMs unattached to an opportunity — every one of those optimizes for attention capture, the opposite of the goal.
+- Levels the playing field: today, students who are already well-connected hear about opportunities first through informal networks; a single, searchable platform gives a first-year student with no connections the same access as a senior with the right group memberships.
+- Restores trust between students and the faculty or alumni who post opportunities — a visible responsiveness record gives every poster a real incentive to reply, instead of just an informal expectation to.
+- Protects merit: a skill a student claims will eventually need to be backed by an actual completed opportunity, not just typed onto a profile, so competency can't be exaggerated or faked.
+- Reduces the anxiety and wasted energy that comes from not knowing where you stand — a student can see exactly what stage their application is at, instead of refreshing their inbox for weeks wondering if anyone even saw it.
+- Keeps alumni meaningfully connected to their alma mater after they lose their institute email — giving back through referrals and mentorship becomes easy and structured instead of informal and ad hoc.
+- Makes the campus safer by design: all communication happens inside the context of a real application, so there's no open, unattached messaging that could be misused.
+- The model isn't specific to one institute — any college or university facing the same "WhatsApp group and word of mouth" problem could adopt the same idea.
 
-**Speaker notes:** The last table row is the thesis — a feed app that's abandoned quickly has failed by its own metric; Nexus succeeds the same way.
+**Speaker notes:** The equity point (first bullet) is the strongest one for a societal-impact framing — lead with it, since it reframes the whole project as fairness of access, not just convenience.
 
 ---
 
 ## Slide 4 — Target Audience
 
-**Title:** Who it's for
+**Title:** Who It's For
 **Content:**
-1. **👩‍🎓 Student** — verified via `@thapar.edu` + OTP. Applies within a budget, tracks every status change, gets an attested skill on selection.
-2. **👨‍🏫 Faculty** — verified via `@thapar.edu` + role grant. Publishes structured postings with an SLA pledge, reviews a ranked pipeline, issues attestations.
-3. **🎓 Alumni** — no institute email anymore, so verified via a **claim-and-approve flow** (submit roll no. + grad year + proof → admin approves). Posts referrals, mentors, shares interview experience.
-4. **🛡️ Administrator** — keeps the pipeline trustworthy: approves alumni, resolves flags, curates the skill taxonomy, watches institute-wide analytics.
+- **Students** — the primary users. They sign up with their institute email, build a verified profile, discover opportunities that genuinely match their branch, year, and skills, apply within a fair limit so no one can spam every posting, and track every application in real time until it reaches a decision.
+- **Faculty** — the people offering research and teaching opportunities. They post clearly defined openings, commit to a response-time promise, review applicants through a clean, ranked pipeline instead of a flooded inbox, and can vouch for a skill once a student has genuinely worked with them.
+- **Alumni** — graduates who no longer have an institute email but still want to give back. They go through a one-time verification (proving their roll number and graduation year), after which they can post referrals, mentor current students, and share real interview experience.
+- **Administrators** — the people responsible for keeping the whole system trustworthy. They approve alumni verification requests, step in on flagged or suspicious postings, maintain the master list of recognized skills, and keep an eye on how the platform is performing institute-wide.
 
-**Speaker notes:** The alumni flow is worth one sentence — the naive `@thapar.edu`-only rule makes the alumni role unreachable after graduation, and catching that is a requirements-analysis win, not just a feature.
+**Speaker notes:** Frame these four as a loop, not four separate audiences — students apply, faculty and alumni respond and vouch, admins keep the whole loop honest.
 
 ---
 
-## Slide 5 — The Solution
+## Slide 5 — Technology & Deployment
 
-**Title:** What we built
+**Title:** How It's Built
 **Content:**
-- **Identity & roles** — domain-restricted signup, OTP + Google OAuth, 4-layer deny-by-default RBAC
-- **Structured profiles** — admin-curated skill taxonomy (no free text), projects with repo links, CGPA private by default
-- **Structured postings** — typed fields, required/preferred skills, eligibility filters (branch/CGPA/backlogs), auto-expiry, **SLA pledge**
-- **Faceted discovery** — full-text search + filters + sort, target: a relevant posting in under 2 minutes
-- **Application pipeline** — `APPLIED → SHORTLISTED/REJECTED → INTERVIEW → SELECTED/WITHDRAWN`, every transition an **immutable, timestamped event**
-- **Time-to-Acknowledgement** — computed from real DB timestamps, never self-reported; auto-nudge at 80% of the SLA window; poster gets a public **Responsiveness Badge**
-- **Scoped messaging** — threads exist only inside an application, no free-form DMs (safety by design)
-- **Notification digest + admin console** — batched alerts, deadline reminders, flag queue, institute-wide analytics
-- **Flagship differentiator (in progress):** skill **attestations** — an endorsement that requires a completed, `SELECTED` engagement to exist first, so competency can't be farmed
+- Built with **Next.js and TypeScript** — a modern, widely-used web framework that lets one codebase serve both the pages students see and the logic behind them.
+- Data is stored in **PostgreSQL**, a mature, industry-standard database, hosted on **Supabase**.
+- **Prisma** manages the database schema and every migration — a tracked, ordered change to the database's structure — so as features are added over time, the database evolves safely with a clear history instead of ad-hoc edits.
+- The application is deployed as two connected pieces: the **frontend on Vercel** (what students, faculty, and alumni interact with) and the **backend on Render** (where data and business logic are handled), presented behind one single address so it feels like one seamless application.
+- File storage (such as uploaded résumés) also runs on Supabase's storage service, alongside the database.
+
+**Speaker notes:** Keep this one light — name the pieces (Next.js, TypeScript, PostgreSQL/Supabase, Prisma migrations, Vercel + Render) without going into how they talk to each other; that detail isn't needed for this audience.
 
 ---
 
-## Slide 6 — Completion Status: Feature-Wise
+## Slide 6 — Limitations
 
-**Title:** What's done, in plain terms
+**Title:** What's Not There Yet
 **Content:**
-- **Login & Accounts** — Thapar email + OTP signup, Google login, role-based access (Student/Faculty/Alumni/Admin), a special "prove you graduated" flow for alumni
-- **Profile** — branch, year, CGPA (private by default), skills (from a controlled list, not free text), projects with GitHub links
-- **Posting Opportunities** — faculty/alumni post internships, RA/TA roles, hackathon teams, referrals; set required skills, deadline, seats, a response-time promise, and who's even eligible to apply; old posts auto-expire
-- **Finding Opportunities** — search + filters (type, domain, skills, stipend) + sorting; loads in under a second
-- **Applying & Tracking** — apply, then watch it move Applied → Shortlisted → Interview → Selected/Rejected; every change is timestamped and visible, nothing hidden or edited; a selected student can withdraw and free the seat; capped applications per student (no spamming)
-- **The "No More Ghosting" Feature** — tracks exactly how long a poster took to respond; auto-nudges slow posters; fast responders get a visible "responsiveness score" on their posts
-- **Messaging & Notifications** — chat tied only to a real application (no random DMs), one inbox for all conversations, deadline reminders, batched notifications instead of spam
-- **Admin Panel** — approve/reject alumni, handle flagged posts, manage the skills list, see platform-wide stats (resolution rate, average response time)
+- Skill attestation — the idea that a professor or alumnus can vouch for a skill only after actually working with a student — is designed but not fully live yet; today, skills on a profile are still self-declared.
+- Smart, automatic matching of students to the opportunities most relevant to them isn't built yet — students currently have to search and filter for themselves.
+- There's no team-formation feature yet for students who want to find teammates for a hackathon or project together.
+- Students can't yet save a search or get alerted the moment a new matching opportunity is posted — they have to check back themselves.
+- Profiles don't yet support verified project links — projects are currently listed as-is, without an extra layer of verification.
+- The platform is currently built and tested for one institute; opening it up to other colleges and universities is a future step.
+- It hasn't yet been used day-to-day by a full batch of real students and faculty — the next step is a live pilot to see how it holds up at real scale.
 
-**Missing / incomplete:**
-- **Skill Attestations** (professor/alumni verifying a skill after working with a student) — not built, was meant to be the standout feature
-- **Explainable Matching**, **Team Formation**, **Saved Searches/Alerts**, **Verified Project Links** — none of these exist yet, all "nice to have" bonus features
-- **Rate limiting** works but is a basic version, not production-grade
-
-**Speaker notes:** Everything a student or faculty member needs day-to-day — signup, profile, posting, searching, applying, tracking, messaging, notifications, admin oversight — is fully built and working. What's missing is the bonus layer on top, not the core product.
-
----
-
-## Slide 7 — Completion Status: Engineering-Wise
-
-**Title:** Built and verified, not just claimed
-**Content:**
-- **19** database models, **13** enums — one live PostgreSQL (Supabase) schema, all migrations applied
-- **17** application pages, **48** API routes
-- **205 automated tests passing**, 14 test files (RBAC authorization matrix alone: 69 cases)
-- `npm run typecheck` clean — strict TypeScript, zero `any`; production build green
-- **Security:** deny-by-default RBAC at 4 layers, role/status reloaded from DB on every request, append-only audit log, parameterized queries only
-- **Deployment:** split architecture live — frontend on Vercel, backend on Render, one origin via rewrite (no CORS, cookies stay same-site); Dockerized for local dev parity
-- **Search performance measured, not assumed:** p95 ≈ 74 ms (budget was 300 ms)
-- **Zero mock data** — every record in the system was created by a real user action, kept deliberately honest for pilot metrics
-- **Named gaps, stated openly:** attestations not yet built, CI blocked on billing (workflow already written), integration/E2E tests not yet added, pilot not yet run
-
-**Speaker notes:** Close on the honesty point — the team's own tracker treats "a partial marked as done" as worse than "a gap stated plainly." That's the engineering culture of the project, worth saying explicitly.
+**Speaker notes:** Close on honesty, not apology — every gap here is a known, named next step, not something we're hiding.
