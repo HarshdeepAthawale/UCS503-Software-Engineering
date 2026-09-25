@@ -51,6 +51,8 @@ const TEAM_SELECT = {
   createdAt: true,
   lead: { select: { id: true, name: true } },
   roles: {
+    where: { deletedAt: null },
+    orderBy: { createdAt: "asc" },
     select: {
       id: true,
       label: true,
@@ -280,7 +282,7 @@ export async function teamSuggestions(limit = 8): Promise<{
       SELECT min(trim(r.label)) AS label, count(*)::int AS uses
       FROM team_roles r
       JOIN teams t ON t.id = r.team_id
-      WHERE t.deleted_at IS NULL
+      WHERE t.deleted_at IS NULL AND r.deleted_at IS NULL
       GROUP BY lower(trim(r.label))
       ORDER BY uses DESC, label ASC
       LIMIT ${take}
@@ -306,23 +308,114 @@ export async function getTeamLeadId(id: string): Promise<string | null> {
 
 // ── Update / close (lead-scoped) ─────────────────────────────────────────────
 
+type RoleEdit = NonNullable<TeamUpdateInput["roles"]>[number];
+
+/**
+ * Apply the lead's role list inside the transaction: edit the roles that keep
+ * their id, add the ones without, and soft-delete the live roles left out.
+ * A role never drops below its members, and one with members or undecided
+ * requests cannot be removed - the lead decides those requests first.
+ */
+async function applyRoleEdits(tx: Prisma.TransactionClient, teamId: string, roles: RoleEdit[]) {
+  const live = await tx.teamRole.findMany({
+    where: { teamId, deletedAt: null },
+    select: { id: true, label: true, slotsFilled: true, _count: { select: { requests: { where: { status: "PENDING" } } } } },
+  });
+  const byId = new Map(live.map((r) => [r.id, r]));
+
+  const keptIds = new Set<string>();
+  for (const r of roles) {
+    if (!r.id) continue;
+    if (!byId.has(r.id) || keptIds.has(r.id)) throw Errors.validation("A role in the list does not belong to this team.", "roles");
+    keptIds.add(r.id);
+  }
+
+  const skillIds = [...new Set(roles.flatMap((r) => r.skillIds))];
+  if (skillIds.length) {
+    const found = await tx.skill.count({ where: { id: { in: skillIds }, deletedAt: null } });
+    if (found !== skillIds.length) throw Errors.validation("One or more skills are not in the taxonomy.", "roles");
+  }
+
+  for (const old of live) {
+    if (keptIds.has(old.id)) continue;
+    if (old.slotsFilled > 0) throw Errors.conflict(`"${old.label}" has members, so it cannot be removed.`);
+    if (old._count.requests > 0) throw Errors.conflict(`"${old.label}" has requests waiting for your decision. Decide them first.`);
+  }
+
+  for (const r of roles) {
+    if (r.id) {
+      // Conditional, so a join accepted a moment ago is never cut off.
+      const res = await tx.teamRole.updateMany({
+        where: { id: r.id, slotsFilled: { lte: r.slotCount } },
+        data: { label: r.label, slotCount: r.slotCount },
+      });
+      if (res.count === 0) {
+        const filled = byId.get(r.id)!.slotsFilled;
+        throw Errors.conflict(`"${r.label}" already has ${filled} member${filled === 1 ? "" : "s"}, so it needs at least ${filled} slot${filled === 1 ? "" : "s"}.`);
+      }
+      await tx.teamRoleSkill.deleteMany({ where: { teamRoleId: r.id } });
+      if (r.skillIds.length) await tx.teamRoleSkill.createMany({ data: r.skillIds.map((skillId) => ({ teamRoleId: r.id!, skillId })) });
+    } else {
+      await tx.teamRole.create({
+        data: {
+          teamId,
+          label: r.label,
+          slotCount: r.slotCount,
+          skills: r.skillIds.length ? { create: r.skillIds.map((skillId) => ({ skillId })) } : undefined,
+        },
+      });
+    }
+  }
+
+  const removed = live.filter((r) => !keptIds.has(r.id)).map((r) => r.id);
+  if (removed.length) await tx.teamRole.updateMany({ where: { id: { in: removed } }, data: { deletedAt: new Date() } });
+  return removed.length;
+}
+
 export async function updateTeam(principal: Principal, id: string, input: TeamUpdateInput) {
   const existing = await prisma.team.findFirst({ where: { id, deletedAt: null }, select: { status: true } });
   if (!existing) throw Errors.notFound();
-  if (existing.status !== "FORMING" && (input.name !== undefined || input.description !== undefined)) {
-    throw Errors.conflict("This team is no longer open for edits.");
+  const editing = input.name !== undefined || input.hackathon !== undefined || input.description !== undefined
+    || input.eventDate !== undefined || input.roles !== undefined;
+  if (existing.status === "CLOSED" && (editing || input.status)) {
+    throw Errors.conflict("This team is closed and can no longer be edited.");
   }
 
-  const updated = await prisma.team.update({
-    where: { id },
-    data: {
-      name: input.name,
-      description: input.description,
-      eventDate: input.eventDate,
-      status: input.status,
-    },
-    select: TEAM_SELECT,
-  });
+  let updated: TeamRow;
+  try {
+    updated = await prisma.$transaction(async (tx) => {
+      const removedRoles = input.roles ? await applyRoleEdits(tx, id, input.roles) : 0;
+
+      // A team is recruiting while any role has an open slot. Closing wins;
+      // otherwise a role edit can lock a now-full team or reopen a locked one.
+      let status: "FORMING" | "LOCKED" | "CLOSED" | undefined = input.status;
+      if (!status && input.roles) {
+        const roles = await tx.teamRole.findMany({ where: { teamId: id, deletedAt: null }, select: { slotCount: true, slotsFilled: true } });
+        status = roles.every((r) => r.slotsFilled >= r.slotCount) ? "LOCKED" : "FORMING";
+      }
+
+      const row = await tx.team.update({
+        where: { id },
+        data: {
+          name: input.name,
+          hackathon: input.hackathon,
+          description: input.description,
+          eventDate: input.eventDate,
+          status,
+        },
+        select: TEAM_SELECT,
+      });
+      if (editing) {
+        await tx.auditLog.create({
+          data: { actorId: principal.userId, action: "team.updated", target: id, metadata: { rolesEdited: input.roles !== undefined, removedRoles } },
+        });
+      }
+      return row;
+    }, SERIALIZABLE);
+  } catch (e) {
+    if (isSerializationFailure(e)) throw Errors.conflict("The team changed while you were editing. Reload and try again.");
+    throw e;
+  }
 
   if (input.status === "CLOSED") {
     await audit({ action: "team.closed", actorId: principal.userId, target: id });
@@ -383,7 +476,7 @@ export async function requestToJoin(
   input: TeamJoinRequestInput,
 ) {
   const role = await prisma.teamRole.findFirst({
-    where: { id: teamRoleId },
+    where: { id: teamRoleId, deletedAt: null },
     select: {
       slotCount: true,
       slotsFilled: true,
@@ -522,7 +615,7 @@ export async function decideJoinRequest(
         // Small, bounded set (a team holds at most 10 roles - TeamCreateSchema),
         // so checking in JS is simpler and clearer than a column-vs-column filter.
         const roles = await tx.teamRole.findMany({
-          where: { teamId: req.teamRole.team.id },
+          where: { teamId: req.teamRole.team.id, deletedAt: null },
           select: { slotCount: true, slotsFilled: true },
         });
         if (roles.every((r) => r.slotsFilled >= r.slotCount)) {
@@ -589,7 +682,7 @@ export async function inviteToTeam(
       hackathon: true,
       status: true,
       lead: { select: { name: true } },
-      roles: { select: { id: true, label: true } },
+      roles: { where: { deletedAt: null }, select: { id: true, label: true } },
     },
   });
   if (!team) throw Errors.notFound();

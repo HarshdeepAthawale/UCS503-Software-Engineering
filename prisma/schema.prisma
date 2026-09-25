@@ -532,7 +532,9 @@ model TeamRole {
   slotCount   Int    @map("slot_count")
   slotsFilled Int    @default(0) @map("slots_filled")
 
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  // Set when the lead removes the role while editing the team (soft delete).
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
 
   team     Team              @relation(fields: [teamId], references: [id], onDelete: Cascade)
   skills   TeamRoleSkill[]

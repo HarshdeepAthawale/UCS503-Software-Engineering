@@ -442,8 +442,16 @@ export const TeamCreateSchema = z
 export const TeamUpdateSchema = z
   .object({
     name: z.string().trim().min(2).max(120).optional(),
+    hackathon: z.string().trim().min(2).max(160).optional(),
     description: z.string().trim().max(2000).nullable().optional(),
     eventDate: z.coerce.date().nullable().optional(),
+    // The full list of roles after the edit: an id keeps (and edits) that
+    // role, no id adds one, and a live role left out is removed.
+    roles: z
+      .array(teamRoleInput.extend({ id: z.string().trim().uuid().optional() }))
+      .min(1, "Keep at least one role.")
+      .max(10)
+      .optional(),
     status: z.enum(["CLOSED"]).optional(), // the only client-driven status change
   })
   .strict();
