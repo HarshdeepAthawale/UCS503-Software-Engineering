@@ -20,6 +20,8 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "bootstrap:admin": "node --env-file=.env --import tsx prisma/bootstrap-admin.ts",
+    "super-admin:set": "node --env-file=.env --import tsx prisma/set-super-admin.ts",
+    "super-admin:set:dev": "node --env-file=.env.development.local --import tsx prisma/set-super-admin.ts",
     "provision:student": "node --env-file=.env --import tsx prisma/provision-student.ts",
     "provision:faculty": "node --env-file=.env --import tsx prisma/provision-faculty.ts",
     "provision:faculty:dev": "node --env-file=.env.development.local --import tsx prisma/provision-faculty.ts",
