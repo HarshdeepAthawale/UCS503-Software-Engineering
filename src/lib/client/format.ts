@@ -55,9 +55,9 @@ export function badgeLabel(b: string): string {
 }
 
 const SLA_LABEL: Record<string, string> = {
-  H24: "24-hour reply",
-  H48: "48-hour reply",
-  WEEK: "1-week reply",
+  H24: "Replies within 24h",
+  H48: "Replies within 48h",
+  WEEK: "Replies within a week",
 };
 export function slaLabel(s: string): string {
   return SLA_LABEL[s] ?? s;

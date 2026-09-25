@@ -1679,17 +1679,6 @@ button.skill-chip {
 }
 
 /* Facet / search bar */
-.opp-facet-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-bottom: 22px;
-  padding: 16px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--r-md);
-  box-shadow: var(--shadow-sm);
-}
 
 .opp-facet-search-input,
 .facet-bar-search input[type="search"] {
@@ -1710,32 +1699,6 @@ button.skill-chip {
   outline: none;
   border-color: var(--accent-ring);
   box-shadow: 0 0 0 3px var(--accent-glow);
-}
-
-.opp-facet-foot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding-top: 4px;
-}
-
-.opp-facet-count {
-  margin: 0;
-  font-size: 13px;
-  color: var(--muted);
-}
-
-.opp-page-head {
-  align-items: center;
-}
-
-.opp-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  text-align: center;
 }
 
 .facet-bar {
@@ -1762,29 +1725,6 @@ button.skill-chip {
   font-family: inherit;
 }
 
-.facet-bar-filters {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: nowrap;
-  gap: 10px;
-  align-items: stretch;
-}
-
-.facet-bar-filters > .facet-select {
-  flex: 1 1 0;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  align-self: stretch;
-}
-
-.facet-bar-filters > .facet-select > .facet-select-trigger,
-.facet-bar-filters > .facet-select > button.facet-select-trigger,
-.facet-bar-filters > .facet-select > label.facet-select-trigger {
-  flex: 1;
-  min-height: 44px;
-}
-
 .facet-field-label,
 .facet-select-kicker {
   margin: 0;
@@ -1795,74 +1735,6 @@ button.skill-chip {
   text-transform: uppercase;
   color: var(--faint);
   line-height: 1;
-}
-
-.facet-select {
-  position: relative;
-  min-width: 0;
-}
-
-.facet-text-trigger {
-  flex: 1;
-  cursor: text;
-}
-
-.facet-select-chevron--spacer {
-  visibility: hidden;
-  pointer-events: none;
-}
-
-.facet-select-trigger {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: stretch;
-  gap: 4px;
-  text-align: left;
-  background: var(--bg);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--r-sm);
-  padding: 8px 36px 8px 12px;
-  min-height: 44px;
-  color: var(--text);
-  font-family: inherit;
-  cursor: pointer;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-}
-
-.facet-select-trigger:hover {
-  border-color: var(--accent-ring);
-}
-
-.facet-select-trigger.is-open,
-.facet-select-trigger:focus-visible,
-.facet-text-trigger:focus-within {
-  outline: none;
-  border-color: var(--accent-ring);
-  box-shadow: 0 0 0 3px var(--accent-glow);
-}
-
-.facet-select-kicker {
-  flex: 0 0 auto;
-  line-height: 1;
-}
-
-.facet-select-value {
-  flex: 0 0 auto;
-  min-width: 0;
-  width: 100%;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  line-height: 1.3;
 }
 
 /* Text input in the value row — direct child of trigger, same slot as span.facet-select-value */
@@ -1904,91 +1776,6 @@ input.facet-select-value.facet-select-text:focus {
   background: transparent;
   min-height: 0;
   padding: 0;
-}
-
-.facet-select--compact .facet-select-trigger {
-  padding-top: 7px;
-  padding-bottom: 7px;
-}
-
-.facet-select--compact .facet-select-value {
-  font-size: 13px;
-}
-
-.facet-select-chevron {
-  position: absolute;
-  top: 50%;
-  right: 12px;
-  transform: translateY(-50%);
-  color: var(--muted);
-  transition: transform 0.15s ease;
-  flex-shrink: 0;
-  pointer-events: none;
-}
-
-.facet-select-trigger.is-open .facet-select-chevron {
-  transform: translateY(-50%) rotate(180deg);
-}
-
-.facet-select-menu {
-  position: absolute;
-  z-index: 40;
-  top: calc(100% + 6px);
-  left: 0;
-  right: 0;
-  margin: 0;
-  padding: 6px;
-  list-style: none;
-  background: var(--bg);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--r-sm);
-  box-shadow: var(--shadow-md);
-  max-height: 280px;
-  overflow-y: auto;
-}
-
-.facet-select-option {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-  text-align: left;
-  padding: 10px 12px;
-  border: none;
-  border-radius: var(--r-sm);
-  background: transparent;
-  color: var(--text);
-  font-family: inherit;
-  cursor: pointer;
-  transition: background 0.12s ease;
-}
-
-.facet-select-option-label {
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.facet-select-option.is-selected .facet-select-option-label {
-  font-weight: 600;
-  color: var(--accent);
-}
-
-.facet-select-option-hint {
-  font-size: 12px;
-  color: var(--muted);
-  line-height: 1.35;
-}
-
-.facet-select-option:hover,
-.facet-select-option:focus-visible {
-  outline: none;
-  background: var(--accent-soft);
-}
-
-.facet-select-option.is-selected {
-  background: var(--surface-alt);
-  font-weight: 600;
 }
 
 /* Form select — profile fields, searchable grouped dropdowns */
@@ -2223,11 +2010,6 @@ input.facet-select-value.facet-select-text:focus {
 }
 
 /* Feed grid + opportunity card */
-.feed-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 16px;
-}
 
 /* Teams hub — your teams + recruiting on one page */
 
@@ -3914,16 +3696,7 @@ html {
   .hero-actions .btn {
     width: 100%;
   }
-  .facet-bar-filters {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .facet-bar-filters > .facet-select {
-    flex: none;
-  }
-  .facet-bar-filters > .facet-select:last-child {
-    grid-column: 1 / -1;
-  }
+
   .facet-bar input[type="search"],
   .facet-bar select {
     width: 100%;
@@ -4333,11 +4106,6 @@ html {
   .page-head > a.btn {
     width: 100%;
     justify-content: center;
-  }
-
-  .feed-grid {
-    grid-template-columns: 1fr;
-    gap: 12px;
   }
 
   .ocard {
@@ -5873,6 +5641,256 @@ html {
 
   .team-hero-main h1 {
     font-size: 24px;
+  }
+}
+
+/* ============================================================================
+   Opportunities - discovery controls and posting cards
+   ========================================================================== */
+
+.discover-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.discover-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* Segmented control: one choice from a few */
+.segmented {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  background: var(--surface-2);
+  border-radius: var(--r-md);
+}
+
+.segmented button {
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--muted);
+  padding: 7px 14px;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+}
+
+.segmented button:hover {
+  color: var(--text);
+}
+
+.segmented button.is-on {
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
+}
+
+.sort-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.sort-select select {
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  padding: 8px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.result-line {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+/* Posting card */
+.opp-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 20px;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+}
+
+.opp-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.opp-card:focus-within {
+  border-color: var(--accent);
+}
+
+.opp-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.opp-card-type {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.deadline-chip {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.deadline-chip.is-urgent {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.deadline-chip.is-closed {
+  color: var(--faint);
+}
+
+.opp-card-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.opp-card-title a {
+  color: var(--text);
+  text-decoration: none;
+}
+
+/* The whole card is the link's hit area. */
+.opp-card-title a::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.opp-card-title a:focus-visible {
+  outline: none;
+}
+
+.opp-card-poster {
+  margin: -4px 0 0;
+  font-size: 13.5px;
+  color: var(--muted);
+}
+
+.opp-card-desc {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--text);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.skill-tag.is-required {
+  border-color: var(--border-strong);
+  color: var(--text);
+  font-weight: 500;
+}
+
+.opp-card-foot {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.opp-facts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.opp-facts li + li::before {
+  content: "·";
+  margin-right: 14px;
+  margin-left: -8px;
+  color: var(--faint);
+}
+
+.fit-line {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--st-interview);
+}
+
+.fit-line.is-ok {
+  color: var(--st-selected);
+}
+
+@media (max-width: 768px) {
+  .discover-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .segmented {
+    display: flex;
+  }
+
+  .segmented button {
+    flex: 1;
+  }
+
+  .sort-select select {
+    flex: 1;
+  }
+
+  .discover-controls > .chip-row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    margin: 0 -16px;
+    padding: 0 16px 2px;
+  }
+
+  .discover-controls > .chip-row::-webkit-scrollbar {
+    display: none;
+  }
+
+  .discover-controls > .chip-row .chip {
+    flex-shrink: 0;
   }
 }
 

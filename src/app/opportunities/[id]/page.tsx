@@ -1,6 +1,7 @@
 "use client";
 
 import { isAdminRole } from "@/lib/domain/admin-portal";
+import { eligibility } from "@/lib/client/eligibility";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -160,27 +161,11 @@ export default function OpportunityDetailPage() {
   const open = opp?.status === "LIVE" || opp?.status === "AT_RISK";
   const badge = opp?.poster.responsiveness?.badge;
 
-  // Eligibility filters (docs/PRD M3) - mirrors the check in application.service.ts
-  // so the button can be hidden for a student who won't pass it anyway. This is
-  // UX only; the server is the authoritative check on submit.
-  const ineligibleReasons: string[] = [];
-  if (opp && isStudent) {
-    if (opp.eligibleBranches.length > 0) {
-      if (!myProfile?.branch || !opp.eligibleBranches.includes(myProfile.branch)) {
-        ineligibleReasons.push(`restricted to ${opp.eligibleBranches.join(", ")}`);
-      }
-    }
-    if (opp.minCgpa != null) {
-      if (myProfile?.cgpa == null || myProfile.cgpa < opp.minCgpa) {
-        ineligibleReasons.push(`requires a minimum CGPA of ${opp.minCgpa}`);
-      }
-    }
-    if (opp.maxBacklogs != null) {
-      if (myProfile?.backlogs == null || myProfile.backlogs > opp.maxBacklogs) {
-        ineligibleReasons.push(`requires ${opp.maxBacklogs} or fewer active backlogs`);
-      }
-    }
-  }
+  // Eligibility preview (lib/client/eligibility.ts mirrors the server's check)
+  // so the button can be hidden for a student who won't pass it anyway. UX
+  // only; the server is the authoritative check on submit.
+  const ineligibleReasons =
+    opp && isStudent ? eligibility(opp, myProfile).reasons.map((r) => r.long) : [];
   const eligible = ineligibleReasons.length === 0;
 
   return (
