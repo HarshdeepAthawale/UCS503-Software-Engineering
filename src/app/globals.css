@@ -5694,26 +5694,6 @@ html {
   box-shadow: var(--shadow-sm);
 }
 
-.sort-select {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  color: var(--muted);
-}
-
-.sort-select select {
-  font: inherit;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text);
-  padding: 8px 12px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--r-sm);
-  background: var(--surface);
-  cursor: pointer;
-}
-
 .result-line {
   display: flex;
   align-items: center;
@@ -5873,10 +5853,6 @@ html {
     flex: 1;
   }
 
-  .sort-select select {
-    flex: 1;
-  }
-
   .discover-controls > .chip-row {
     flex-wrap: nowrap;
     overflow-x: auto;
@@ -5891,6 +5867,213 @@ html {
 
   .discover-controls > .chip-row .chip {
     flex-shrink: 0;
+  }
+}
+
+/* ============================================================================
+   Applications - the student's tracker
+   ========================================================================== */
+
+.page-stack.stack-tight {
+  gap: 12px;
+  padding: 0;
+}
+
+.budget {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  padding: 8px 14px;
+  border-radius: var(--r-md);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.budget strong {
+  font-size: 17px;
+  color: var(--text);
+}
+
+.budget.is-full strong {
+  color: var(--accent);
+}
+
+.app-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px 22px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.app-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-md);
+}
+
+.app-card-title {
+  margin: 4px 0 2px;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.app-card-title a {
+  color: var(--text);
+  text-decoration: none;
+}
+
+.app-card-title a::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.app-card-meta {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--muted);
+}
+
+/* Four-step progress tracker */
+.progress {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.progress-step {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 32px;
+  font-size: 13px;
+}
+
+/* the line joining a step to the next */
+.progress-step:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  top: 11px;
+  left: 24px;
+  right: 0;
+  height: 2px;
+  background: var(--border);
+}
+
+.progress-step.is-done:not(:last-child)::before {
+  background: var(--st-selected);
+}
+
+.progress-dot {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  border: 2px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--on-ink);
+}
+
+.progress-step.is-done .progress-dot {
+  border-color: var(--st-selected);
+  background: var(--st-selected);
+}
+
+.progress-step.is-current .progress-dot {
+  border-color: var(--st-shortlisted);
+  box-shadow: 0 0 0 4px rgb(29 78 216 / 0.12);
+}
+
+.progress-step.is-skipped .progress-dot {
+  border-style: dashed;
+}
+
+.progress-label {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.progress-step.is-upcoming .progress-label,
+.progress-step.is-skipped .progress-label {
+  color: var(--faint);
+  font-weight: 500;
+}
+
+.progress-date {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.progress-step.is-current .progress-date {
+  color: var(--st-shortlisted);
+  font-weight: 600;
+}
+
+/* A decided application's last step takes its outcome's colour. */
+.app-card.status-rejected .progress-step:last-child .progress-dot {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.app-card.status-withdrawn .progress-step:last-child .progress-dot {
+  border-color: var(--faint);
+  background: var(--faint);
+}
+
+.wait-line {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: var(--r-sm);
+  background: var(--surface-alt);
+  font-size: 13.5px;
+  color: var(--muted);
+}
+
+.wait-line.is-overdue {
+  background: rgb(183 121 31 / 0.1);
+  color: #8a5a12;
+  font-weight: 500;
+}
+
+.wait-line.is-good {
+  background: rgb(15 118 110 / 0.08);
+  color: var(--st-selected);
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .page-title-row .budget {
+    align-items: flex-start;
+    width: 100%;
+    flex-direction: row;
+    gap: 8px;
+    align-items: baseline;
+  }
+
+  .app-card {
+    padding: 18px;
+  }
+
+  .progress-label {
+    font-size: 12px;
+  }
+
+  .progress-date {
+    font-size: 11px;
   }
 }
 

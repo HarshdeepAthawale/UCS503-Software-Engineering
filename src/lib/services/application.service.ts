@@ -333,7 +333,12 @@ export async function withdrawApplication(principal: Principal, applicationId: s
 
 // ── Views ────────────────────────────────────────────────────────────────────
 
-/** The caller's own applications (student view). */
+/**
+ * The caller's own applications (student view) - the application tracker.
+ * Each carries its dated event timeline, the poster, and the reply window they
+ * promised, so the page can show how far it got and how long it has waited.
+ * `budget` is how many non-terminal applications count against the limit.
+ */
 export async function listMyApplications(principal: Principal) {
   const applications = await prisma.application.findMany({
     where: { studentId: principal.userId, deletedAt: null },
@@ -345,11 +350,24 @@ export async function listMyApplications(principal: Principal) {
       firstTransitionAt: true,
       rejectionCode: true,
       opportunity: {
-        select: { id: true, title: true, type: true, status: true, deadline: true },
+        select: {
+          id: true,
+          title: true,
+          type: true,
+          status: true,
+          deadline: true,
+          slaPledge: true,
+          poster: { select: { id: true, name: true, role: true } },
+        },
+      },
+      events: {
+        orderBy: { createdAt: "asc" },
+        select: { fromState: true, toState: true, createdAt: true },
       },
     },
   });
-  return { applications };
+  const active = applications.filter((a) => (ACTIVE_STATES as readonly string[]).includes(a.status)).length;
+  return { applications, budget: { active, limit: env.APPLICATION_BUDGET } };
 }
 
 /**

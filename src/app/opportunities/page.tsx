@@ -35,9 +35,9 @@ const PAY: { value: OpportunityFilters["stipend"]; label: string }[] = [
   { value: "false", label: "Unpaid" },
 ];
 const SORTS: { value: OpportunitySort; label: string }[] = [
-  { value: "recent", label: "Newest first" },
+  { value: "recent", label: "Newest" },
   { value: "deadline", label: "Closing soon" },
-  { value: "seats", label: "Most seats open" },
+  { value: "seats", label: "Most seats" },
 ];
 /** Wait this long after the last keystroke before searching. */
 const SEARCH_DELAY_MS = 250;
@@ -184,12 +184,14 @@ export default function OpportunitiesPage() {
                   </button>
                 ))}
               </div>
-              <label className="sort-select">
-                <span>Sort</span>
-                <select value={filters.sort} onChange={(e) => patch({ sort: e.target.value as OpportunitySort })}>
-                  {SORTS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-                </select>
-              </label>
+              <div className="segmented" role="group" aria-label="Sort">
+                {SORTS.map((s) => (
+                  <button key={s.value} type="button" className={filters.sort === s.value ? "is-on" : ""}
+                    aria-pressed={filters.sort === s.value} onClick={() => patch({ sort: s.value })}>
+                    {s.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </section>
 

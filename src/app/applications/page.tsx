@@ -4,42 +4,49 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AppNav } from "@/components/app-nav";
+import { ApplicationCard } from "@/components/application-card";
+import { SignInRequired } from "@/components/sign-in-required";
 import {
-  apiListMyApplications,
-  ApiError,
+  apiApplicationTracker,
   bootstrapSession,
   getUser,
+  type ApplicationBudget,
   type MyApplication,
 } from "@/lib/client/api";
-import { deadlineLabel, oppTypeLabel, statusClass, timeAgo, titleCase } from "@/lib/client/format";
+import { isActive } from "@/lib/client/application-progress";
 import { handleLoadError, loadErrorMessage } from "@/lib/client/handle-load-error";
-import { SignInRequired } from "@/components/sign-in-required";
 
+/**
+ * The student's application tracker: every application with its progress
+ * from Applied to a decision, open ones first, and how much of the
+ * application budget is in use.
+ */
 export default function ApplicationsPage() {
   const router = useRouter();
   const [ready, setReady] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
   const [apps, setApps] = useState<MyApplication[]>([]);
+  const [budget, setBudget] = useState<ApplicationBudget | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     void (async () => {
       const ok = await bootstrapSession();
       setSignedIn(ok);
-      setReady(true);
       if (ok) {
         try {
-          setApps(await apiListMyApplications());
+          const res = await apiApplicationTracker();
+          setApps(res.applications);
+          setBudget(res.budget);
         } catch (err) {
-          if (handleLoadError(router, err)) return;
-          setError(loadErrorMessage(err, "Could not load your applications."));
+          if (!handleLoadError(router, err)) setError(loadErrorMessage(err, "Could not load your applications."));
         }
       }
+      setReady(true);
     })();
-  }, []);
+  }, [router]);
 
-  if (!ready) return <main className="app-shell"><p className="app-loading">Loading…</p></main>;
-  if (!signedIn) {
+  if (ready && !signedIn) {
     return (
       <SignInRequired message="Sign in to track your applications.">
         <Link className="btn btn-ghost" href="/register">Create account</Link>
@@ -47,45 +54,71 @@ export default function ApplicationsPage() {
     );
   }
 
+  const open = apps.filter((a) => isActive(a.status));
+  const decided = apps.filter((a) => !isActive(a.status));
+  const full = budget ? budget.active >= budget.limit : false;
+
   return (
     <div className="app-shell">
       <AppNav user={getUser()} />
       <main id="content" className="app-page">
-        <div className="wrap wrap-narrow">
-          <div className="page-head">
+        <div className="wrap wrap-form page-stack">
+          <div className="page-title-row">
             <div>
-              <h1>My applications</h1>
-              <p className="sub">Track every application to a decision - and see when a poster goes quiet.</p>
+              <h1>Applications</h1>
+              <p className="sub">Every application, from the day you applied to a decision.</p>
             </div>
-            <Link className="btn btn-ghost btn-sm" href="/opportunities">Browse feed →</Link>
+            {budget && (
+              <div className={`budget${full ? " is-full" : ""}`} title="Withdrawing an open application frees a slot">
+                <strong>{budget.active} of {budget.limit}</strong>
+                <span>open applications</span>
+              </div>
+            )}
           </div>
 
           {error && <p className="form-err" role="alert">{error}</p>}
 
-          {apps.length === 0 ? (
-            <div className="app-empty">
+          {!ready ? (
+            <div className="page-stack" aria-busy="true">
+              <div className="skeleton skeleton-card" />
+              <div className="skeleton skeleton-card" />
+            </div>
+          ) : apps.length === 0 ? (
+            <div className="empty-card">
               <h3>No applications yet</h3>
-              <p>Find an opportunity and apply - it'll show up here.</p>
-              <Link className="btn btn-primary" href="/opportunities">Explore opportunities</Link>
+              <p>Apply to an opportunity and you can follow it here, step by step, until you get an answer.</p>
+              <Link className="btn btn-primary" href="/opportunities">Find opportunities</Link>
             </div>
           ) : (
-            <div className="notif-list">
-              {apps.map((a) => (
-                <Link key={a.id} href={`/applications/${a.id}`} className="notif">
-                  <span className="body">
-                    <span className="t">{a.opportunity.title}</span>
-                    <span className="when">
-                      {oppTypeLabel(a.opportunity.type)} · applied {timeAgo(a.appliedAt)} ·{" "}
-                      {deadlineLabel(a.opportunity.deadline) === "closed"
-                        ? "closed"
-                        : `closes ${deadlineLabel(a.opportunity.deadline)}`}
-                      {a.rejectionCode ? ` · reason: ${titleCase(a.rejectionCode)}` : ""}
-                    </span>
-                  </span>
-                  <span className={`pill ${statusClass(a.status)}`}>{titleCase(a.status)}</span>
-                </Link>
-              ))}
-            </div>
+            <>
+              {full && (
+                <p className="form-ok">
+                  You have reached your limit of {budget?.limit} open applications. Withdraw one to apply somewhere new.
+                </p>
+              )}
+              {open.length > 0 && (
+                <section aria-labelledby="open-apps">
+                  <div className="block-head">
+                    <h2 id="open-apps">In progress</h2>
+                    <span className="block-count">{open.length}</span>
+                  </div>
+                  <div className="page-stack stack-tight">
+                    {open.map((a) => <ApplicationCard key={a.id} app={a} />)}
+                  </div>
+                </section>
+              )}
+              {decided.length > 0 && (
+                <section aria-labelledby="decided-apps">
+                  <div className="block-head">
+                    <h2 id="decided-apps">Decided</h2>
+                    <span className="block-count">{decided.length}</span>
+                  </div>
+                  <div className="page-stack stack-tight">
+                    {decided.map((a) => <ApplicationCard key={a.id} app={a} />)}
+                  </div>
+                </section>
+              )}
+            </>
           )}
         </div>
       </main>

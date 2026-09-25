@@ -556,7 +556,17 @@ export interface MyApplication {
     type: OppType;
     status: OppStatus;
     deadline: string;
+    slaPledge: SlaPledge;
+    poster: { id: string; name: string; role: string };
   };
+  /** The application's immutable timeline, oldest first. */
+  events: { fromState: AppState | null; toState: AppState; createdAt: string }[];
+}
+
+export interface ApplicationBudget {
+  /** Non-terminal applications counting against the limit. */
+  active: number;
+  limit: number;
 }
 
 export interface ApplicationEvent {
@@ -598,8 +608,12 @@ export async function apiApply(
 }
 
 export async function apiListMyApplications(): Promise<MyApplication[]> {
-  const body = await request<{ applications: MyApplication[] }>("/api/applications");
-  return body.applications;
+  return (await apiApplicationTracker()).applications;
+}
+
+/** The student's applications plus how much of the application budget is in use. */
+export async function apiApplicationTracker(): Promise<{ applications: MyApplication[]; budget: ApplicationBudget }> {
+  return request<{ applications: MyApplication[]; budget: ApplicationBudget }>("/api/applications");
 }
 
 export async function apiListApplicants(opportunityId: string): Promise<Applicant[]> {
