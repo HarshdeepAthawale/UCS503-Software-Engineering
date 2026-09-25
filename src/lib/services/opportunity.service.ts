@@ -245,7 +245,12 @@ export async function listOpportunities(opts: {
   if (opts.posterId) {
     conds.push(Prisma.sql`o.poster_id = ${opts.posterId}::uuid`);
   } else if (!opts.includeExpired) {
-    conds.push(Prisma.sql`o.status <> 'EXPIRED'::"OppStatus"`);
+    // The feed is what a student can still apply to - the same test the apply
+    // path uses. Excluding only EXPIRED let postings the poster CLOSED, and any
+    // past their deadline before the expiry job ran, sit in the feed forever
+    // (and top "Closing soon", which sorts by deadline).
+    conds.push(Prisma.sql`o.status IN ('LIVE'::"OppStatus", 'AT_RISK'::"OppStatus")`);
+    conds.push(Prisma.sql`o.deadline > now()`);
   }
   if (opts.type) conds.push(Prisma.sql`o.type = ${opts.type}::"OppType"`);
   if (opts.domain) conds.push(Prisma.sql`o.domain ILIKE ${"%" + opts.domain + "%"}`);
