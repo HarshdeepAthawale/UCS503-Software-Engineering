@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { apiRegister, apiVerifyOtp, ApiError } from "@/lib/client/api";
-import { GoogleButton } from "@/components/google-button";
+import { GoogleButton, googleEnabled } from "@/components/google-button";
 import { TiLogo } from "@/components/ti-logo";
 import { AuthShell } from "@/components/auth-shell";
 
@@ -53,9 +53,8 @@ export default function RegisterPage() {
   return (
     <AuthShell>
       <div className="auth-card">
-        <Link className="brand auth-card-brand" href="/">
-          <TiLogo size={28} className="ti-mark" /> Thapar&nbsp;Nexus
-        </Link>
+        <TiLogo size={48} className="auth-logo" priority />
+        <p className="auth-eyebrow">Opportunities Portal</p>
         <h1>{stage === "form" ? "Create your account" : "Verify your email"}</h1>
         <p className="sub">
           {stage === "form"
@@ -65,6 +64,14 @@ export default function RegisterPage() {
 
         {error && <p className="form-err" role="alert">{error}</p>}
         {notice && <p className="form-ok">{notice}</p>}
+
+        {stage === "form" && googleEnabled && (
+          <>
+            <GoogleButton label="Sign up with Google" />
+            <p className="auth-note">Only @thapar.edu accounts can sign in with Google.</p>
+            <div className="or-divider"><span>or register with email</span></div>
+          </>
+        )}
 
         {stage === "form" ? (
           <form className="form" onSubmit={onSubmit} noValidate>
@@ -143,11 +150,10 @@ export default function RegisterPage() {
           </form>
         )}
 
-        {stage === "form" && <GoogleButton label="Sign up with Google" />}
-
-        <p className="auth-alt">
-          Already have an account? <Link href="/login">Sign in</Link>
-        </p>
+        <div className="auth-foot">
+          <span className="auth-foot-text">Already have an account?</span>
+          <Link className="btn btn-ghost" href="/">Sign in</Link>
+        </div>
       </div>
     </AuthShell>
   );

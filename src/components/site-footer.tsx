@@ -1,21 +1,7 @@
 import Link from "next/link";
 
-/** Shared footer. `minimal` renders a single line for the landing page. */
-export function SiteFooter({ minimal = false }: { minimal?: boolean }) {
-  if (minimal) {
-    return (
-      <footer className="landing-foot">
-        <div className="wrap landing-foot-inner">
-          <span>© 2026 Thapar Institute of Engineering &amp; Technology</span>
-          <div className="landing-foot-links">
-            <Link href="/product">Product</Link>
-            <Link href="/about">About</Link>
-          </div>
-        </div>
-      </footer>
-    );
-  }
-
+/** Shared footer for the marketing and error pages. */
+export function SiteFooter() {
   return (
     <footer>
       <div className="wrap">

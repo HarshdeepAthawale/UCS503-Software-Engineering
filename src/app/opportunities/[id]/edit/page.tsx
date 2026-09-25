@@ -1,5 +1,6 @@
 "use client";
 
+import { isAdminRole } from "@/lib/domain/admin-portal";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -84,7 +85,7 @@ export default function EditOpportunityPage() {
           apiGetSkills().catch(() => [] as TaxonomySkill[]),
         ]);
         const user = getUser();
-        const owns = user?.id === opp.poster.id || user?.role === "ADMIN";
+        const owns = user?.id === opp.poster.id || (!!user && isAdminRole(user.role));
         if (!owns) {
           setForbidden(true);
           setReady(true);
@@ -156,7 +157,7 @@ export default function EditOpportunityPage() {
       <main className="auth-shell">
         <div className="auth-card">
           <h1>Sign in required</h1>
-          <div className="hero-actions"><Link className="btn btn-primary" href="/login">Sign in</Link></div>
+          <div className="hero-actions"><Link className="btn btn-primary" href="/">Sign in</Link></div>
         </div>
       </main>
     );
@@ -280,7 +281,7 @@ export default function EditOpportunityPage() {
                 <input id="deadline" type="datetime-local" required value={deadline} onChange={(e) => setDeadline(e.target.value)} />
               </div>
               <div className="field">
-                <label htmlFor="sla">SLA pledge</label>
+                <label htmlFor="sla">Reply within</label>
                 <select id="sla" value={slaPledge} onChange={(e) => setSlaPledge(e.target.value as SlaPledge)}>
                   {PLEDGES.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
                 </select>

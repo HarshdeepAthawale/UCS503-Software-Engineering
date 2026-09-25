@@ -138,7 +138,7 @@ export default function NewOpportunityPage() {
           <div className="page-head">
             <div>
               <h1>Post an opportunity</h1>
-              <p className="sub">Structured fields and an SLA pledge - applicants can hold you to it.</p>
+              <p className="sub">Say how quickly you will reply - applicants see whether you keep to it.</p>
             </div>
           </div>
 
@@ -201,7 +201,7 @@ export default function NewOpportunityPage() {
               <input id="deadline" type="datetime-local" required value={deadline} onChange={(e) => setDeadline(e.target.value)} />
             </div>
             <div className="field">
-              <label htmlFor="sla">SLA pledge</label>
+              <label htmlFor="sla">Reply within</label>
               <FormSelect
                 id="sla"
                 value={slaPledge}

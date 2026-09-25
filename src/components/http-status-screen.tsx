@@ -14,7 +14,7 @@ export function HttpStatusScreen({
   reference?: string;
   retry?: () => void;
 }) {
-  const primaryHref = entry.status === 401 ? "/login" : "/opportunities";
+  const primaryHref = entry.status === 401 ? "/" : "/opportunities";
   const primaryLabel = entry.status === 401 ? "Sign in" : "Browse opportunities";
 
   return (

@@ -16,7 +16,7 @@ export function handleLoadError(router: AppRouterInstance, err: unknown): boolea
   }
 
   if (err.status === 401) {
-    router.replace("/login");
+    router.replace("/");
     return true;
   }
 

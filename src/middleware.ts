@@ -21,7 +21,6 @@ import { verifyAccessToken } from "@/lib/security/access-token";
 // route layer, not by a user token - see http/cron-auth.ts).
 const PUBLIC_API = [
   "/api/health",
-  "/api/public",
   "/api/auth/register",
   "/api/auth/verify-otp",
   "/api/auth/login",
@@ -164,9 +163,9 @@ export async function middleware(req: NextRequest): Promise<NextResponse> {
     }
   }
 
-  // The nonce has to reach the render pass as well as the response header:
-  // `app/layout.tsx` reads it back off `x-nonce` to stamp the one inline
-  // script this app owns.
+  // The nonce also reaches the render pass as `x-nonce`, for any server
+  // component that has to stamp an inline <script> of its own (none today -
+  // the theme script went with dark mode).
   const requestHeaders = new Headers(req.headers);
   requestHeaders.set("x-nonce", nonce);
 

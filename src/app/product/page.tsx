@@ -9,8 +9,8 @@ const FEATURES = [
   {
     num: "01",
     title: "Ghosting, made accountable",
-    body: "Time-to-Acknowledgement is computed from immutable database timestamps - never self-reported. Posters carry a rolling Responsiveness Badge and pledge an SLA; breaches are flagged, not hidden.",
-    tags: ["Immutable event log", "SLA pledge"],
+    body: "Time-to-Acknowledgement is computed from immutable database timestamps - never self-reported. Posters carry a rolling Responsiveness Badge and promise a reply time; missed replies are flagged, not hidden.",
+    tags: ["Immutable event log", "Reply-time pledge"],
   },
   {
     num: "02",
@@ -118,7 +118,7 @@ export default function ProductPage() {
           <div className="wrap">
             <Reveal className="cta-band">
               <h2>Ready to see it live?</h2>
-              <p>Create a profile and browse the pilot - every posting is SLA-pledged.</p>
+              <p>Create a profile and browse the pilot - every posting promises a reply time.</p>
               <div className="cta-actions">
                 <Link className="btn btn-primary" href="/register">Get started</Link>
                 <Link className="btn btn-ghost" href="/about">Why we built it</Link>

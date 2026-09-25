@@ -260,7 +260,7 @@ export default function ApplicantsPage() {
     return (
       <main className="auth-shell">
         <div className="auth-card"><h1>Sign in required</h1>
-          <div className="hero-actions"><Link className="btn btn-primary" href="/login">Sign in</Link></div>
+          <div className="hero-actions"><Link className="btn btn-primary" href="/">Sign in</Link></div>
         </div>
       </main>
     );

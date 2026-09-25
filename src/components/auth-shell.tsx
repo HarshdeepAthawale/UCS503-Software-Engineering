@@ -1,26 +1,17 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
-import { TiLogo } from "@/components/ti-logo";
 
 /**
- * Two-column auth layout — minimal branded panel, form on the right.
+ * Sign-in / registration frame: the campus photograph full-bleed, darkened
+ * toward the bottom so white text and the frosted card stay legible, with the
+ * card centred on top (same pattern as the institute's exam portal). The card
+ * always renders in the light institute palette, whatever the app theme.
  */
 export function AuthShell({ children }: { children: ReactNode }) {
   return (
-    <main className="auth-split">
-      <aside className="auth-aside">
-        <div className="auth-aside-inner">
-          <Link className="brand" href="/">
-            <TiLogo size={34} className="ti-mark" />
-            <span>Thapar&nbsp;Nexus</span>
-          </Link>
-          <h2>Welcome to Thapar Nexus.</h2>
-          <p className="auth-aside-lede">
-            Postings, applications, and decisions — all in one place.
-          </p>
-        </div>
-      </aside>
-      <div className="auth-main">{children}</div>
+    <main className="auth-photo">
+      <div className="auth-photo-bg" aria-hidden="true" />
+      {children}
+      <p className="auth-photo-foot">Thapar Institute of Engineering and Technology, Patiala</p>
     </main>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { isAdminRole } from "@/lib/domain/admin-portal";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { SessionUser } from "@/lib/client/api";
@@ -12,7 +13,7 @@ function itemsFor(user: SessionUser | null): Item[] {
       { href: "/", label: "Home", hint: "Landing", group: "Go to" },
       { href: "/product", label: "Product", hint: "What Nexus does", group: "Go to" },
       { href: "/about", label: "About", hint: "Thesis & team", group: "Go to" },
-      { href: "/login", label: "Sign in", hint: "Existing account", group: "Account" },
+      { href: "/", label: "Sign in", hint: "Existing account", group: "Account" },
       { href: "/register", label: "Get started", hint: "Create an account", group: "Account" },
     ];
   }
@@ -42,10 +43,10 @@ function itemsFor(user: SessionUser | null): Item[] {
   if (canPost) {
     rows.push(
       { href: "/opportunities/mine", label: "My postings", hint: "What you published", group: "Go to" },
-      { href: "/opportunities/new", label: "Post an opportunity", hint: "Publish with an SLA", group: "Actions" },
+      { href: "/opportunities/new", label: "Post an opportunity", hint: "Publish a new posting", group: "Actions" },
     );
   }
-  if (user.role === "ADMIN") {
+  if (isAdminRole(user.role)) {
     rows.push({ href: "/admin", label: "Admin console", hint: "Identity & flags", group: "Go to" });
   }
   return rows;

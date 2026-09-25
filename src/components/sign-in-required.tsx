@@ -15,7 +15,7 @@ export function SignInRequired({
         <h1>Sign in required</h1>
         <p className="sub">{message}</p>
         <div className="hero-actions">
-          <Link className="btn btn-primary" href="/login">Sign in</Link>
+          <Link className="btn btn-primary" href="/">Sign in</Link>
           {children}
         </div>
       </div>

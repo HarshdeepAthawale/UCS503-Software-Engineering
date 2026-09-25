@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import ThemeToggle from "@/components/theme-toggle";
 import { TiLogo } from "@/components/ti-logo";
 
 const LINKS = [
@@ -39,8 +38,7 @@ export function SiteNav() {
         </nav>
 
         <div className="site-header-cta">
-          <ThemeToggle />
-          <Link className="btn btn-ghost btn-sm nav-signin" href="/login">
+          <Link className="btn btn-ghost btn-sm nav-signin" href="/">
             Sign in
           </Link>
           <Link className="btn btn-primary btn-sm" href="/register">

@@ -25,7 +25,7 @@ export async function GET(req: Request): Promise<NextResponse> {
   const url = new URL(req.url);
   const origin = resolveOrigin(req);
   const fail = (msg: string) =>
-    NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(msg)}`);
+    NextResponse.redirect(`${origin}/?error=${encodeURIComponent(msg)}`);
 
   try {
     if (!googleConfigured()) return fail("Google sign-in is not enabled.");
@@ -56,6 +56,10 @@ export async function GET(req: Request): Promise<NextResponse> {
     res.headers.append("Set-Cookie", clearStateCookie());
     return res;
   } catch (e) {
-    return fail(e instanceof AppError ? e.message : "Google sign-in failed.");
+    if (e instanceof AppError) return fail(e.message);
+    // Unexpected (e.g. the database is unreachable): the user gets a generic
+    // message, so the cause must reach the server log or it is lost entirely.
+    console.error("[auth/google/callback] sign-in failed", e);
+    return fail("Google sign-in failed.");
   }
 }

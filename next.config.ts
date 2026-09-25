@@ -82,6 +82,11 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/**/*": ["./node_modules/.prisma/client/*.wasm"],
   },
+  // Sign-in IS the root page (like exams.thapar.edu); there is no separate
+  // /login. Old links and bookmarks still land in the right place.
+  async redirects() {
+    return [{ source: "/login", destination: "/", permanent: true }];
+  },
   async rewrites() {
     const origin = backendOrigin();
     if (!origin) return { beforeFiles: [], afterFiles: [], fallback: [] };
