@@ -7,14 +7,14 @@ export const runtime = "nodejs";
 /**
  * POST /api/cron/sla-sweep - T-15 SLA breach sweep.
  *
- * Flips LIVE postings with overdue unacknowledged applications to AT_RISK and
- * returns their ids (the hook where T-17 will nudge each poster). Idempotent;
+ * Flips LIVE postings with overdue unacknowledged applications to AT_RISK (and
+ * nudges each poster), and returns caught-up AT_RISK postings to LIVE. Idempotent;
  * safe to run frequently. Guarded by CRON_SECRET, not the RBAC matrix.
  */
 export const POST = handler(async (req) => {
   requireCronSecret(req);
-  const { atRisk } = await sweepSlaBreaches();
-  return ok({ atRisk: atRisk.length });
+  const { atRisk, recovered } = await sweepSlaBreaches();
+  return ok({ atRisk: atRisk.length, recovered: recovered.length });
 });
 
 // Vercel Cron triggers jobs with a GET (carrying `Authorization: Bearer

@@ -23,7 +23,7 @@ import { env } from "@/lib/env";
  * unless one of the two trusted sources above is present.
  */
 export function resolveOrigin(req: Request): string {
-  const trusted = trustedOrigin();
+  const trusted = configuredOrigin();
   if (trusted) return trusted;
 
   const proto = firstHeaderValue(req.headers.get("x-forwarded-proto"));
@@ -38,14 +38,15 @@ export function resolveOrigin(req: Request): string {
  * Returns null when the origin is safe to use, or an operator-facing reason.
  */
 export function assertTrustedOrigin(): string | null {
-  if (env.NODE_ENV === "production" && !trustedOrigin()) {
+  if (env.NODE_ENV === "production" && !configuredOrigin()) {
     return "Neither APP_ORIGIN nor VERCEL_PROJECT_PRODUCTION_URL is set for this deployment.";
   }
   return null;
 }
 
-/** An origin from configuration or the platform - never from the request. */
-function trustedOrigin(): string | null {
+/** An origin from configuration or the platform - never from the request. Safe
+ * for links that leave the server (OAuth, email); null when neither is set. */
+export function configuredOrigin(): string | null {
   if (env.APP_ORIGIN) return stripTrailingSlash(env.APP_ORIGIN);
 
   // Vercel supplies the domain without a scheme; it is always HTTPS.

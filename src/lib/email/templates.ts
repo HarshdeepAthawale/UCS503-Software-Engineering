@@ -1,5 +1,6 @@
 import { env } from "@/lib/env";
 import type { EmailMessage } from "@/lib/email/mailer";
+import { describeNotification, type NotificationLike } from "@/lib/domain/notification-copy";
 
 /**
  * Transactional email bodies. Plain text is the primary form - it renders
@@ -80,5 +81,68 @@ export function teamInviteEmail(opts: {
   return {
     subject: `Join ${opts.teamName} on ${PRODUCT}`,
     text,
+  };
+}
+
+/**
+ * In-app notifications carried out of the app (T-17): one email per delivery,
+ * whether that is a single IMMEDIATE event or a DAILY/WEEKLY digest. Wording
+ * comes from describeNotification so email and the in-app list always agree.
+ * `origin` is the configured public origin; without one, links are left out
+ * rather than guessed.
+ */
+export function notificationEmail(
+  items: NotificationLike[],
+  origin: string | null,
+): Omit<EmailMessage, "to"> {
+  const lines = items.map((n) => {
+    const { text, href } = describeNotification(n);
+    return origin && href ? `- ${text}\n  ${origin}${href}` : `- ${text}`;
+  });
+  const first = items[0] ? describeNotification(items[0]).text : "";
+
+  return {
+    subject: items.length === 1 ? first : `${items.length} updates on ${PRODUCT}`,
+    text: [
+      items.length === 1 ? "You have an update on your account:" : `You have ${items.length} updates on your account:`,
+      "",
+      ...lines,
+      "",
+      origin
+        ? `Change how often you hear from us: ${origin}/notifications`
+        : "You can change how often you hear from us on the Notifications page.",
+      "",
+      "--",
+      `${PRODUCT} - verified opportunity pipeline for the institute`,
+    ].join("\n"),
+  };
+}
+
+/**
+ * Sent when the super admin creates an admin account. There is no password to
+ * send: the new admin signs in at /admin with a one-time code emailed on
+ * request, so nothing secret travels in this message.
+ */
+export function adminInviteEmail(opts: {
+  name: string;
+  invitedBy: string;
+  origin: string | null;
+}): Omit<EmailMessage, "to"> {
+  const where = opts.origin ? `${opts.origin}/admin` : `/admin on ${PRODUCT}`;
+  return {
+    subject: `You are now an administrator on ${PRODUCT}`,
+    text: [
+      `Hi ${opts.name},`,
+      "",
+      `${opts.invitedBy} has made you an administrator on ${PRODUCT}.`,
+      "",
+      `Sign in at ${where}: enter this email address and choose "Email me a code".`,
+      "Admin accounts can only sign in there, not on the main page.",
+      "",
+      "If you were not expecting this, you can ignore this message.",
+      "",
+      "--",
+      `${PRODUCT} - verified opportunity pipeline for the institute`,
+    ].join("\n"),
   };
 }

@@ -12,48 +12,8 @@ import {
   type Notification,
 } from "@/lib/client/api";
 import { timeAgo } from "@/lib/client/format";
+import { describeNotification } from "@/lib/domain/notification-copy";
 import { SignInRequired } from "@/components/sign-in-required";
-
-// Human sentences for each notification type + a deep link where useful.
-function describe(n: Notification): { text: string; href?: string } {
-  const appId = typeof n.payload.applicationId === "string" ? n.payload.applicationId : undefined;
-  const oppId = typeof n.payload.opportunityId === "string" ? n.payload.opportunityId : undefined;
-  const teamId = typeof n.payload.teamId === "string" ? n.payload.teamId : undefined;
-  switch (n.type) {
-    case "application.received":
-      return { text: "A new application arrived on your posting.", href: oppId ? `/opportunities/${oppId}/applicants` : undefined };
-    case "application.status_changed":
-      return { text: `Your application moved to ${String(n.payload.to ?? "a new stage")}.`, href: appId ? `/applications/${appId}` : undefined };
-    case "application.withdrawn":
-      return { text: "An applicant withdrew from your posting." };
-    case "message.received":
-      return { text: "You have a new message.", href: appId ? `/applications/${appId}` : undefined };
-    case "opportunity.at_risk":
-      return { text: "A posting is at risk - an applicant is waiting past your SLA.", href: oppId ? `/opportunities/${oppId}/applicants` : undefined };
-    case "opportunity.deadline_reminder":
-      return { text: n.payload.tier === "T24" ? "A posting closes within 24 hours - review applicants before it expires." : "A posting closes within 72 hours - review applicants before it expires.", href: oppId ? `/opportunities/${oppId}/applicants` : undefined };
-    case "attestation.received":
-      return { text: "A poster verified one of your skills - it now shows as attested on your profile.", href: "/profile" };
-    case "team.join_requested":
-      return { text: "A student requested to join your team.", href: teamId ? `/teams/${teamId}/requests` : undefined };
-    case "team.request_accepted":
-      return { text: "Your request to join a team was accepted.", href: teamId ? `/teams/${teamId}` : undefined };
-    case "team.request_rejected":
-      return { text: "Your request to join a team was not accepted this time.", href: teamId ? `/teams/${teamId}` : undefined };
-    case "team.locked":
-      return { text: "Your team is complete - every role is filled.", href: teamId ? `/teams/${teamId}` : undefined };
-    case "meeting.scheduled": {
-      const href = appId ? `/applications/${appId}` : teamId ? `/teams/${teamId}` : undefined;
-      return { text: n.payload.reminder ? "Reminder: you have a meeting coming up." : "A Google Meet meeting was scheduled.", href };
-    }
-    case "meeting.cancelled": {
-      const href = appId ? `/applications/${appId}` : teamId ? `/teams/${teamId}` : undefined;
-      return { text: "A scheduled meeting was cancelled.", href };
-    }
-    default:
-      return { text: n.type };
-  }
-}
 
 export default function NotificationsPage() {
   const [ready, setReady] = useState(false);
@@ -118,7 +78,7 @@ export default function NotificationsPage() {
           ) : (
             <div className="notif-list">
               {items.map((n) => {
-                const d = describe(n);
+                const d = describeNotification(n);
                 const unreadRow = !n.readAt;
                 const inner = (
                   <>

@@ -2,7 +2,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { Errors } from "@/lib/http/errors";
 import { audit } from "@/lib/security/audit";
-import { notify } from "./notification.service";
+import { deliverNotifications, notify } from "./notification.service";
 import { DEADLINE_TIERS, DEADLINE_TIER_ORDER, type DeadlineTier } from "@/lib/domain/deadline-reminder";
 import type { Principal } from "@/lib/iam/policy";
 import type {
@@ -444,34 +444,66 @@ export async function expirePastDeadline(): Promise<number> {
 // ── SLA breach sweep (T-15) ──────────────────────────────────────────────────
 
 /**
- * Flip a LIVE posting to AT_RISK when it holds any application that is still
- * unacknowledged (APPLIED, no first transition) past the posting's own SLA
- * window (H24 → 24h, H48 → 48h, WEEK → 7d, measured from applied_at).
- *
- * Idempotent (only LIVE → AT_RISK). Returns the affected opportunity ids so the
- * caller can nudge each poster (T-17 notifications wire in here). Pure set-based
- * SQL; the SLA interval is chosen by the row's own pledge, no user input.
+ * True for posting `o` while any applicant on it is waiting unacknowledged
+ * (APPLIED, no first transition) past the posting's own SLA window (H24 → 24h,
+ * H48 → 48h, WEEK → 7d, measured from applied_at). The single definition of
+ * "at risk", shared by the flip in both directions so they can never disagree.
+ * The interval comes from the row's own pledge - no user input.
  */
-export async function sweepSlaBreaches(): Promise<{ atRisk: string[] }> {
+const HAS_OVERDUE_APPLICANT = Prisma.sql`EXISTS (
+  SELECT 1 FROM applications a
+  WHERE a.opportunity_id = o.id
+    AND a.deleted_at IS NULL
+    AND a.status = 'APPLIED'::"AppState"
+    AND a.first_transition_at IS NULL
+    AND a.applied_at < now() - (
+      CASE o.sla_pledge
+        WHEN 'H24'::"SlaPledge"  THEN interval '24 hours'
+        WHEN 'H48'::"SlaPledge"  THEN interval '48 hours'
+        WHEN 'WEEK'::"SlaPledge" THEN interval '7 days'
+      END
+    )
+)`;
+
+/**
+ * Return AT_RISK postings to LIVE once nobody on them is overdue - optionally
+ * just one posting, right after its poster acts. AT_RISK means "someone is
+ * waiting past the pledge NOW"; a poster who has caught up must not stay marked
+ * until the deadline, or the label stops meaning anything. Only AT_RISK → LIVE,
+ * so a CLOSED or EXPIRED posting is never revived. Returns the recovered ids.
+ */
+export async function clearRecoveredAtRisk(opportunityId?: string): Promise<string[]> {
+  const only = opportunityId ? Prisma.sql`AND o.id = ${opportunityId}::uuid` : Prisma.empty;
+  const rows = await prisma.$queryRaw<{ id: string }[]>(Prisma.sql`
+    UPDATE opportunities o
+    SET status = 'LIVE'::"OppStatus", updated_at = now()
+    WHERE o.status = 'AT_RISK'::"OppStatus"
+      AND o.deleted_at IS NULL
+      ${only}
+      AND NOT ${HAS_OVERDUE_APPLICANT}
+    RETURNING o.id
+  `);
+  if (rows.length > 0) {
+    await audit({ action: "opportunity.at_risk_cleared", metadata: { count: rows.length } });
+  }
+  return rows.map((r) => r.id);
+}
+
+/**
+ * SLA sweep (T-15): flip LIVE postings with an overdue applicant to AT_RISK and
+ * nudge their posters, and return caught-up AT_RISK postings to LIVE.
+ *
+ * Idempotent in both directions. Returns the newly at-risk and recovered ids.
+ */
+export async function sweepSlaBreaches(): Promise<{ atRisk: string[]; recovered: string[] }> {
+  const recovered = await clearRecoveredAtRisk();
+
   const rows = await prisma.$queryRaw<{ id: string; poster_id: string }[]>(Prisma.sql`
     UPDATE opportunities o
     SET status = 'AT_RISK'::"OppStatus", updated_at = now()
     WHERE o.status = 'LIVE'::"OppStatus"
       AND o.deleted_at IS NULL
-      AND EXISTS (
-        SELECT 1 FROM applications a
-        WHERE a.opportunity_id = o.id
-          AND a.deleted_at IS NULL
-          AND a.status = 'APPLIED'::"AppState"
-          AND a.first_transition_at IS NULL
-          AND a.applied_at < now() - (
-            CASE o.sla_pledge
-              WHEN 'H24'::"SlaPledge"  THEN interval '24 hours'
-              WHEN 'H48'::"SlaPledge"  THEN interval '48 hours'
-              WHEN 'WEEK'::"SlaPledge" THEN interval '7 days'
-            END
-          )
-      )
+      AND ${HAS_OVERDUE_APPLICANT}
     RETURNING o.id, o.poster_id
   `);
 
@@ -485,7 +517,7 @@ export async function sweepSlaBreaches(): Promise<{ atRisk: string[] }> {
       await notify(r.poster_id, "opportunity.at_risk", { opportunityId: r.id });
     }
   }
-  return { atRisk: rows.map((r) => r.id) };
+  return { atRisk: rows.map((r) => r.id), recovered };
 }
 
 // ── Deadline reminders (T-35; docs/PRD M8) ───────────────────────────────────
@@ -504,7 +536,7 @@ export async function sweepSlaBreaches(): Promise<{ atRisk: string[] }> {
  */
 async function insertDeadlineReminders(tier: DeadlineTier): Promise<number> {
   const { lowerH, upperH } = DEADLINE_TIERS[tier];
-  const rows = await prisma.$queryRaw<{ id: string }[]>(Prisma.sql`
+  const rows = await prisma.$queryRaw<{ user_id: string }[]>(Prisma.sql`
     INSERT INTO notifications (id, user_id, type, payload, created_at)
     SELECT gen_random_uuid(), o.poster_id, 'opportunity.deadline_reminder',
            jsonb_build_object('opportunityId', o.id::text, 'tier', ${tier}::text, 'deadline', o.deadline),
@@ -521,8 +553,13 @@ async function insertDeadlineReminders(tier: DeadlineTier): Promise<number> {
           AND n.payload->>'opportunityId' = o.id::text
           AND n.payload->>'tier' = ${tier}::text
       )
-    RETURNING id
+    RETURNING user_id
   `);
+  // Inserted outside notify(), so hand each poster to email delivery explicitly
+  // (an IMMEDIATE poster hears now; others get it in their digest).
+  for (const userId of new Set(rows.map((r) => r.user_id))) {
+    await deliverNotifications(userId);
+  }
   return rows.length;
 }
 

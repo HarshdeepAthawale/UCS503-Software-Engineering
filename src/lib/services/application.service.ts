@@ -10,6 +10,7 @@ import {
   canWithdraw,
 } from "@/lib/domain/application-state";
 import { notify } from "./notification.service";
+import { clearRecoveredAtRisk } from "./opportunity.service";
 import type {
   ApplicationCreateInput,
   ApplicationTransitionInput,
@@ -230,8 +231,17 @@ export async function transitionApplication(
           rejectionCode: true,
         },
       });
-      return { updated, from: app.status, studentId: app.studentId };
+      return {
+        updated,
+        from: app.status,
+        studentId: app.studentId,
+        opportunityId: app.opportunityId,
+      };
     }, SERIALIZABLE);
+
+    // Acknowledging the last overdue applicant takes the posting off AT_RISK now,
+    // not at the next sweep (T-15).
+    await clearRecoveredAtRisk(result.opportunityId);
 
     await audit({
       action: "application.transitioned",
@@ -298,8 +308,16 @@ export async function withdrawApplication(principal: Principal, applicationId: s
       },
       select: { id: true, status: true },
     });
-    return { updated, from: app.status, posterId: app.opportunity.posterId };
+    return {
+      updated,
+      from: app.status,
+      posterId: app.opportunity.posterId,
+      opportunityId: app.opportunityId,
+    };
   });
+
+  // A withdrawn applicant is no longer waiting - the posting may be caught up.
+  await clearRecoveredAtRisk(result.opportunityId);
 
   await audit({
     action: "application.withdrawn",

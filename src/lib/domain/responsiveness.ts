@@ -55,3 +55,88 @@ export function badgeFromMedian(
   if (medianHours <= 168) return "SLOW";
   return "UNRESPONSIVE";
 }
+
+/** The badge covers a rolling window, so a poster can recover from a bad term. */
+export const RESPONSIVENESS_WINDOW_DAYS = 90;
+
+/** Minimum share of due applications answered before the median alone decides. */
+const FULL_CREDIT_RATE = 0.8;
+/** Below this share answered, the poster is UNRESPONSIVE whatever their median. */
+const MIN_RESPONSE_RATE = 0.5;
+
+const BAND_ORDER: readonly ResponsivenessBadge[] = [
+  "HIGHLY_RESPONSIVE",
+  "RESPONSIVE",
+  "SLOW",
+  "UNRESPONSIVE",
+];
+
+export interface TtaSample {
+  appliedAt: Date;
+  firstTransitionAt: Date | null;
+  status: string;
+  slaPledge: SlaPledge;
+}
+
+export interface ResponsivenessSummary {
+  badge: ResponsivenessBadge;
+  /** Median TTA over acknowledged applications only. */
+  medianTtaHours: number | null;
+  /** acknowledged / (acknowledged + overdue); null when nothing is due yet. */
+  responseRate: number | null;
+  /** acknowledged + overdue - the applications the poster owed a reply on. */
+  sampleSize: number;
+}
+
+/**
+ * A poster's public responsiveness (PRD M6: "rolling response rate + median TTA").
+ *
+ * The median alone cannot see silence - an application nobody ever opened has no
+ * TTA - so a poster could answer three fast, ghost fifty, and look exemplary.
+ * The response rate is what makes ghosting count:
+ *  • acknowledged = the poster acted on it at least once;
+ *  • overdue = never acknowledged AND older than its posting's SLA window;
+ *  • an application still inside its window is owed nothing yet, and one the
+ *    student withdrew before any reply is left out (we cannot tell whether they
+ *    left because of the silence or for their own reasons).
+ * Only applications made within the rolling window count.
+ */
+export function summarizeResponsiveness(
+  rows: TtaSample[],
+  now: Date,
+): ResponsivenessSummary {
+  const since = now.getTime() - RESPONSIVENESS_WINDOW_DAYS * 24 * 3_600_000;
+  const durations: number[] = [];
+  let overdue = 0;
+
+  for (const r of rows) {
+    const applied = r.appliedAt.getTime();
+    if (applied < since) continue;
+    if (r.firstTransitionAt) {
+      const ms = r.firstTransitionAt.getTime() - applied;
+      if (ms >= 0) durations.push(ms);
+      continue;
+    }
+    if (r.status === "WITHDRAWN") continue;
+    if (now.getTime() - applied > SLA_HOURS[r.slaPledge] * 3_600_000) overdue += 1;
+  }
+
+  const sampleSize = durations.length + overdue;
+  const responseRate = sampleSize === 0 ? null : durations.length / sampleSize;
+  const median = medianTtaHours(durations);
+
+  const rate = responseRate ?? 0;
+  let badge: ResponsivenessBadge;
+  if (sampleSize < 3) badge = "NEW";
+  else if (rate < MIN_RESPONSE_RATE || median === null) badge = "UNRESPONSIVE";
+  else {
+    badge = badgeFromMedian(median, sampleSize);
+    if (rate < FULL_CREDIT_RATE) badge = worse(badge, "SLOW");
+  }
+
+  return { badge, medianTtaHours: median, responseRate, sampleSize };
+}
+
+function worse(a: ResponsivenessBadge, b: ResponsivenessBadge): ResponsivenessBadge {
+  return BAND_ORDER.indexOf(a) >= BAND_ORDER.indexOf(b) ? a : b;
+}

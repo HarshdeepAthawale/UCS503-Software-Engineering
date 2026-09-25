@@ -1,5 +1,6 @@
 "use client";
 
+import { isAdminRole } from "@/lib/domain/admin-portal";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -146,7 +147,7 @@ export default function OpportunityDetailPage() {
         <div className="auth-card">
           <h1>Sign in required</h1>
           <div className="hero-actions">
-            <Link className="btn btn-primary" href="/login">Sign in</Link>
+            <Link className="btn btn-primary" href="/">Sign in</Link>
           </div>
         </div>
       </main>
@@ -248,6 +249,9 @@ export default function OpportunityDetailPage() {
                 {badge && opp.poster.responsiveness?.medianTtaHours != null && (
                   <div className="kv"><span className="k">Median reply</span><span className="v">{ttaLabel(opp.poster.responsiveness.medianTtaHours)}</span></div>
                 )}
+                {badge && opp.poster.responsiveness?.responseRate != null && (
+                  <div className="kv"><span className="k">Replies to applicants</span><span className="v">{Math.round(opp.poster.responsiveness.responseRate * 100)}%</span></div>
+                )}
 
                 <div style={{ marginTop: 18 }}>
                   {isOwner ? (
@@ -287,7 +291,7 @@ export default function OpportunityDetailPage() {
                   )}
                 </div>
 
-                {!isOwner && user?.role !== "ADMIN" && (
+                {!isOwner && !(user && isAdminRole(user.role)) && (
                   <div className="report-block">
                     {reported ? (
                       <p className="empty-note">You reported this posting.</p>

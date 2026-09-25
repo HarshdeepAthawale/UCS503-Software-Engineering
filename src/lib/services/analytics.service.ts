@@ -2,9 +2,11 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { Errors } from "@/lib/http/errors";
 import {
-  badgeFromMedian,
   medianTtaHours,
+  RESPONSIVENESS_WINDOW_DAYS,
+  summarizeResponsiveness,
   type ResponsivenessBadge,
+  type ResponsivenessSummary,
 } from "@/lib/domain/responsiveness";
 import type { AppState, OppStatus, OppType } from "@prisma/client";
 
@@ -25,27 +27,35 @@ function ttaDurations(
     .filter((ms) => ms >= 0);
 }
 
-export interface PosterResponsiveness {
-  badge: ResponsivenessBadge;
-  medianTtaHours: number | null;
-  sampleSize: number;
-}
+export type PosterResponsiveness = ResponsivenessSummary;
 
-/** A poster's public responsiveness across all their postings' applications. */
+/**
+ * A poster's public responsiveness badge: median TTA AND response rate over the
+ * rolling window, so silence counts against it (see summarizeResponsiveness).
+ */
 export async function getPosterResponsiveness(
   posterId: string,
+  now = new Date(),
 ): Promise<PosterResponsiveness> {
+  const since = new Date(now.getTime() - RESPONSIVENESS_WINDOW_DAYS * 24 * 3_600_000);
   const rows = await prisma.application.findMany({
-    where: { deletedAt: null, opportunity: { posterId } },
-    select: { appliedAt: true, firstTransitionAt: true },
+    where: { deletedAt: null, appliedAt: { gte: since }, opportunity: { posterId } },
+    select: {
+      appliedAt: true,
+      firstTransitionAt: true,
+      status: true,
+      opportunity: { select: { slaPledge: true } },
+    },
   });
-  const durations = ttaDurations(rows);
-  const median = medianTtaHours(durations);
-  return {
-    badge: badgeFromMedian(median, durations.length),
-    medianTtaHours: median,
-    sampleSize: durations.length,
-  };
+  return summarizeResponsiveness(
+    rows.map((r) => ({
+      appliedAt: r.appliedAt,
+      firstTransitionAt: r.firstTransitionAt,
+      status: r.status,
+      slaPledge: r.opportunity.slaPledge,
+    })),
+    now,
+  );
 }
 
 export interface OpportunityAnalytics {
@@ -202,54 +212,4 @@ function fillTrend(rows: { day: Date; n: number }[]): { day: string; count: numb
 
 function iso(d: Date): string {
   return d.toISOString().slice(0, 10); // YYYY-MM-DD
-}
-
-/** Public, non-sensitive aggregates for the landing monitoring panel. */
-export interface PublicInstituteStats {
-  livePostings: number;
-  atRiskPostings: number;
-  totalApplications: number;
-  resolvedApplications: number;
-  resolutionRate: number;
-  medianTtaHours: number | null;
-  activeUsers: number;
-  asOf: string;
-}
-
-export async function getPublicInstituteStats(): Promise<PublicInstituteStats> {
-  const [livePostings, atRiskPostings, totalApplications, activeUsers, headline] =
-    await Promise.all([
-      prisma.opportunity.count({ where: { deletedAt: null, status: "LIVE" } }),
-      prisma.opportunity.count({ where: { deletedAt: null, status: "AT_RISK" } }),
-      prisma.application.count({ where: { deletedAt: null } }),
-      prisma.user.count({ where: { deletedAt: null, status: "ACTIVE" } }),
-      prisma.$queryRaw<
-        { total: number; resolved: number; median_tta_seconds: number | null }[]
-      >(Prisma.sql`
-        SELECT
-          count(*)::int AS total,
-          count(*) FILTER (WHERE status IN ('SELECTED','REJECTED','WITHDRAWN'))::int AS resolved,
-          percentile_cont(0.5) WITHIN GROUP (
-            ORDER BY extract(epoch FROM (first_transition_at - applied_at))
-          ) FILTER (WHERE first_transition_at IS NOT NULL) AS median_tta_seconds
-        FROM applications
-        WHERE deleted_at IS NULL
-      `),
-    ]);
-
-  const h = headline[0] ?? { total: 0, resolved: 0, median_tta_seconds: null };
-  const total = h.total;
-  const resolved = h.resolved;
-
-  return {
-    livePostings,
-    atRiskPostings,
-    totalApplications: total,
-    resolvedApplications: resolved,
-    resolutionRate: total === 0 ? 0 : resolved / total,
-    medianTtaHours:
-      h.median_tta_seconds == null ? null : Math.round(h.median_tta_seconds / 3600),
-    activeUsers,
-    asOf: new Date().toISOString(),
-  };
 }
