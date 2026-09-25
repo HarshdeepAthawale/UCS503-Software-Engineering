@@ -13,8 +13,7 @@ import {
   type RejectionCode,
   type TeamJoinRequestView,
 } from "@/lib/client/api";
-import { RejectBar } from "@/components/reject-bar";
-import { timeAgo, titleCase } from "@/lib/client/format";
+import { JoinRequestCard } from "@/components/join-request-card";
 
 /** The team lead's inbox of join requests across every role (T-22). */
 export default function TeamRequestsPage() {
@@ -24,8 +23,6 @@ export default function TeamRequestsPage() {
   const [requests, setRequests] = useState<TeamJoinRequestView[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [rejectingId, setRejectingId] = useState<string | null>(null);
-  const [rejectCode, setRejectCode] = useState<RejectionCode>("SEATS_FILLED");
 
   const load = useCallback(async () => {
     try {
@@ -49,7 +46,6 @@ export default function TeamRequestsPage() {
     setBusyId(reqId);
     try {
       await apiDecideTeamRequest(id, reqId, status, code);
-      setRejectingId(null);
       await load();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not update this request.");
@@ -58,14 +54,13 @@ export default function TeamRequestsPage() {
     }
   }
 
-  if (!ready) return <main className="app-shell"><p className="app-loading">Loading…</p></main>;
-  if (!signedIn) {
+  if (ready && !signedIn) {
     return (
       <main className="auth-shell">
         <div className="auth-card">
           <h1>Sign in required</h1>
           <div className="hero-actions">
-            <Link className="btn btn-primary" href="/login">Sign in</Link>
+            <Link className="btn btn-primary" href="/">Sign in</Link>
           </div>
         </div>
       </main>
@@ -79,79 +74,47 @@ export default function TeamRequestsPage() {
     <div className="app-shell">
       <AppNav user={getUser()} />
       <main id="content" className="app-page">
-        <div className="wrap">
+        <div className="wrap wrap-form page-stack">
           <Link href={`/teams/${id}`} className="back-link">← Back to team</Link>
-          <div className="page-head">
+          <div className="page-title-row">
             <div>
               <h1>Join requests</h1>
-              <p className="sub">{pending.length} pending of {requests.length} total.</p>
+              <p className="sub">{pending.length} waiting for you · {requests.length} in total</p>
             </div>
           </div>
 
           {error && <p className="form-err" role="alert">{error}</p>}
 
-          {requests.length === 0 ? (
-            <div className="app-empty"><h3>No requests yet</h3></div>
-          ) : (
-            <div style={{ overflowX: "auto" }}>
-              <table className="atable">
-                <thead>
-                  <tr>
-                    <th>Student</th>
-                    <th>Role</th>
-                    <th>Message</th>
-                    <th>Requested</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[...pending, ...decided].map((r) => (
-                    <tr key={r.id}>
-                      <td><Link href={`/profile/${r.student.id}`}>{r.student.name}</Link></td>
-                      <td>{r.role.label}</td>
-                      <td>{r.message ?? "—"}</td>
-                      <td>{timeAgo(r.createdAt)}</td>
-                      <td>
-                        {titleCase(r.status)}
-                        {r.rejectionCode && <div className="tl-meta">{titleCase(r.rejectionCode)}</div>}
-                      </td>
-                      <td>
-                        {r.status === "PENDING" && (
-                          <div className="row" style={{ flexWrap: "wrap", gap: 6 }}>
-                            <button
-                              type="button"
-                              className="mini solid"
-                              disabled={busyId === r.id}
-                              onClick={() => void decide(r.id, "ACCEPTED")}
-                            >
-                              Accept
-                            </button>
-                            <button
-                              type="button"
-                              className="mini"
-                              disabled={busyId === r.id}
-                              onClick={() => { setRejectingId(r.id); setRejectCode("SEATS_FILLED"); }}
-                            >
-                              Reject
-                            </button>
-                          </div>
-                        )}
-                        {rejectingId === r.id && (
-                          <RejectBar
-                            value={rejectCode}
-                            busy={busyId === r.id}
-                            onChange={setRejectCode}
-                            onConfirm={() => void decide(r.id, "REJECTED", rejectCode)}
-                            onCancel={() => setRejectingId(null)}
-                          />
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          {!ready ? (
+            <div className="skeleton skeleton-card" aria-busy="true" />
+          ) : requests.length === 0 ? (
+            <div className="empty-card">
+              <h3>No requests yet</h3>
+              <p>Students who ask for a spot on your team show up here.</p>
             </div>
+          ) : (
+            <>
+              {pending.length > 0 && (
+                <section className="request-list" aria-label="Waiting for you">
+                  {pending.map((r) => (
+                    <JoinRequestCard key={r.id} request={r} busy={busyId === r.id}
+                      onDecide={(status, code) => void decide(r.id, status, code)} />
+                  ))}
+                </section>
+              )}
+              {decided.length > 0 && (
+                <section aria-labelledby="decided-heading">
+                  <div className="block-head">
+                    <h2 id="decided-heading">Already decided</h2>
+                  </div>
+                  <div className="request-list">
+                    {decided.map((r) => (
+                      <JoinRequestCard key={r.id} request={r} busy={false} onDecide={() => {}} />
+                    ))}
+                  </div>
+                </section>
+              )}
+            </>
           )}
         </div>
       </main>

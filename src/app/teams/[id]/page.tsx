@@ -20,7 +20,10 @@ import {
   type Team,
   type Meeting,
 } from "@/lib/client/api";
-import { statusClass, timeAgo } from "@/lib/client/format";
+import { dateLabel, timeAgo } from "@/lib/client/format";
+import { initials } from "@/lib/client/nav";
+import { slotSummary, teamStatusLabel } from "@/lib/client/team";
+import { TeamInviteForm } from "@/components/team-invite-form";
 import { MeetingScheduler } from "@/components/meeting-scheduler";
 import { MeetingList } from "@/components/meeting-list";
 
@@ -62,15 +65,12 @@ export default function TeamDetailPage() {
       const ok = await bootstrapSession();
       setSignedIn(ok);
       setReady(true);
-      if (ok) {
-        await load();
-        try {
-          const status = await apiGetCalendarStatus();
-          setCalendarConnected(status.connected);
-          setCalendarEnabled(status.enabled);
-        } catch {
-          /* optional */
-        }
+      if (!ok) return;
+      // In parallel: the calendar status is optional and independent of the team.
+      const [, status] = await Promise.all([load(), apiGetCalendarStatus().catch(() => null)]);
+      if (status) {
+        setCalendarConnected(status.connected);
+        setCalendarEnabled(status.enabled);
       }
     })();
   }, [load]);
@@ -115,14 +115,13 @@ export default function TeamDetailPage() {
     }
   }
 
-  if (!ready) return <main className="app-shell"><p className="app-loading">Loading…</p></main>;
-  if (!signedIn) {
+  if (ready && !signedIn) {
     return (
       <main className="auth-shell">
         <div className="auth-card">
           <h1>Sign in required</h1>
           <div className="hero-actions">
-            <Link className="btn btn-primary" href="/login">Sign in</Link>
+            <Link className="btn btn-primary" href="/">Sign in</Link>
           </div>
         </div>
       </main>
@@ -133,6 +132,7 @@ export default function TeamDetailPage() {
   const isLead = team?.lead.id === user?.id;
   const isMember = team?.members.some((m) => m.userId === user?.id) ?? false;
   const canRequest = user?.role === "STUDENT" && !isLead && !isMember && team?.status === "FORMING";
+  const slots = team ? slotSummary(team) : { filled: 0, total: 0, open: 0 };
 
   async function submitRequest(roleId: string) {
     setError(null);
@@ -181,164 +181,189 @@ export default function TeamDetailPage() {
     <div className="app-shell">
       <AppNav user={user} />
       <main id="content" className="app-page">
-        <div className="wrap">
-          <Link href="/teams" className="back-link">← Back to teams</Link>
+        <div className="wrap page-stack">
+          <Link href="/teams" className="back-link">← Teams</Link>
 
           {error && <p className="form-err" role="alert">{error}</p>}
-          {info && <p className="empty-note" role="status">{info}</p>}
+          {info && <p className="form-ok" role="status">{info}</p>}
 
           {!team ? (
-            <p className="app-loading">Loading team…</p>
+            <div className="skeleton skeleton-card" aria-busy="true" />
           ) : (
             <>
-              <div className="page-head">
-                <div>
-                  <span className={`pill ${statusClass(team.status)}`}>{team.status}</span>
+              <section className="card team-hero">
+                <div className="team-hero-main">
+                  <span className={`status-pill team-${team.status.toLowerCase()}`}>{teamStatusLabel(team.status)}</span>
                   <h1>{team.name}</h1>
-                  <p className="sub">{team.hackathon}</p>
-                  <p className="empty-note" style={{ marginTop: 6 }}>
-                    Led by {team.lead.name}
-                    {team.eventDate && <> · Event {new Date(team.eventDate).toLocaleDateString()}</>}
+                  <p className="team-hero-meta">
+                    {team.hackathon}
+                    {team.eventDate && <> · {dateLabel(team.eventDate)}</>}
+                    {" · "}Led by <Link href={`/profile/${team.lead.id}`}>{team.lead.name}</Link>
                   </p>
+                  {team.description && <p className="team-hero-desc">{team.description}</p>}
                 </div>
-                {isLead && (
-                  <div className="row" style={{ gap: 8 }}>
-                    <Link className="btn btn-ghost" href={`/teams/${id}/requests`}>Requests</Link>
-                    {team.status === "FORMING" && (
-                      <button className="btn btn-ghost" type="button" disabled={busy} onClick={() => void close()}>
-                        Close team
-                      </button>
-                    )}
+                <div className="team-hero-side">
+                  <div className="team-card-slots">
+                    <div className="meter" aria-hidden="true">
+                      <span style={{ width: `${slots.total ? Math.round((slots.filled / slots.total) * 100) : 0}%` }} />
+                    </div>
+                    <span>{slots.filled} of {slots.total} spots filled</span>
                   </div>
-                )}
-              </div>
-
-              {team.description && (
-                <div className="panel-card" style={{ marginBottom: 16 }}>
-                  <p className="sub">{team.description}</p>
-                </div>
-              )}
-
-              {calendarEnabled && (isLead || isMember) && team.status !== "CLOSED" && (
-                <div className="panel-card" style={{ marginBottom: 16 }}>
-                  <h2>Meetings</h2>
-                  <MeetingList
-                    meetings={meetings}
-                    currentUserId={user?.id}
-                    busyId={cancelingMeetingId}
-                    onCancel={(meetingId) => void cancelMeeting(meetingId)}
-                  />
                   {isLead && (
-                    scheduling ? (
-                      <MeetingScheduler
-                        busy={busy}
-                        connected={calendarConnected}
-                        connectUrl={googleCalendarConnectUrl(`/teams/${id}`)}
-                        onConfirm={(input) => void scheduleMeeting(input)}
-                        onCancel={() => setScheduling(false)}
-                      />
-                    ) : (
-                      <button className="mini solid" type="button" onClick={() => setScheduling(true)}>
-                        Schedule team meeting
-                      </button>
-                    )
+                    <div className="row-actions">
+                      <Link className="btn btn-ghost btn-sm" href={`/teams/${id}/requests`}>Join requests</Link>
+                      {team.status === "FORMING" && (
+                        <button className="btn btn-text btn-sm" type="button" disabled={busy} onClick={() => void close()}>
+                          Close team
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  {isLead && team.status === "FORMING" && (
+                    <TeamInviteForm teamId={team.id} teamName={team.name} roles={team.roles} />
                   )}
                 </div>
-              )}
+              </section>
 
-              <div className="panel-grid">
-                <div className="panel-card">
-                  <h2>Roles</h2>
-                  {team.roles.map((r) => {
-                    const open = r.slotsFilled < r.slotCount;
-                    return (
-                      <div key={r.id} className="proj-row">
-                        <div className="proj-main">
-                          <strong>{r.label}</strong>
-                          <p className="sub">{r.slotsFilled} of {r.slotCount} filled</p>
+              <div className="team-detail-grid">
+                <section className="card section-card">
+                  <header>
+                    <h2>Roles</h2>
+                    {canRequest && <p>Request the spot that fits you. The lead reviews every request.</p>}
+                  </header>
+                  <ul className="role-list">
+                    {team.roles.map((r) => {
+                      const free = r.slotCount - r.slotsFilled;
+                      const name = (skillId: string) => r.skills.find((s) => s.id === skillId)?.name;
+                      const canAsk =
+                        canRequest && free > 0 &&
+                        (!r.myRequest || r.myRequest.status === "REJECTED" || r.myRequest.status === "WITHDRAWN");
+                      return (
+                        <li key={r.id} className="role-item">
+                          <div className="role-item-head">
+                            <strong>{r.label}</strong>
+                            <span className={`role-chip${free > 0 ? "" : " is-full"}`}>
+                              {free > 0 ? `${free} of ${r.slotCount} open` : "Filled"}
+                            </span>
+                          </div>
+
                           {r.skills.length > 0 && (
-                            <div className="skills-current" style={{ marginTop: 6 }}>
-                              {r.skills.map((s) => (
-                                <span
-                                  key={s.id}
-                                  className={`skill-chip${r.skillFit?.matched.includes(s.id) ? " skill-chip-verified" : ""}`}
-                                >
-                                  {r.skillFit?.matched.includes(s.id) && "✔ "}
-                                  {s.name}
-                                </span>
-                              ))}
+                            <div className="chip-row">
+                              {r.skills.map((s) => {
+                                const have = r.skillFit?.matched.includes(s.id);
+                                return (
+                                  <span key={s.id} className={`skill-tag${have ? " is-match" : ""}`}>
+                                    {have && <span aria-hidden="true">✓ </span>}
+                                    {s.name}
+                                  </span>
+                                );
+                              })}
                             </div>
                           )}
-                          {r.skillFit && r.skillFit.matched.length > 0 && (
-                            <p className="empty-note" style={{ marginTop: 6 }}>
-                              You match on {r.skillFit.matched.map((id) => r.skills.find((s) => s.id === id)?.name).filter(Boolean).join(", ")}
-                              {r.skillFit.missing.length > 0 &&
-                                ` — missing: ${r.skillFit.missing.map((id) => r.skills.find((s) => s.id === id)?.name).filter(Boolean).join(", ")}`}
+
+                          {r.skillFit && r.skillFit.matched.length > 0 && r.skillFit.missing.length > 0 && (
+                            <p className="field-hint">
+                              You don&apos;t list {r.skillFit.missing.map(name).filter(Boolean).join(", ")} yet.
                             </p>
                           )}
+
                           {r.myRequest?.status === "PENDING" && (
-                            <div className="row" style={{ marginTop: 8, gap: 8, alignItems: "center" }}>
-                              <span className="pill p-shortlisted">Request pending</span>
-                              <button
-                                className="mini"
-                                type="button"
+                            <div className="row-actions">
+                              <span className="status-pill is-pending">Request pending</span>
+                              <button className="btn btn-text btn-sm" type="button"
                                 disabled={withdrawingId === r.myRequest.id}
-                                onClick={() => void withdrawRequest(r.myRequest!.id)}
-                              >
+                                onClick={() => void withdrawRequest(r.myRequest!.id)}>
                                 {withdrawingId === r.myRequest.id ? "Withdrawing…" : "Withdraw"}
                               </button>
                             </div>
                           )}
                           {r.myRequest?.status === "ACCEPTED" && (
-                            <p className="empty-note" style={{ marginTop: 8 }}>✔ You're on this team.</p>
+                            <span className="status-pill is-ok">You&apos;re on this team</span>
                           )}
-                          {canRequest &&
-                            open &&
-                            (!r.myRequest || r.myRequest.status === "REJECTED" || r.myRequest.status === "WITHDRAWN") &&
-                            requestingRoleId !== r.id && (
-                              <button className="mini solid" type="button" style={{ marginTop: 8 }} onClick={() => setRequestingRoleId(r.id)}>
-                                {r.myRequest?.status === "REJECTED" ? "Request again" : "Request to join"}
-                              </button>
-                            )}
-                          {requestingRoleId === r.id && (
-                            <div className="reject-bar" style={{ marginTop: 8, flexWrap: "wrap" }}>
-                              <input
-                                aria-label="Message to the team lead"
-                                placeholder="Why you'd be a good fit (optional)"
-                                value={message}
-                                disabled={busy}
-                                onChange={(e) => setMessage(e.target.value)}
-                                style={{ minWidth: 240 }}
-                              />
-                              <button className="mini solid" type="button" disabled={busy} onClick={() => void submitRequest(r.id)}>
-                                {busy ? "Sending…" : "Send request"}
-                              </button>
-                              <button className="mini" type="button" disabled={busy} onClick={() => setRequestingRoleId(null)}>
-                                Cancel
+
+                          {canAsk && requestingRoleId !== r.id && (
+                            <div>
+                              <button className="btn btn-primary btn-sm" type="button" onClick={() => setRequestingRoleId(r.id)}>
+                                {r.myRequest?.status === "REJECTED" ? "Request again" : "Request this spot"}
                               </button>
                             </div>
                           )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                          {requestingRoleId === r.id && (
+                            <div className="inset-form request-form">
+                              <label htmlFor={`msg-${r.id}`}>Message to {team.lead.name} <span className="optional">optional</span></label>
+                              <textarea id={`msg-${r.id}`} rows={2} value={message} disabled={busy} maxLength={500}
+                                placeholder="What you'd bring to this role"
+                                onChange={(e) => setMessage(e.target.value)} />
+                              <div className="row-actions">
+                                <button className="btn btn-primary btn-sm" type="button" disabled={busy} onClick={() => void submitRequest(r.id)}>
+                                  {busy ? "Sending…" : "Send request"}
+                                </button>
+                                <button className="btn btn-ghost btn-sm" type="button" disabled={busy} onClick={() => setRequestingRoleId(null)}>
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </section>
 
-                <div className="panel-card">
-                  <h2>Members</h2>
-                  {team.members.length === 0 ? (
-                    <p className="empty-note">No members yet.</p>
-                  ) : (
-                    <div className="proj-list">
+                <div className="page-stack">
+                  <section className="card section-card">
+                    <header>
+                      <h2>Members <span className="count">{team.members.length + 1}</span></h2>
+                    </header>
+                    <ul className="member-list">
+                      <li>
+                        <span className="avatar" aria-hidden="true">{initials(team.lead.name)}</span>
+                        <span>
+                          <Link href={`/profile/${team.lead.id}`}>{team.lead.name}</Link>
+                          <span className="field-hint">Team lead</span>
+                        </span>
+                      </li>
                       {team.members.map((m) => (
-                        <div key={m.userId} className="proj-row">
-                          <div className="proj-main">
+                        <li key={m.userId}>
+                          <span className="avatar" aria-hidden="true">{initials(m.name)}</span>
+                          <span>
                             <Link href={`/profile/${m.userId}`}>{m.name}</Link>
-                            <p className="empty-note">Joined {timeAgo(m.joinedAt)}</p>
-                          </div>
-                        </div>
+                            <span className="field-hint">
+                              {team.roles.find((r) => r.id === m.roleId)?.label ?? "Member"} · joined {timeAgo(m.joinedAt)}
+                            </span>
+                          </span>
+                        </li>
                       ))}
-                    </div>
+                    </ul>
+                  </section>
+
+                  {calendarEnabled && (isLead || isMember) && team.status !== "CLOSED" && (
+                    <section className="card section-card">
+                      <header>
+                        <h2>Meetings</h2>
+                      </header>
+                      <MeetingList
+                        meetings={meetings}
+                        currentUserId={user?.id}
+                        busyId={cancelingMeetingId}
+                        onCancel={(meetingId) => void cancelMeeting(meetingId)}
+                      />
+                      {isLead && (
+                        scheduling ? (
+                          <MeetingScheduler
+                            busy={busy}
+                            connected={calendarConnected}
+                            connectUrl={googleCalendarConnectUrl(`/teams/${id}`)}
+                            onConfirm={(input) => void scheduleMeeting(input)}
+                            onCancel={() => setScheduling(false)}
+                          />
+                        ) : (
+                          <button className="btn btn-ghost btn-sm" type="button" onClick={() => setScheduling(true)}>
+                            Schedule a team meeting
+                          </button>
+                        )
+                      )}
+                    </section>
                   )}
                 </div>
               </div>

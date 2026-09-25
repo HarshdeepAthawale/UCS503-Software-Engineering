@@ -255,6 +255,40 @@ export async function listTeams(opts: {
   return { teams: page.map((r) => toDto(r, viewer)), nextCursor };
 }
 
+/**
+ * Suggestions for the teams pages, drawn from what teams actually use rather
+ * than a hardcoded list that goes stale: the hackathons that currently have a
+ * team recruiting (with how many), and the role names teams post most often.
+ * Both group case- and whitespace-insensitively so "SIH" and "sih " are one
+ * entry; the most common spelling's first variant is shown.
+ */
+export async function teamSuggestions(limit = 8): Promise<{
+  hackathons: { name: string; teams: number }[];
+  roles: { label: string; uses: number }[];
+}> {
+  const take = Math.min(Math.max(limit, 1), 1000);
+  const [hackathons, roles] = await Promise.all([
+    prisma.$queryRaw<{ name: string; teams: number }[]>(Prisma.sql`
+      SELECT min(trim(t.hackathon)) AS name, count(*)::int AS teams
+      FROM teams t
+      WHERE t.deleted_at IS NULL AND t.status = 'FORMING'::"TeamStatus"
+      GROUP BY lower(trim(t.hackathon))
+      ORDER BY teams DESC, name ASC
+      LIMIT ${take}
+    `),
+    prisma.$queryRaw<{ label: string; uses: number }[]>(Prisma.sql`
+      SELECT min(trim(r.label)) AS label, count(*)::int AS uses
+      FROM team_roles r
+      JOIN teams t ON t.id = r.team_id
+      WHERE t.deleted_at IS NULL
+      GROUP BY lower(trim(r.label))
+      ORDER BY uses DESC, label ASC
+      LIMIT ${take}
+    `),
+  ]);
+  return { hackathons, roles };
+}
+
 export async function getTeam(id: string, viewerUserId?: string) {
   const [row, viewer] = await Promise.all([
     prisma.team.findFirst({ where: { id, deletedAt: null }, select: TEAM_SELECT }),

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import {
   apiDecideTeamRequest,
@@ -10,8 +9,7 @@ import {
   type Team,
   type TeamJoinRequestView,
 } from "@/lib/client/api";
-import { RejectBar } from "@/components/reject-bar";
-import { timeAgo } from "@/lib/client/format";
+import { JoinRequestCard } from "@/components/join-request-card";
 
 type PendingRow = TeamJoinRequestView & { teamId: string; teamName: string };
 
@@ -26,8 +24,6 @@ export function TeamLeadInbox({ leadTeams, onDecided }: TeamLeadInboxProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [rejectingId, setRejectingId] = useState<string | null>(null);
-  const [rejectCode, setRejectCode] = useState<RejectionCode>("SEATS_FILLED");
 
   const load = useCallback(async () => {
     if (leadTeams.length === 0) {
@@ -63,7 +59,6 @@ export function TeamLeadInbox({ leadTeams, onDecided }: TeamLeadInboxProps) {
     setBusyId(reqId);
     try {
       await apiDecideTeamRequest(teamId, reqId, status, code);
-      setRejectingId(null);
       await load();
       onDecided();
     } catch (err) {
@@ -73,62 +68,24 @@ export function TeamLeadInbox({ leadTeams, onDecided }: TeamLeadInboxProps) {
     }
   }
 
-  if (loading) return <p className="empty-note">Loading requests…</p>;
-  if (pending.length === 0) return null;
+  if (loading || pending.length === 0) return null;
 
   return (
-    <section className="teams-section" aria-labelledby="team-inbox-heading">
-      <div className="teams-section-head">
+    <section aria-labelledby="team-inbox-heading">
+      <div className="block-head">
         <h2 id="team-inbox-heading">Requests to review</h2>
-        <p className="sub">Students asking to join your teams — accept or reject here.</p>
+        <span className="block-count">{pending.length}</span>
       </div>
       {error && <p className="form-err" role="alert">{error}</p>}
-      <div className="team-inbox-list">
+      <div className="request-list">
         {pending.map((r) => (
-          <article key={r.id} className="panel team-inbox-row">
-            <div className="team-inbox-main">
-              <Link href={`/profile/${r.student.id}`} className="team-inbox-name">
-                {r.student.name}
-              </Link>
-              <p className="empty-note">
-                Wants <strong>{r.role.label}</strong> on {r.teamName} · {timeAgo(r.createdAt)}
-              </p>
-              {r.message && <p className="team-inbox-msg">{r.message}</p>}
-            </div>
-            <div className="team-inbox-actions">
-              {rejectingId === r.id ? (
-                <RejectBar
-                  value={rejectCode}
-                  busy={busyId === r.id}
-                  onChange={setRejectCode}
-                  onConfirm={() => void decide(r.teamId, r.id, "REJECTED", rejectCode)}
-                  onCancel={() => setRejectingId(null)}
-                />
-              ) : (
-                <>
-                  <button
-                    type="button"
-                    className="mini solid"
-                    disabled={busyId === r.id}
-                    onClick={() => void decide(r.teamId, r.id, "ACCEPTED")}
-                  >
-                    Accept
-                  </button>
-                  <button
-                    type="button"
-                    className="mini"
-                    disabled={busyId === r.id}
-                    onClick={() => {
-                      setRejectingId(r.id);
-                      setRejectCode("SEATS_FILLED");
-                    }}
-                  >
-                    Reject
-                  </button>
-                </>
-              )}
-            </div>
-          </article>
+          <JoinRequestCard
+            key={r.id}
+            request={r}
+            teamName={leadTeams.length > 1 ? r.teamName : undefined}
+            busy={busyId === r.id}
+            onDecide={(status, code) => void decide(r.teamId, r.id, status, code)}
+          />
         ))}
       </div>
     </section>

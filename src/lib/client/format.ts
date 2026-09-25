@@ -97,6 +97,11 @@ export function closesLabel(iso: string): string {
   return label === "closed" ? "Closed" : `Closes ${label}`;
 }
 
+/** A calendar date, e.g. "12 Oct 2026" - one format across the app. */
+export function dateLabel(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+}
+
 /** "just now", "3h ago", "2d ago", or a date for older items. */
 export function timeAgo(iso: string): string {
   const ms = Date.now() - new Date(iso).getTime();

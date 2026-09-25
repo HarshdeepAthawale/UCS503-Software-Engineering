@@ -1,49 +1,71 @@
 "use client";
 
-import { HACKATHON_HINTS } from "@/lib/domain/hackathon";
+import type { TeamSuggestions } from "@/lib/client/api";
+import { NavIcon } from "@/components/nav-icon";
 
 type HackathonFilterProps = {
   value: string;
+  suggestions: TeamSuggestions["hackathons"];
   onChange: (value: string) => void;
-  onSearch: () => void;
+  onSearch: (value: string) => void;
 };
 
-/** Hackathon name filter with quick-pick chips for common events. */
-export function HackathonFilter({ value, onChange, onSearch }: HackathonFilterProps) {
+/**
+ * Search teams by hackathon. The quick-pick chips are the hackathons that have
+ * a team recruiting right now (from /api/teams/suggestions), with how many -
+ * never a hardcoded list of event names.
+ */
+export function HackathonFilter({ value, suggestions, onChange, onSearch }: HackathonFilterProps) {
+  const pick = (name: string) => {
+    const next = value === name ? "" : name;
+    onChange(next);
+    onSearch(next);
+  };
+
   return (
-    <div className="hackathon-filter">
-      <div className="field hackathon-filter-field">
-        <label htmlFor="hackathon">Filter by hackathon</label>
+    <div className="team-filter">
+      <form
+        className="search-input"
+        role="search"
+        onSubmit={(e) => {
+          e.preventDefault();
+          onSearch(value);
+        }}
+      >
+        <NavIcon name="search" size={18} />
+        <label htmlFor="hackathon" className="sr-only">Search teams by hackathon</label>
         <input
           id="hackathon"
-          list="hackathon-hints"
+          type="search"
+          list="hackathon-suggestions"
           value={value}
-          onChange={(e) => onChange(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") onSearch(); }}
-          placeholder="e.g. Smart India Hackathon"
+          onChange={(e) => {
+            onChange(e.target.value);
+            if (e.target.value === "") onSearch("");
+          }}
+          placeholder="Search by hackathon"
         />
-        <datalist id="hackathon-hints">
-          {HACKATHON_HINTS.map((h) => <option key={h} value={h} />)}
+        <datalist id="hackathon-suggestions">
+          {suggestions.map((h) => <option key={h.name} value={h.name} />)}
         </datalist>
-      </div>
-      <button className="btn btn-ghost" type="button" onClick={onSearch}>
-        Search
-      </button>
-      <div className="hackathon-chips" role="group" aria-label="Popular hackathons">
-        {HACKATHON_HINTS.slice(0, 4).map((h) => (
-          <button
-            key={h}
-            type="button"
-            className={`hackathon-chip${value === h ? " is-on" : ""}`}
-            onClick={() => {
-              onChange(h);
-              onSearch();
-            }}
-          >
-            {h.replace(/ 20\d{2}$/, "")}
-          </button>
-        ))}
-      </div>
+        <button className="btn btn-primary btn-sm" type="submit">Search</button>
+      </form>
+      {suggestions.length > 0 && (
+        <div className="chip-row" role="group" aria-label="Hackathons with teams recruiting">
+          {suggestions.map((h) => (
+            <button
+              key={h.name}
+              type="button"
+              className={`chip${value === h.name ? " is-on" : ""}`}
+              aria-pressed={value === h.name}
+              onClick={() => pick(h.name)}
+            >
+              {h.name}
+              <span className="chip-meta">{h.teams}</span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

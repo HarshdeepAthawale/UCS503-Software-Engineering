@@ -1,30 +1,17 @@
 const STEPS = [
-  {
-    n: "1",
-    title: "Declare roles",
-    body: "Name your team, pick the hackathon, and list the slots you need (e.g. backend, ML).",
-  },
-  {
-    n: "2",
-    title: "Fill slots",
-    body: "Email invite links to friends, or accept join requests from students browsing open teams.",
-  },
-  {
-    n: "3",
-    title: "Lock & ship",
-    body: "When every role is filled, lock the roster and coordinate via team meetings.",
-  },
+  { title: "Post your roles", body: "Name the team and the event, and list the spots you need." },
+  { title: "Fill the spots", body: "Invite friends by email, or accept requests from students browsing teams." },
+  { title: "Team complete", body: "When every spot is filled the team locks, and you plan with team meetings." },
 ] as const;
 
-/** Compact explainer — shown until the student has at least one team. */
+/** Three-step explainer, shown until the student is on (or has asked to join) a team. */
 export function TeamsHowItWorks() {
   return (
-    <section className="teams-how panel" aria-label="How hackathon teams work">
-      <p className="teams-how-eyebrow">How it works</p>
-      <ol className="teams-how-steps">
-        {STEPS.map((s) => (
-          <li key={s.n} className="teams-how-step">
-            <span className="teams-how-num" aria-hidden="true">{s.n}</span>
+    <section className="card how-strip" aria-label="How teams work">
+      <ol>
+        {STEPS.map((s, i) => (
+          <li key={s.title}>
+            <span className="how-num" aria-hidden="true">{i + 1}</span>
             <div>
               <strong>{s.title}</strong>
               <p>{s.body}</p>

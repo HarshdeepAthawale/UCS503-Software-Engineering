@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { apiInviteToTeam, ApiError, type TeamRole } from "@/lib/client/api";
+import { openRoles as openOf } from "@/lib/client/team";
 
-/** Invite a friend by email — shown on teams you lead. */
+/** Invite a classmate by email - shown to the lead on their team's page. */
 export function TeamInviteForm({
   teamId,
   teamName,
@@ -20,7 +21,7 @@ export function TeamInviteForm({
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const openRoles = roles.filter((r) => r.slotsFilled < r.slotCount);
+  const openRoles = openOf({ roles });
 
   async function send(e: React.FormEvent) {
     e.preventDefault();
@@ -56,8 +57,8 @@ export function TeamInviteForm({
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="friend@thapar.edu"
-          aria-label="Friend's email"
+          placeholder="Their institute email"
+          aria-label="Classmate's email"
         />
         {openRoles.length > 0 && (
           <select
