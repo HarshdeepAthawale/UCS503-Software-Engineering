@@ -25,6 +25,7 @@ export const POST = handler(async (req) => {
     email: parsed.data.email,
     otp: parsed.data.otp,
     userAgent: req.headers.get("user-agent"),
+    portal: parsed.data.portal,
   });
 
   const cookie = buildRefreshCookie(session.refresh.raw, session.refresh.expiresAt);

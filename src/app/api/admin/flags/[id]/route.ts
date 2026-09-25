@@ -8,8 +8,9 @@ export const runtime = "nodejs";
 
 /**
  * PATCH /api/admin/flags/:id - resolve or dismiss a flag (M9).
- * Requires `flag:resolve` (ADMIN only). RESOLVED upholds it (and, with
- * removePosting, soft-removes the posting and closes its sibling open flags);
+ * Requires `flag:resolve` (any admin). RESOLVED upholds it (and, with
+ * removePosting - super admin only, `opportunity:remove` - soft-removes the
+ * posting and closes its sibling open flags);
  * DISMISSED closes it as no-violation. Audited with the reviewer id.
  */
 export const PATCH = handler(async (req) => {
@@ -24,6 +25,8 @@ export const PATCH = handler(async (req) => {
     const first = parsed.error.issues[0];
     throw Errors.validation(first?.message ?? "Invalid input.", first?.path.join(".") ?? null);
   }
+
+  if (parsed.data.removePosting) await authorize(req, "opportunity:remove");
 
   const result = await resolveFlag(admin, id, parsed.data);
   return ok(result);

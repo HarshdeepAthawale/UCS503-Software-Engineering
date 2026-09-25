@@ -7,9 +7,9 @@ import { updateUser } from "@/lib/services/admin.service";
 export const runtime = "nodejs";
 
 /**
- * PATCH /api/admin/users/:id - change a user's role/status (`user:manage`).
- * Role can never be ADMIN; the admin's own account and any ADMIN are immutable
- * (enforced in the service).
+ * PATCH /api/admin/users/:id - change a member's role (`user:manage`) or
+ * suspend/restore them (`user:suspend`, super admin only). Role can never be
+ * set to an admin role, and admin accounts are refused (enforced in the service).
  */
 export const PATCH = handler(async (req) => {
   const admin = await authorize(req, "user:manage");
@@ -22,6 +22,9 @@ export const PATCH = handler(async (req) => {
     const first = parsed.error.issues[0];
     throw Errors.validation(first?.message ?? "Invalid input.", first?.path.join(".") ?? null);
   }
+
+  // Suspending or restoring an account is the super admin's call alone.
+  if (parsed.data.status) await authorize(req, "user:suspend");
 
   const user = await updateUser(admin, id, parsed.data);
   return ok({ user });

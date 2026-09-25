@@ -111,9 +111,9 @@ const FACULTY: Permission[] = [
 // Approved alumni behave like faculty for posting/attesting.
 const ALUMNI: Permission[] = [...FACULTY];
 
-// Admin holds every governance capability; still explicit (no silent wildcard
-// on ownership-scoped actions, which must go through the owner or an admin
-// override that is separately audited).
+// Admins run the governance console (/admin). Still explicit - no silent
+// wildcard on ownership-scoped actions, which must go through the owner or an
+// admin override that is separately audited.
 const ADMIN: Permission[] = [
   "profile:read",
   "profile:read_resume", // governance / moderation
@@ -134,9 +134,18 @@ const ADMIN: Permission[] = [
   "flag:resolve",
   "analytics:read",
   "user:read", // admin console: list/search users
-  "user:manage", // admin console: role/status changes, provisioning
+  "user:manage", // admin console: member role changes, alumni provisioning
   "faculty_allowlist:read",
+];
+
+// The one super admin: everything an admin can do, plus the powers that change
+// who governs or who may use the platform at all.
+const SUPER_ADMIN: Permission[] = [
+  ...ADMIN,
+  "user:manage_admins", // create / remove admin accounts
+  "user:suspend", // suspend / restore any member
   "faculty_allowlist:manage",
+  "opportunity:remove", // uphold a flag by taking the posting down
 ];
 
 export const ROLE_PERMISSIONS: Record<Role, ReadonlySet<Permission>> = {
@@ -144,6 +153,7 @@ export const ROLE_PERMISSIONS: Record<Role, ReadonlySet<Permission>> = {
   FACULTY: new Set(FACULTY),
   ALUMNI: new Set(ALUMNI),
   ADMIN: new Set(ADMIN),
+  SUPER_ADMIN: new Set(SUPER_ADMIN),
 };
 
 /** True iff the role is granted the permission in the matrix (ignores ownership). */

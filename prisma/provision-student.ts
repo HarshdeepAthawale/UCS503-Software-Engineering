@@ -28,8 +28,8 @@ async function main() {
   }
 
   if (existing) {
-    if (existing.role === "ADMIN") {
-      throw new Error("Cannot change the administrator account.");
+    if (existing.role === "ADMIN" || existing.role === "SUPER_ADMIN") {
+      throw new Error("Cannot change an admin account.");
     }
     const updated = await prisma.user.update({
       where: { id: existing.id },

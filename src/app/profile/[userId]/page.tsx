@@ -1,5 +1,6 @@
 "use client";
 
+import { isAdminRole } from "@/lib/domain/admin-portal";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -86,7 +87,7 @@ export default function MemberProfilePage() {
           <h1>Sign in required</h1>
           <p className="sub">Profiles are visible to members of the institute community.</p>
           <div className="hero-actions">
-            <Link className="btn btn-primary" href="/login">
+            <Link className="btn btn-primary" href="/">
               Sign in
             </Link>
             <Link className="btn btn-ghost" href="/register">
@@ -108,7 +109,7 @@ export default function MemberProfilePage() {
     isSelf ||
     viewer?.role === "FACULTY" ||
     viewer?.role === "ALUMNI" ||
-    viewer?.role === "ADMIN";
+    (!!viewer && isAdminRole(viewer.role));
 
   // Only the links this member actually filled in. Every one is user-supplied,
   // so they all carry rel="noopener noreferrer"; the schema layer has already

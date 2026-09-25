@@ -17,7 +17,7 @@ const now = new Date();
 const mockUsers = await prisma.user.findMany({
   where: {
     deletedAt: null,
-    role: { not: "ADMIN" },
+    role: { notIn: ["ADMIN", "SUPER_ADMIN"] },
     OR: [
       { email: { endsWith: "@example.test" } },
       { email: { startsWith: "demo." } },

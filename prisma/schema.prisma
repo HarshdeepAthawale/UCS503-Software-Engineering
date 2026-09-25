@@ -20,11 +20,15 @@ datasource db {
 
 // ── Enumerations ─────────────────────────────────────────────────────────────
 
+// ADMIN: governance console at /admin. SUPER_ADMIN: exactly one account (partial
+// unique index `one_super_admin`); an admin who also manages admins, the faculty
+// allowlist, account suspension and posting takedowns.
 enum Role {
   STUDENT
   FACULTY
   ALUMNI
   ADMIN
+  SUPER_ADMIN
 }
 
 enum UserStatus {

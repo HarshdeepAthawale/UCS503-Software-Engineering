@@ -3,8 +3,13 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { AppNav } from "@/components/app-nav";
+import { AdminSignIn } from "@/components/admin-sign-in";
+import { isAdminRole } from "@/lib/domain/admin-portal";
 import {
   apiAdminAddAllowlist,
+  apiAdminCreateAdmin,
+  apiAdminListAdmins,
+  apiAdminRemoveAdmin,
   apiAdminAnalytics,
   apiAdminListAllowlist,
   apiAdminListFlags,
@@ -25,7 +30,17 @@ import {
 } from "@/lib/client/api";
 import { timeAgo, titleCase } from "@/lib/client/format";
 
-type Tab = "overview" | "users" | "faculty" | "alumni" | "flags" | "analytics";
+type Tab = "overview" | "users" | "faculty" | "alumni" | "flags" | "analytics" | "admins";
+
+const TAB_LABEL: Record<Tab, string> = {
+  overview: "Overview",
+  analytics: "Analytics",
+  users: "Users",
+  faculty: "Faculty",
+  alumni: "Provision alumni",
+  flags: "Flags",
+  admins: "Admins",
+};
 
 /** A labelled horizontal bar row, scaled to the largest value in its group. */
 function BarRow({ label, value, max }: { label: string; value: number; max: number }) {
@@ -61,6 +76,12 @@ export default function AdminPage() {
   const [ready, setReady] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
   const [allowed, setAllowed] = useState(false);
+  // The one super admin also manages admins, the faculty allowlist, account
+  // suspension and posting takedowns. The server enforces this; the UI only
+  // hides controls a regular admin would be refused.
+  const [isSuper, setIsSuper] = useState(false);
+  const [admins, setAdmins] = useState<AdminUser[]>([]);
+  const [newAdmin, setNewAdmin] = useState({ name: "", email: "" });
   const [tab, setTab] = useState<Tab>("overview");
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -77,21 +98,25 @@ export default function AdminPage() {
   const [flNote, setFlNote] = useState("");
   const [al, setAl] = useState({ name: "", email: "", rollNo: "", gradYear: "", degree: "", proofUrl: "" });
 
-  useEffect(() => {
-    void (async () => {
-      const ok = await bootstrapSession();
-      setSignedIn(ok);
-      setAllowed(ok && getUser()?.role === "ADMIN");
-      setReady(true);
-      if (ok && getUser()?.role === "ADMIN") {
-        try {
-          setOverview(await apiAdminOverview());
-        } catch (e) {
-          setError(e instanceof ApiError ? e.message : "Failed to load.");
-        }
+  const enter = useCallback(async () => {
+    const user = getUser();
+    const admin = !!user && isAdminRole(user.role);
+    setSignedIn(!!user);
+    setAllowed(admin);
+    setIsSuper(user?.role === "SUPER_ADMIN");
+    setReady(true);
+    if (admin) {
+      try {
+        setOverview(await apiAdminOverview());
+      } catch (e) {
+        setError(e instanceof ApiError ? e.message : "Failed to load.");
       }
-    })();
+    }
   }, []);
+
+  useEffect(() => {
+    void bootstrapSession().then(() => enter());
+  }, [enter]);
 
   const loadUsers = useCallback(async () => {
     try {
@@ -125,6 +150,14 @@ export default function AdminPage() {
     }
   }, []);
 
+  const loadAdmins = useCallback(async () => {
+    try {
+      setAdmins(await apiAdminListAdmins());
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "Failed to load admins.");
+    }
+  }, []);
+
   const refreshOverview = useCallback(async () => {
     try {
       setOverview(await apiAdminOverview());
@@ -139,7 +172,37 @@ export default function AdminPage() {
     if (tab === "faculty") void loadAllowlist();
     if (tab === "flags") void loadFlags();
     if (tab === "analytics") void loadAnalytics();
-  }, [allowed, tab, loadUsers, loadAllowlist, loadFlags, loadAnalytics]);
+    if (tab === "admins") void loadAdmins();
+  }, [allowed, tab, loadUsers, loadAllowlist, loadFlags, loadAnalytics, loadAdmins]);
+
+  async function createAdmin(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    try {
+      const admin = await apiAdminCreateAdmin(newAdmin.name.trim(), newAdmin.email.trim());
+      setNewAdmin({ name: "", email: "" });
+      await loadAdmins();
+      flash(
+        admin.invited
+          ? `${admin.name} is now an admin and has been emailed how to sign in.`
+          : `${admin.name} is now an admin, but the email could not be sent. Ask them to sign in at /admin with "Email me a code".`,
+      );
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not create the admin.");
+    }
+  }
+
+  async function removeAdmin(a: AdminUser) {
+    if (!confirm(`Remove ${a.name} as an admin? Their account is closed and signed out everywhere.`)) return;
+    setError(null);
+    try {
+      await apiAdminRemoveAdmin(a.id);
+      await loadAdmins();
+      flash(`${a.name} is no longer an admin.`);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not remove the admin.");
+    }
+  }
 
   async function resolveFlag(
     f: AdminFlag,
@@ -223,16 +286,7 @@ export default function AdminPage() {
 
   if (!ready) return <main className="app-shell"><p className="app-loading">Loading…</p></main>;
   if (!signedIn) {
-    return (
-      <main className="auth-shell">
-        <div className="auth-card">
-          <h1>Sign in required</h1>
-          <div className="hero-actions">
-            <Link className="btn btn-primary" href="/login">Sign in</Link>
-          </div>
-        </div>
-      </main>
-    );
+    return <AdminSignIn onSignedIn={() => void enter()} />;
   }
   if (!allowed) {
     return (
@@ -240,7 +294,7 @@ export default function AdminPage() {
         <AppNav user={getUser()} />
         <main id="content" className="app-page"><div className="wrap app-empty">
           <h3>Administrators only</h3>
-          <p>This console is restricted to the platform administrator.</p>
+          <p>This console is for admin accounts. You are signed in as a member.</p>
           <Link className="btn btn-ghost" href="/opportunities">← Back to app</Link>
         </div></main>
       </div>
@@ -260,13 +314,10 @@ export default function AdminPage() {
           </div>
 
           <div className="tabs">
-            {(["overview", "analytics", "users", "faculty", "alumni", "flags"] as Tab[]).map((t) => (
+            {(["overview", "analytics", "users", "faculty", "alumni", "flags", ...(isSuper ? ["admins"] : [])] as Tab[]).map((t) => (
               <button key={t} className={`tab${tab === t ? " active" : ""}`} onClick={() => setTab(t)}>
-                {t === "alumni"
-                  ? "Provision alumni"
-                  : t === "flags"
-                    ? `Flags${overview?.openFlags ? ` (${overview.openFlags})` : ""}`
-                    : titleCase(t)}
+                {TAB_LABEL[t]}
+                {t === "flags" && overview?.openFlags ? ` (${overview.openFlags})` : ""}
               </button>
             ))}
           </div>
@@ -294,7 +345,7 @@ export default function AdminPage() {
                   onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") void loadUsers(); }} />
                 <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
                   <option value="">All roles</option>
-                  {["STUDENT", "FACULTY", "ALUMNI", "ADMIN"].map((r) => <option key={r} value={r}>{titleCase(r)}</option>)}
+                  {ROLES.map((r) => <option key={r} value={r}>{titleCase(r)}</option>)}
                 </select>
                 <button className="btn btn-ghost btn-sm" type="button" onClick={() => void loadUsers()}>Search</button>
               </div>
@@ -303,13 +354,13 @@ export default function AdminPage() {
                   <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead>
                   <tbody>
                     {users.map((u) => {
-                      const isAdmin = u.role === "ADMIN";
+                      const isAdmin = isAdminRole(u.role);
                       return (
                         <tr key={u.id}>
                           <td>{u.name}</td>
                           <td className="mono-cell">{u.email}</td>
                           <td>
-                            {isAdmin ? <span className="tag">Admin</span> : (
+                            {isAdmin ? <span className="tag">{u.role === "SUPER_ADMIN" ? "Super admin" : "Admin"}</span> : (
                               <select value={u.role} onChange={(e) => void changeUser(u, { role: e.target.value as (typeof ROLES)[number] })}>
                                 {ROLES.map((r) => <option key={r} value={r}>{titleCase(r)}</option>)}
                               </select>
@@ -317,7 +368,7 @@ export default function AdminPage() {
                           </td>
                           <td><span className={`pill ${u.status === "SUSPENDED" ? "p-rejected" : u.status === "ACTIVE" ? "p-live" : "p-draft"}`}>{titleCase(u.status)}</span></td>
                           <td>
-                            {!isAdmin && (u.status === "SUSPENDED"
+                            {!isAdmin && isSuper && (u.status === "SUSPENDED"
                               ? <button className="mini solid" onClick={() => void changeUser(u, { status: "ACTIVE" })}>Reactivate</button>
                               : <button className="mini" onClick={() => void changeUser(u, { status: "SUSPENDED" })}>Suspend</button>)}
                           </td>
@@ -345,13 +396,13 @@ export default function AdminPage() {
                         <span className="t">{e.email}</span>
                         <span className="when">{e.note ? `${e.note} · ` : ""}added {timeAgo(e.createdAt)}</span>
                       </span>
-                      <button className="mini" onClick={() => void removeAllow(e.id)}>Remove</button>
+                      {isSuper && <button className="mini" onClick={() => void removeAllow(e.id)}>Remove</button>}
                     </div>
                   ))}
                   {allowlist.length === 0 && <p className="empty-note">No faculty emails yet.</p>}
                 </div>
               </div>
-              <div className="panel">
+              {isSuper && <div className="panel">
                 <h2 style={{ fontSize: 16, marginTop: 0 }}>Add professor email</h2>
                 <form className="form" onSubmit={addAllowlist}>
                   <div className="field"><label htmlFor="fle">Institute email</label>
@@ -360,7 +411,7 @@ export default function AdminPage() {
                     <input id="fln" value={flNote} onChange={(e) => setFlNote(e.target.value)} placeholder="e.g. CSED, Prof." maxLength={200} /></div>
                   <button className="btn btn-primary" type="submit">Add to allowlist</button>
                 </form>
-              </div>
+              </div>}
             </div>
           )}
 
@@ -412,15 +463,17 @@ export default function AdminPage() {
                         <div className="row" style={{ gap: 6 }}>
                           <button className="mini" onClick={() => void resolveFlag(f, "DISMISSED")}>Dismiss</button>
                           <button className="mini solid" onClick={() => void resolveFlag(f, "RESOLVED")}>Uphold</button>
-                          <button
-                            className="mini"
-                            onClick={() => {
-                              if (confirm(`Remove the posting "${f.opportunity.title}"? This hides it from all listings.`))
-                                void resolveFlag(f, "RESOLVED", true);
-                            }}
-                          >
-                            Uphold + remove posting
-                          </button>
+                          {isSuper && (
+                            <button
+                              className="mini"
+                              onClick={() => {
+                                if (confirm(`Remove the posting "${f.opportunity.title}"? This hides it from all listings.`))
+                                  void resolveFlag(f, "RESOLVED", true);
+                              }}
+                            >
+                              Uphold + remove posting
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -430,6 +483,43 @@ export default function AdminPage() {
                   )}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {tab === "admins" && isSuper && (
+            <div className="detail-grid">
+              <div className="panel">
+                <h2 style={{ fontSize: 16, marginTop: 0 }}>Admins</h2>
+                <p className="empty-note" style={{ marginBottom: 14 }}>
+                  Admins run this console. Only you, the super admin, can add or remove them.
+                </p>
+                <div className="notif-list">
+                  {admins.map((a) => (
+                    <div key={a.id} className="notif">
+                      <span className="body">
+                        <span className="t">{a.name}</span>
+                        <span className="when">{a.email} · {a.role === "SUPER_ADMIN" ? "super admin" : `admin since ${timeAgo(a.createdAt)}`}</span>
+                      </span>
+                      {a.role === "ADMIN" && (
+                        <button className="mini" onClick={() => void removeAdmin(a)}>Remove</button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="panel">
+                <h2 style={{ fontSize: 16, marginTop: 0 }}>Add an admin</h2>
+                <p className="empty-note" style={{ marginBottom: 14 }}>
+                  They are emailed a link to /admin and sign in with a one-time code. No password is shared.
+                </p>
+                <form className="form" onSubmit={createAdmin}>
+                  <div className="field"><label htmlFor="nan">Full name</label>
+                    <input id="nan" required value={newAdmin.name} onChange={(e) => setNewAdmin({ ...newAdmin, name: e.target.value })} /></div>
+                  <div className="field"><label htmlFor="nae">Email</label>
+                    <input id="nae" type="email" required value={newAdmin.email} onChange={(e) => setNewAdmin({ ...newAdmin, email: e.target.value })} /></div>
+                  <button className="btn btn-primary" type="submit">Add admin</button>
+                </form>
+              </div>
             </div>
           )}
 

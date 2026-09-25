@@ -43,23 +43,30 @@ export const AlumniRegisterSchema = z.object({
   password,
 });
 
+// Which sign-in door the request came through: "admin" (/admin) or "member"
+// (/). Each accepts only its own accounts - see domain/admin-portal.ts.
+const portal = z.enum(["admin", "member"]).default("member");
+
 export const VerifyOtpSchema = z.object({
   email: z.string().trim().toLowerCase().email(),
   otp: z
     .string()
     .trim()
     .regex(/^\d{6}$/, "Enter the 6-digit code."),
+  portal,
 });
 
 export const LoginSchema = z.object({
   email: z.string().trim().toLowerCase().email(),
   password: z.string().min(1).max(200),
+  portal,
 });
 
 // Passwordless login (alumni + convenience). Any valid email; the service only
 // issues a code to an ACTIVE account and responds uniformly otherwise.
 export const OtpLoginRequestSchema = z.object({
   email: z.string().trim().toLowerCase().email("Enter a valid email address."),
+  portal,
 });
 
 export const AlumniClaimSchema = z.object({
@@ -560,6 +567,15 @@ export const AdminProvisionAlumniSchema = z
   })
   .strict();
 
+// Create an admin account (super admin only). Any email: admins are often not
+// on the institute domain. They sign in at /admin with an emailed code.
+export const AdminCreateSchema = z
+  .object({
+    name: z.string().trim().min(2).max(120),
+    email: z.string().trim().toLowerCase().email("Enter a valid email address."),
+  })
+  .strict();
+
 export const FacultyAllowlistAddSchema = z
   .object({
     email: z
@@ -574,6 +590,7 @@ export const FacultyAllowlistAddSchema = z
 export type AdminUserUpdateInput = z.infer<typeof AdminUserUpdateSchema>;
 export type AdminProvisionAlumniInput = z.infer<typeof AdminProvisionAlumniSchema>;
 export type FacultyAllowlistAddInput = z.infer<typeof FacultyAllowlistAddSchema>;
+export type AdminCreateInput = z.infer<typeof AdminCreateSchema>;
 
 export type RegisterInput = z.infer<typeof RegisterSchema>;
 export type LoginInput = z.infer<typeof LoginSchema>;

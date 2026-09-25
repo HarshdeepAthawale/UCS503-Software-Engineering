@@ -7,6 +7,7 @@ import { signAccessToken } from "@/lib/security/access-token";
 import { issueRefreshMaterial, hashToken, fingerprint } from "@/lib/security/tokens";
 import { audit } from "@/lib/security/audit";
 import type { Role } from "@prisma/client";
+import { portalForRole, type Portal } from "@/lib/domain/admin-portal";
 
 /**
  * Identity service. All authentication logic lives here so routes stay thin and
@@ -139,6 +140,8 @@ export async function login(params: {
   email: string;
   password: string;
   userAgent: string | null;
+  /** The sign-in door used: admins only at /admin, members only at /. */
+  portal?: Portal;
 }): Promise<IssuedSession> {
   const user = await prisma.user.findFirst({
     where: { email: params.email, deletedAt: null },
@@ -168,6 +171,7 @@ export async function login(params: {
   if (user.status === "UNVERIFIED") {
     throw Errors.forbidden("Please verify your email before signing in.");
   }
+  assertPortal(user.role, params.portal ?? "member");
 
   await audit({ action: "auth.login.success", actorId: user.id });
   const role = await resolveRoleWithAllowlist(user.id, params.email, user.role);
@@ -204,6 +208,8 @@ export async function loginWithGoogle(params: {
 
   if (user) {
     if (user.status === "SUSPENDED") throw Errors.forbidden("This account has been suspended.");
+    // Google sign-in is the member door; admins use /admin (no Google there).
+    assertPortal(user.role, "member");
     // Google proves ownership - promote an unverified account to ACTIVE.
     if (user.status === "UNVERIFIED") {
       user = await prisma.user.update({
@@ -352,12 +358,17 @@ async function resolveRoleWithAllowlist(
  * caller to deliver (email in prod; dev returns it). Uniform behaviour when the
  * account is missing/inactive is handled by the route - no enumeration.
  */
-export async function requestLoginOtp(email: string): Promise<string | null> {
+export async function requestLoginOtp(
+  email: string,
+  portal: Portal = "member",
+): Promise<string | null> {
   const user = await prisma.user.findFirst({
     where: { email, deletedAt: null },
-    select: { id: true, status: true },
+    select: { id: true, status: true, role: true },
   });
   if (!user || user.status !== "ACTIVE") return null;
+  // Wrong door: behave exactly as for an unknown address (no enumeration).
+  if (portalForRole(user.role) !== portal) return null;
 
   const otp = generateOtp();
   await prisma.otpChallenge.create({
@@ -376,6 +387,7 @@ export async function verifyLoginOtp(params: {
   email: string;
   otp: string;
   userAgent: string | null;
+  portal?: Portal;
 }): Promise<IssuedSession> {
   const user = await prisma.user.findFirst({
     where: { email: params.email, deletedAt: null },
@@ -385,6 +397,7 @@ export async function verifyLoginOtp(params: {
   if (!user) throw genericFail;
   if (user.status === "SUSPENDED") throw Errors.forbidden("This account has been suspended.");
   if (user.status !== "ACTIVE") throw genericFail;
+  if (portalForRole(user.role) !== (params.portal ?? "member")) throw genericFail;
 
   const challenge = await prisma.otpChallenge.findFirst({
     where: { userId: user.id, purpose: "LOGIN", consumedAt: null },
@@ -411,6 +424,20 @@ export async function verifyLoginOtp(params: {
 
   const role = await resolveRoleWithAllowlist(user.id, params.email, user.role);
   return issueSession({ ...user, role }, params.userAgent);
+}
+
+// ── Sign-in doors ────────────────────────────────────────────────────────────
+
+/**
+ * Admins sign in only at /admin, members only at /. Runs AFTER the credential
+ * check, so it reveals nothing to someone who does not hold the password. An
+ * admin at the member door is told where to go; a member at the admin door gets
+ * the same answer as a wrong password.
+ */
+function assertPortal(role: Role, portal: Portal): void {
+  if (portalForRole(role) === portal) return;
+  if (portal === "member") throw Errors.forbidden("Admin accounts sign in at /admin.");
+  throw Errors.unauthenticated("Invalid email or password.");
 }
 
 // ── Session minting (shared) ─────────────────────────────────────────────────

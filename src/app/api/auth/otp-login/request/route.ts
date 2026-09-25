@@ -24,7 +24,7 @@ export const POST = handler(async (req) => {
   const emailOk = await authRateLimiter.consume(`otplogin:email:${parsed.data.email}`);
   if (!ipOk || !emailOk) throw Errors.rateLimited();
 
-  const otp = await requestLoginOtp(parsed.data.email);
+  const otp = await requestLoginOtp(parsed.data.email, parsed.data.portal);
 
   // Awaited (the function freezes at response time), and failures are logged
   // rather than returned: an unknown account never reaches a send, so an error

@@ -85,8 +85,16 @@ A report against a posting (spam, misleading, etc.). One open flag per reporter 
 _Avoid_: report (when you mean the Flag record), takedown
 
 **Member**:
-Any signed-in account: Student, Faculty, Alumni, or the single Admin.
+Any signed-in Student, Faculty or Alumni account. Signs in at `/`.
 _Avoid_: user (in domain writing), account (when you mean the person)
+
+**Admin**:
+An account that runs the governance console at `/admin` and signs in only there. Admins govern; they never post, apply or message.
+_Avoid_: moderator, staff
+
+**Super admin**:
+The one admin (database-enforced) who also adds and removes admins, curates the faculty allowlist, suspends or restores members, and takes flagged postings down.
+_Avoid_: root, owner, head admin
 
 **Pilot honesty**:
 Every row in the system comes from a real action. No mock users, no seeded demo applications. TTA stays honest.

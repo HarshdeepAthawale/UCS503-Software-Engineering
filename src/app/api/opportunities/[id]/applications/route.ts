@@ -1,3 +1,4 @@
+import { isAdminRole } from "@/lib/domain/admin-portal";
 import { handler, ok, created } from "@/lib/http/respond";
 import { Errors } from "@/lib/http/errors";
 import { authorize } from "@/lib/iam/guard";
@@ -49,7 +50,7 @@ export const GET = handler(async (req) => {
 
   const posterId = await getOpportunityPosterId(opportunityId);
   if (!posterId) throw Errors.notFound(); // generic 404 - no existence leak
-  if (principal.userId !== posterId && principal.role !== "ADMIN") {
+  if (principal.userId !== posterId && !isAdminRole(principal.role)) {
     throw Errors.forbidden();
   }
 

@@ -3,10 +3,10 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { hashPassword } from "../src/lib/security/password";
 
 /**
- * Admin bootstrap — the ONLY thing this project seeds, and it seeds no mock data.
+ * Super admin bootstrap — the ONLY thing this project seeds, and it seeds no mock data.
  *
- * The platform needs exactly one real administrator to exist so alumni claims can
- * be approved and the taxonomy managed. Rather than committing a fake account,
+ * The platform needs its one real super admin to exist; every other admin is
+ * created by the super admin from the console at /admin. Rather than committing a fake account,
  * this script provisions ONE admin from operator-supplied environment variables:
  *
  *   ADMIN_EMAIL=you@thapar.edu ADMIN_PASSWORD='<strong-secret>' npm run bootstrap:admin
@@ -32,12 +32,12 @@ async function main() {
     throw new Error("ADMIN_PASSWORD must be at least 12 characters.");
   }
 
-  const existingAdmin = await prisma.user.findFirst({
-    where: { role: "ADMIN", deletedAt: null },
+  const existingSuper = await prisma.user.findFirst({
+    where: { role: "SUPER_ADMIN", deletedAt: null },
     select: { id: true },
   });
-  if (existingAdmin) {
-    console.log("An admin already exists — nothing to do.");
+  if (existingSuper) {
+    console.log("A super admin already exists — nothing to do.");
     return;
   }
 
@@ -46,14 +46,14 @@ async function main() {
   await prisma.user.create({
     data: {
       email,
-      name: "Administrator",
+      name: "Super Admin",
       passwordHash,
-      role: "ADMIN",
+      role: "SUPER_ADMIN",
       status: "ACTIVE",
     },
   });
 
-  console.log(`Admin provisioned for ${email}.`);
+  console.log(`Super admin provisioned for ${email}. Sign in at /admin.`);
 }
 
 main()

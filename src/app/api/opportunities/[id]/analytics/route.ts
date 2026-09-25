@@ -1,3 +1,4 @@
+import { isAdminRole } from "@/lib/domain/admin-portal";
 import { handler, ok } from "@/lib/http/respond";
 import { Errors } from "@/lib/http/errors";
 import { authorize } from "@/lib/iam/guard";
@@ -26,7 +27,7 @@ export const GET = handler(async (req) => {
 
   const posterId = await getOpportunityPosterId(id);
   if (!posterId) throw Errors.notFound();
-  if (principal.userId !== posterId && principal.role !== "ADMIN") {
+  if (principal.userId !== posterId && !isAdminRole(principal.role)) {
     throw Errors.forbidden();
   }
 

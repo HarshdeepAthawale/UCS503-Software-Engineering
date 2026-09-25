@@ -1,9 +1,14 @@
 import { prisma } from "@/lib/db";
+import { isAdminRole } from "@/lib/domain/admin-portal";
+import { mailer } from "@/lib/email/mailer";
+import { adminInviteEmail } from "@/lib/email/templates";
 import { Errors } from "@/lib/http/errors";
+import { configuredOrigin } from "@/lib/http/origin";
 import { audit } from "@/lib/security/audit";
 import { hashPassword } from "@/lib/security/password";
 import type { Principal } from "@/lib/iam/policy";
 import type {
+  AdminCreateInput,
   AdminProvisionAlumniInput,
   AdminUserUpdateInput,
   FacultyAllowlistAddInput,
@@ -14,9 +19,11 @@ import type {
  *
  * Every mutation is audited with the acting admin's id. Invariants enforced here,
  * not just in the UI:
- *  • the single ADMIN account can never be modified, demoted, or deleted;
- *  • role can never be set to ADMIN;
- *  • alumni are provisioned with an unusable password (they log in via OTP).
+ *  • admin accounts are never touched by member management (role/status);
+ *  • admins are created and removed only through createAdmin/removeAdmin (the
+ *    super admin's powers - the routes gate them on `user:manage_admins`);
+ *  • the one SUPER_ADMIN is never modified from the app at all;
+ *  • alumni and admins get an unusable password (they sign in via email code).
  */
 
 const USER_SELECT = {
@@ -40,7 +47,7 @@ export async function getOverview() {
     prisma.flag.count({ where: { status: "OPEN" } }),
   ]);
 
-  const roles: Record<string, number> = { STUDENT: 0, FACULTY: 0, ALUMNI: 0, ADMIN: 0 };
+  const roles: Record<string, number> = { STUDENT: 0, FACULTY: 0, ALUMNI: 0, ADMIN: 0, SUPER_ADMIN: 0 };
   for (const r of byRole) roles[r.role] = r._count;
 
   return {
@@ -73,15 +80,15 @@ export async function listUsers(opts: { q?: string; role?: string; status?: stri
   return { users };
 }
 
-/** Load a target user, refusing any operation on the ADMIN account. */
+/** Load a member for role/status changes; admin accounts are managed elsewhere. */
 async function loadMutableUser(id: string) {
   const user = await prisma.user.findFirst({
     where: { id, deletedAt: null },
     select: { id: true, role: true, status: true },
   });
   if (!user) throw Errors.notFound();
-  if (user.role === "ADMIN") {
-    throw Errors.forbidden("The administrator account cannot be modified.");
+  if (isAdminRole(user.role)) {
+    throw Errors.forbidden("Admin accounts are managed from the Admins tab.");
   }
   return user;
 }
@@ -108,6 +115,106 @@ export async function updateUser(admin: Principal, id: string, input: AdminUserU
     await audit({ action: "user.status_changed", actorId: admin.userId, target: id, metadata: { to: input.status } });
   }
   return updated;
+}
+
+// ── Admins (super admin only) ────────────────────────────────────────────────
+
+/** Every live admin account, the super admin first. */
+export async function listAdmins() {
+  const admins = await prisma.user.findMany({
+    where: { role: { in: ["SUPER_ADMIN", "ADMIN"] }, deletedAt: null },
+    orderBy: [{ role: "desc" }, { createdAt: "asc" }],
+    select: USER_SELECT,
+  });
+  return { admins };
+}
+
+/**
+ * Create an admin account and email the new admin how to sign in. The address
+ * must not belong to a member: turning a student or faculty account into an
+ * admin would mix the two sign-in doors. A previously removed admin with the
+ * same email is restored rather than duplicated (emails are unique).
+ *
+ * The email is best-effort: the account exists either way, and `invited` tells
+ * the console whether to ask the super admin to pass the sign-in link on.
+ */
+export async function createAdmin(superAdmin: Principal, input: AdminCreateInput) {
+  const existing = await prisma.user.findFirst({
+    where: { email: input.email },
+    select: { id: true, role: true, deletedAt: true },
+  });
+  const restorable = existing?.role === "ADMIN" && existing.deletedAt !== null;
+  if (existing && !restorable) {
+    throw Errors.conflict("An account with that email already exists.");
+  }
+
+  const admin = restorable
+    ? await prisma.user.update({
+        where: { id: existing.id },
+        data: { deletedAt: null, status: "ACTIVE", name: input.name },
+        select: USER_SELECT,
+      })
+    : await prisma.user.create({
+        data: {
+          name: input.name,
+          email: input.email,
+          // Unusable - admins sign in at /admin with an emailed one-time code.
+          passwordHash: await hashPassword(`${crypto.randomUUID()}${crypto.randomUUID()}Aa1!`),
+          role: "ADMIN",
+          status: "ACTIVE",
+        },
+        select: USER_SELECT,
+      });
+
+  await audit({
+    action: "admin.created",
+    actorId: superAdmin.userId,
+    target: admin.id,
+    metadata: { restored: restorable },
+  });
+
+  const inviter = await prisma.user.findUnique({
+    where: { id: superAdmin.userId },
+    select: { name: true },
+  });
+  let invited = true;
+  try {
+    await mailer.send({
+      to: admin.email,
+      ...adminInviteEmail({
+        name: admin.name,
+        invitedBy: inviter?.name ?? "The super admin",
+        origin: configuredOrigin(),
+      }),
+    });
+  } catch (e) {
+    invited = false;
+    console.error("[admin] invite email failed", e);
+  }
+  return { ...admin, invited };
+}
+
+/**
+ * Remove an admin: soft-delete the account and end every session it holds.
+ * Only ADMIN rows qualify - the super admin and members are "not found" here.
+ */
+export async function removeAdmin(superAdmin: Principal, id: string) {
+  const admin = await prisma.user.findFirst({
+    where: { id, role: "ADMIN", deletedAt: null },
+    select: { id: true },
+  });
+  if (!admin) throw Errors.notFound();
+
+  const now = new Date();
+  await prisma.$transaction([
+    prisma.user.update({ where: { id }, data: { deletedAt: now } }),
+    prisma.refreshToken.updateMany({
+      where: { userId: id, revokedAt: null },
+      data: { revokedAt: now },
+    }),
+  ]);
+  await audit({ action: "admin.removed", actorId: superAdmin.userId, target: id });
+  return { id };
 }
 
 // ── Provision alumni ─────────────────────────────────────────────────────────

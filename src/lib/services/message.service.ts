@@ -1,3 +1,4 @@
+import { isAdminRole } from "@/lib/domain/admin-portal";
 import { prisma } from "@/lib/db";
 import { Errors } from "@/lib/http/errors";
 import type { Principal } from "@/lib/iam/policy";
@@ -56,7 +57,7 @@ export async function listMessages(principal: Principal, applicationId: string) 
     studentId: app.studentId,
     posterId: app.opportunity.posterId,
   };
-  if (!isParticipant(principal, parts) && principal.role !== "ADMIN") {
+  if (!isParticipant(principal, parts) && !isAdminRole(principal.role)) {
     throw Errors.forbidden();
   }
 

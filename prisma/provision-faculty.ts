@@ -33,8 +33,8 @@ async function main() {
   if (existing?.deletedAt) {
     throw new Error(`Account for ${email} is soft-deleted; restore it manually first.`);
   }
-  if (existing?.role === "ADMIN") {
-    throw new Error("Cannot change the administrator account.");
+  if (existing?.role === "ADMIN" || existing?.role === "SUPER_ADMIN") {
+    throw new Error("Cannot change an admin account.");
   }
 
   const passwordHash = await hashPassword(password);

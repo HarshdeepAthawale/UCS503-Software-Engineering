@@ -1,3 +1,4 @@
+import { isAdminRole } from "@/lib/domain/admin-portal";
 import { prisma } from "@/lib/db";
 import { Errors } from "@/lib/http/errors";
 import { audit } from "@/lib/security/audit";
@@ -61,7 +62,7 @@ export async function getProfile(viewer: Principal, targetUserId: string) {
   if (!row) return null;
 
   const isOwner = viewer.userId === targetUserId;
-  const canSeeCgpa = isOwner || row.cgpaPublic || viewer.role === "ADMIN";
+  const canSeeCgpa = isOwner || row.cgpaPublic || isAdminRole(viewer.role);
 
   // Most recent attestation per skill, across every application this student
   // has ever had SELECTED (T-19). A skill can accumulate attestations from

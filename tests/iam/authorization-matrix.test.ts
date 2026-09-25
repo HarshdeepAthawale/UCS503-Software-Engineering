@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { can, decide, type Principal } from "@/lib/iam/policy";
-import type { Permission } from "@/lib/iam/permissions";
+import { ROLE_PERMISSIONS, roleHasPermission, type Permission } from "@/lib/iam/permissions";
 
 /**
  * Authorization matrix tests (codeguard-0-authorization: "authorization matrix
@@ -92,7 +92,7 @@ const CASES: Array<[Role, Permission, boolean]> = [
   ["ADMIN", "user:read", true],
   ["ADMIN", "user:manage", true],
   ["ADMIN", "faculty_allowlist:read", true],
-  ["ADMIN", "faculty_allowlist:manage", true],
+  ["ADMIN", "faculty_allowlist:manage", false], // super admin only
   ["STUDENT", "user:read", false],
   ["STUDENT", "user:manage", false],
   ["FACULTY", "user:manage", false],
@@ -115,6 +115,26 @@ const CASES: Array<[Role, Permission, boolean]> = [
   ["ALUMNI", "profile:read_resume", true],
   ["ADMIN", "profile:read_resume", true],
   ["STUDENT", "profile:read_resume", false],
+  // Super admin: exactly one account. It holds every ADMIN grant plus the
+  // powers regular admins do not have - managing admins, the faculty
+  // allowlist, suspending/restoring members and taking postings down.
+  ["SUPER_ADMIN", "alumni_claim:approve", true],
+  ["SUPER_ADMIN", "analytics:read", true],
+  ["SUPER_ADMIN", "user:manage", true],
+  ["SUPER_ADMIN", "user:manage_admins", true],
+  ["SUPER_ADMIN", "user:suspend", true],
+  ["SUPER_ADMIN", "faculty_allowlist:manage", true],
+  ["SUPER_ADMIN", "opportunity:remove", true],
+  ["ADMIN", "user:manage_admins", false],
+  ["ADMIN", "user:suspend", false],
+  ["ADMIN", "opportunity:remove", false],
+  ["FACULTY", "user:manage_admins", false],
+  ["STUDENT", "user:suspend", false],
+  ["FACULTY", "opportunity:remove", false],
+  // Governance roles still never post, apply, or message.
+  ["SUPER_ADMIN", "opportunity:create", false],
+  ["SUPER_ADMIN", "application:create", false],
+  ["SUPER_ADMIN", "message:send", false],
 ];
 
 describe("RBAC matrix (deny-by-default)", () => {
@@ -125,8 +145,16 @@ describe("RBAC matrix (deny-by-default)", () => {
   }
 
   it("denies an unknown permission for every role", () => {
-    for (const role of ["STUDENT", "FACULTY", "ALUMNI", "ADMIN"] as Role[]) {
+    for (const role of ["STUDENT", "FACULTY", "ALUMNI", "ADMIN", "SUPER_ADMIN"] as Role[]) {
       expect(can(P(role), "opportunity:nuke" as Permission)).toBe(false);
+    }
+  });
+});
+
+describe("Super admin", () => {
+  it("can do everything a regular admin can", () => {
+    for (const permission of ROLE_PERMISSIONS.ADMIN) {
+      expect(roleHasPermission("SUPER_ADMIN", permission)).toBe(true);
     }
   });
 });
