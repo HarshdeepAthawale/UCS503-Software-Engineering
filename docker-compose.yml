@@ -41,8 +41,8 @@ services:
       - .:/app
       # Anonymous volume so the bind mount does not shadow Linux node_modules.
       - /app/node_modules
-      # Cached .next survives `docker compose up --build` and serves STALE UI.
-      # Run `npm run docker:rebuild` after pulling UI fixes, or use docker:prod.
+      # Cached .next survives `docker compose up --build` and can serve STALE UI;
+      # `docker compose up --build --renew-anon-volumes` recreates it.
       - /app/.next
     depends_on:
       db:
