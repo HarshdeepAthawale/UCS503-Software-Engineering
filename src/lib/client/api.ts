@@ -759,6 +759,21 @@ export async function apiCreateTeam(input: TeamCreateInput): Promise<Team> {
   return body.team;
 }
 
+/** The lead edits the team: details and the full role list (an id keeps a role, none adds one, a left-out role is removed). */
+export async function apiUpdateTeam(
+  id: string,
+  input: {
+    name: string;
+    hackathon: string;
+    description: string | null;
+    eventDate: string | null;
+    roles: { id?: string; label: string; slotCount: number; skillIds: string[] }[];
+  },
+): Promise<Team> {
+  const body = await request<{ team: Team }>(`/api/teams/${id}`, { method: "PATCH", body: JSON.stringify(input) });
+  return body.team;
+}
+
 export async function apiCloseTeam(id: string): Promise<Team> {
   const body = await request<{ team: Team }>(`/api/teams/${id}`, {
     method: "PATCH",

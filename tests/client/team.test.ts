@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { openRoles, slotSummary, teamStatusLabel, viewerRelation } from "@/lib/client/team";
+import { openRoles, slotSummary, teamPayload, teamStatusLabel, teamToForm, viewerRelation } from "@/lib/client/team";
 import type { Team } from "@/lib/client/api";
 
 /** How a team is described on the teams pages. */
@@ -57,5 +57,36 @@ describe("viewerRelation", () => {
       ] as Team["roles"],
     });
     expect(viewerRelation(t, "stranger")).toBe("Request pending · Backend");
+  });
+});
+
+describe("teamToForm / teamPayload", () => {
+  it("round-trips a team through the edit form, keeping role ids and members", () => {
+    const t = team({ description: "  Ship it ", eventDate: "2026-12-23T10:30:00.000Z" });
+    const form = teamToForm(t);
+    expect(form.roles.map((r) => [r.id, r.filled])).toEqual([["r1", 1], ["r2", 1]]);
+
+    const payload = teamPayload(form);
+    expect(payload.description).toBe("Ship it");
+    expect(payload.eventDate).toBe("2026-12-23T10:30:00.000Z");
+    expect(payload.roles[0]).toEqual({ id: "r1", label: "Backend", slotCount: 2, skillIds: [] });
+  });
+
+  it("never sends fewer spots than members, sends no id for a new role, and clears blanks to null", () => {
+    const payload = teamPayload({
+      name: " New ",
+      hackathon: "Hack",
+      description: "   ",
+      eventDate: "",
+      roles: [
+        { key: "a", id: "r1", label: "Backend", slotCount: 0, skillIds: [], filled: 2 },
+        { key: "b", label: " Design ", slotCount: 1, skillIds: ["s1"] },
+      ],
+    });
+    expect(payload.name).toBe("New");
+    expect(payload.description).toBeNull();
+    expect(payload.eventDate).toBeNull();
+    expect(payload.roles[0]!.slotCount).toBe(2);
+    expect(payload.roles[1]).toEqual({ label: "Design", slotCount: 1, skillIds: ["s1"] });
   });
 });

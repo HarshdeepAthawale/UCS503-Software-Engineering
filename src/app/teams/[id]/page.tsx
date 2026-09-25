@@ -211,6 +211,9 @@ export default function TeamDetailPage() {
                   </div>
                   {isLead && (
                     <div className="row-actions">
+                      {team.status !== "CLOSED" && (
+                        <Link className="btn btn-primary btn-sm" href={`/teams/${id}/edit`}>Edit team</Link>
+                      )}
                       <Link className="btn btn-ghost btn-sm" href={`/teams/${id}/requests`}>Join requests</Link>
                       {team.status === "FORMING" && (
                         <button className="btn btn-text btn-sm" type="button" disabled={busy} onClick={() => void close()}>
