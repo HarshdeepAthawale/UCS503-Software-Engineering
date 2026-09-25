@@ -111,7 +111,7 @@ export default function ShortlistedCandidatesPage() {
       <main id="content" className="app-page">
         <div className="wrap">
           <Link href={`/opportunities/${id}/applicants`} className="back-link">
-            ← Full pipeline
+            ← All applicants
           </Link>
 
           <div className="page-head">
@@ -126,7 +126,7 @@ export default function ShortlistedCandidatesPage() {
           {pending.length === 0 ? (
             <div className="app-empty">
               <h3>Nothing to decide right now</h3>
-              <p>Shortlist an applicant from the full pipeline and they'll show up here.</p>
+              <p>Shortlist an applicant from the applicants list and they'll show up here.</p>
             </div>
           ) : (
             <div className="pipeline" style={{ gridTemplateColumns: "1fr" }}>

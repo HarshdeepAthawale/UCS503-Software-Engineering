@@ -10,7 +10,7 @@ export function SiteFooter() {
             <Link className="brand" href="/">
               <span>Thapar Nexus</span>
             </Link>
-            <p>Verified opportunity pipeline for the institute community.</p>
+            <p>Verified opportunities for the institute community.</p>
           </div>
           <div className="foot-team">
             <div className="h">Explore</div>

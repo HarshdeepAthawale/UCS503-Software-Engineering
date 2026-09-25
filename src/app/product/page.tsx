@@ -83,7 +83,7 @@ export default function ProductPage() {
         <section id="difference">
           <div className="wrap">
             <div className="section-head">
-              <span className="eyebrow">Feed vs. pipeline</span>
+              <span className="eyebrow">Feed vs. Nexus</span>
               <h2>A feed wants your attention. Nexus wants you gone - with a result.</h2>
               <p>The difference is structural, visible in what we measure and what we refuse to build.</p>
             </div>

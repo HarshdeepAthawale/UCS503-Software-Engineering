@@ -76,7 +76,7 @@ export default function AboutPage() {
           <div className="wrap">
             <Reveal className="quote-band">
               <p className="quote">
-                &ldquo;A feed measures attention and rewards the most-followed. A pipeline measures
+                &ldquo;A feed measures attention and rewards the most-followed. Nexus measures
                 resolution and rewards the most-responsive. We optimise for you leaving - with a
                 result.&rdquo;
               </p>

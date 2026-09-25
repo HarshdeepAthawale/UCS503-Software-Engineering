@@ -8,7 +8,7 @@ import { HTTP_ERRORS, HTTP_SUCCESS } from "@/lib/http/catalog";
 export const metadata: Metadata = {
   title: "HTTP status codes · Thapar Nexus",
   description:
-    "Every HTTP status the opportunity pipeline returns, with the machine error code from the JSON envelope.",
+    "Every HTTP status the portal returns, with the machine error code from the JSON envelope.",
 };
 
 function Table({
@@ -66,7 +66,7 @@ export default function HttpErrorsPage() {
             <p className="eyebrow">API contract</p>
             <h1>HTTP status codes</h1>
             <p className="lede">
-              The pipeline answers with a small, documented set of statuses — not an
+              The portal answers with a small, documented set of statuses — not an
               ad-hoc scatter. Errors share one envelope:{" "}
               <code className="mono">{`{ error: { code, message, field, requestId } }`}</code>
               . No stack traces, and 401/404 do not confirm that an account or posting

@@ -36,7 +36,7 @@ function itemsFor(user: SessionUser | null): Item[] {
     rows.splice(1, 0, {
       href: "/applications",
       label: "My applications",
-      hint: "Pipeline tracker",
+      hint: "Track your applications",
       group: "Go to",
     });
   }
