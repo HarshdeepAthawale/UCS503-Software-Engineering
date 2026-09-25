@@ -2,15 +2,14 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AppNav } from "@/components/app-nav";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { AppNav } from "@/components/app-nav";
 import { ResumeViewer } from "@/components/resume-viewer";
 import {
   apiAddProject,
   apiUpdateProject,
   apiGetMyProfile,
   apiGetSkills,
-  apiLogout,
   apiRemoveProject,
   apiRemoveResume,
   apiReplaceSkills,
@@ -18,10 +17,13 @@ import {
   apiUploadResume,
   apiGetCalendarStatus,
   apiDisconnectCalendar,
+  apiGetNotificationFrequency,
+  apiSetNotificationFrequency,
   googleCalendarConnectUrl,
   ApiError,
   bootstrapSession,
   getUser,
+  type NotificationFrequency,
   type OppType,
   type Profile,
   type Project,
@@ -30,8 +32,26 @@ import {
 import { BranchSelect } from "@/components/branch-select";
 import { ProfileSkillAddRow, type Proficiency } from "@/components/profile-skill-add-row";
 import { handleLoadError } from "@/lib/client/handle-load-error";
+import { initials, roleLabel } from "@/lib/client/nav";
+import { profileChecklist, type ProfileSection } from "@/lib/client/profile-checklist";
+import { normalizeLink } from "@/lib/client/links";
+
+/** Field names the server reports on a failed save, as the user knows them. */
+const FIELD_LABEL: Record<string, string> = {
+  headline: "Headline",
+  bio: "Bio",
+  branch: "Branch",
+  year: "Year",
+  cgpa: "CGPA",
+  backlogs: "Active backlogs",
+  githubUrl: "GitHub",
+  linkedinUrl: "LinkedIn",
+  websiteUrl: "Website",
+  hoursPerWeek: "Hours a week",
+};
 
 const MAX_RESUME_MB = 4;
+const SKILL_LIMIT = 8; // mirrors PROFILE_SKILL_LIMIT in the server schema
 
 /** Posting types a member can declare themselves open to (mirrors OppType). */
 const OPEN_TO_OPTIONS: { value: OppType; label: string }[] = [
@@ -43,50 +63,108 @@ const OPEN_TO_OPTIONS: { value: OppType; label: string }[] = [
   { value: "REFERRAL", label: "Referral" },
 ];
 
-const SKILL_LIMIT = 8; // mirrors PROFILE_SKILL_LIMIT in the server schema
+/** How often notifications are emailed; saved as soon as one is picked. */
+const EMAIL_OPTIONS: { value: NotificationFrequency; label: string; hint: string }[] = [
+  { value: "IMMEDIATE", label: "Every update", hint: "An email for each new notification" },
+  { value: "DAILY", label: "Daily summary", hint: "One email a day at most" },
+  { value: "WEEKLY", label: "Weekly summary", hint: "One email a week at most" },
+];
 
 interface PendingSkill {
   name: string;
   proficiency: Proficiency;
 }
 
+/** Everything the Save button owns. Résumé, projects and calendar save on their own. */
+interface FormState {
+  headline: string;
+  bio: string;
+  branch: string;
+  year: string;
+  cgpa: string;
+  cgpaPublic: boolean;
+  backlogs: string;
+  githubUrl: string;
+  linkedinUrl: string;
+  websiteUrl: string;
+  openTo: OppType[];
+  hoursPerWeek: string;
+  skills: PendingSkill[];
+}
+
+const EMPTY_FORM: FormState = {
+  headline: "",
+  bio: "",
+  branch: "",
+  year: "",
+  cgpa: "",
+  cgpaPublic: false,
+  backlogs: "",
+  githubUrl: "",
+  linkedinUrl: "",
+  websiteUrl: "",
+  openTo: [],
+  hoursPerWeek: "",
+  skills: [],
+};
+
+const num = (v: number | null | undefined) => (v == null ? "" : String(v));
+
+function formFrom(p: Profile | null): FormState {
+  if (!p) return EMPTY_FORM;
+  return {
+    headline: p.headline ?? "",
+    bio: p.bio ?? "",
+    branch: p.branch ?? "",
+    year: num(p.year),
+    cgpa: num(p.cgpa),
+    cgpaPublic: p.cgpaPublic,
+    backlogs: num(p.backlogs),
+    githubUrl: p.githubUrl ?? "",
+    linkedinUrl: p.linkedinUrl ?? "",
+    websiteUrl: p.websiteUrl ?? "",
+    openTo: p.openTo ?? [],
+    hoursPerWeek: num(p.hoursPerWeek),
+    skills: p.skills.map((s) => ({ name: s.name, proficiency: s.proficiency as Proficiency })),
+  };
+}
+
+const EMPTY_PROJECT = { title: "", repoUrl: "", liveUrl: "", description: "" };
+
 export default function ProfilePage() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
   const [notSignedIn, setNotSignedIn] = useState(false);
-
   const [profile, setProfile] = useState<Profile | null>(null);
   const [taxonomy, setTaxonomy] = useState<TaxonomySkill[]>([]);
-  const [skills, setSkills] = useState<PendingSkill[]>([]);
 
-  const [branch, setBranch] = useState("");
-  const [year, setYear] = useState("");
-  const [cgpa, setCgpa] = useState("");
-  const [cgpaPublic, setCgpaPublic] = useState(false);
-  const [backlogs, setBacklogs] = useState("");
-  const [bio, setBio] = useState("");
-  const [headline, setHeadline] = useState("");
-  const [githubUrl, setGithubUrl] = useState("");
-  const [linkedinUrl, setLinkedinUrl] = useState("");
-  const [websiteUrl, setWebsiteUrl] = useState("");
-  const [openTo, setOpenTo] = useState<OppType[]>([]);
-  const [hoursPerWeek, setHoursPerWeek] = useState("");
+  // `form` is what the user is editing; `saved` is the last server copy. The
+  // save bar appears only while they differ.
+  const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [saved, setSaved] = useState<FormState>(EMPTY_FORM);
+  // A failed save names the field; it is shown in the save bar (where the
+  // user is looking), and that field is marked invalid until they edit it.
+  const [saveError, setSaveError] = useState<{ message: string; field: string | null } | null>(null);
+  const set = <K extends keyof FormState>(key: K, value: FormState[K]) => {
+    setForm((f) => ({ ...f, [key]: value }));
+    if (saveError?.field === key) setSaveError(null);
+  };
+  const invalid = (field: string) => saveError?.field === field || undefined;
 
   const [pickerName, setPickerName] = useState("");
   const [pickerProficiency, setPickerProficiency] = useState<Proficiency>("INTERMEDIATE");
 
+  const [projectFormOpen, setProjectFormOpen] = useState(false);
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
-  const [projTitle, setProjTitle] = useState("");
-  const [projRepo, setProjRepo] = useState("");
-  const [projLive, setProjLive] = useState("");
-  const [projDesc, setProjDesc] = useState("");
+  const [project, setProject] = useState(EMPTY_PROJECT);
   const [projBusy, setProjBusy] = useState(false);
+  const [projError, setProjError] = useState<string | null>(null);
 
   const [resumeBusy, setResumeBusy] = useState(false);
   const [resumeRefresh, setResumeRefresh] = useState(0);
 
-  const [saved, setSaved] = useState(false);
+  const [justSaved, setJustSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -94,9 +172,14 @@ export default function ProfilePage() {
   const [calendarConnected, setCalendarConnected] = useState(false);
   const [calendarBusy, setCalendarBusy] = useState(false);
   const [calendarInfo, setCalendarInfo] = useState<string | null>(null);
+  const [emailFrequency, setEmailFrequency] = useState<NotificationFrequency | null>(null);
 
+  /**
+   * Load (or reload) the profile. Only the FIRST load shows the loading state:
+   * reloading after a save or a project change used to blank the whole page to
+   * "Loading your profile…" and back, which read as the page being slow.
+   */
   const load = useCallback(async () => {
-    setLoading(true);
     const ok = await bootstrapSession();
     if (!ok) {
       setNotSignedIn(true);
@@ -104,42 +187,33 @@ export default function ProfilePage() {
       return;
     }
     try {
-      const [p, tax] = await Promise.all([apiGetMyProfile(), apiGetSkills()]);
+      // In parallel, and only AFTER the session is restored: the calendar
+      // status used to be requested on mount, before there was an access
+      // token, so a fresh load of /profile always got a 401. It is optional,
+      // so its failure must not fail the page.
+      const [p, tax, calendar, frequency] = await Promise.all([
+        apiGetMyProfile(),
+        apiGetSkills(),
+        apiGetCalendarStatus().catch(() => null),
+        apiGetNotificationFrequency().catch(() => null),
+      ]);
+      setEmailFrequency(frequency);
       setProfile(p);
       setTaxonomy(tax);
-      if (p) {
-        setBranch(p.branch ?? "");
-        setYear(p.year != null ? String(p.year) : "");
-        setCgpa(p.cgpa != null ? String(p.cgpa) : "");
-        setCgpaPublic(p.cgpaPublic);
-        setBacklogs(p.backlogs != null ? String(p.backlogs) : "");
-        setBio(p.bio ?? "");
-        setHeadline(p.headline ?? "");
-        setGithubUrl(p.githubUrl ?? "");
-        setLinkedinUrl(p.linkedinUrl ?? "");
-        setWebsiteUrl(p.websiteUrl ?? "");
-        setOpenTo(p.openTo ?? []);
-        setHoursPerWeek(p.hoursPerWeek != null ? String(p.hoursPerWeek) : "");
-        setSkills(
-          p.skills.map((s) => ({
-            name: s.name,
-            proficiency: s.proficiency as PendingSkill["proficiency"],
-          })),
-        );
+      const next = formFrom(p);
+      setForm(next);
+      setSaved(next);
+      if (calendar) {
+        setCalendarEnabled(calendar.enabled);
+        setCalendarConnected(calendar.connected);
       }
     } catch (err) {
       // A 401 here means the refresh cookie minted a token the API then
-      // rejected - an expired or revoked session, not a load failure. Showing
-      // "failed to load" would send the user to retry a page that can never
-      // succeed until they sign in again.
+      // rejected - an expired or revoked session, not a load failure.
       if (err instanceof ApiError && err.status === 401) {
         setNotSignedIn(true);
-      } else if (handleLoadError(router, err)) {
-        return;
-      } else {
-        setError(
-          err instanceof ApiError ? err.message : "Failed to load your profile.",
-        );
+      } else if (!handleLoadError(router, err)) {
+        setError(err instanceof ApiError ? err.message : "Failed to load your profile.");
       }
     } finally {
       setLoading(false);
@@ -150,17 +224,8 @@ export default function ProfilePage() {
     void load();
   }, [load]);
 
+  // The Google Calendar connect flow comes back here with a status flag.
   useEffect(() => {
-    void (async () => {
-      try {
-        const status = await apiGetCalendarStatus();
-        setCalendarEnabled(status.enabled);
-        setCalendarConnected(status.connected);
-      } catch {
-        /* calendar connection is optional */
-      }
-    })();
-
     const params = new URLSearchParams(window.location.search);
     if (params.has("calendarConnected")) {
       setCalendarInfo("Google Calendar connected.");
@@ -173,59 +238,50 @@ export default function ProfilePage() {
     window.history.replaceState(null, "", window.location.pathname);
   }, []);
 
-  async function disconnectCalendar() {
-    setCalendarBusy(true);
-    setError(null);
-    try {
-      await apiDisconnectCalendar();
-      setCalendarConnected(false);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not disconnect Google Calendar.");
-    } finally {
-      setCalendarBusy(false);
-    }
-  }
-
-  // MUST stay above the `loading` / `notSignedIn` early returns below. Hooks run
-  // in call order, so a hook after a conditional return is called on some
-  // renders and not others: the first render bails at `loading` having run one
-  // fewer hook, and the render that finally gets here trips React #310,
-  // "rendered more hooks than during the previous render" — which crashed the
-  // whole page into the error boundary rather than failing visibly here.
-  //
-  // The memo itself is a real saving: without it every keystroke in any field
-  // on the page rebuilt this Set and re-filtered the entire taxonomy.
+  // MUST stay above the early returns below (hooks run in call order).
   const suggestions = useMemo(() => {
-    const selected = new Set(skills.map((s) => s.name.toLowerCase()));
+    const selected = new Set(form.skills.map((s) => s.name.toLowerCase()));
     return taxonomy.filter((t) => !selected.has(t.name.toLowerCase()));
-  }, [skills, taxonomy]);
+  }, [form.skills, taxonomy]);
 
-  async function onSave(e: React.FormEvent) {
-    e.preventDefault();
+  const dirty = useMemo(() => JSON.stringify(form) !== JSON.stringify(saved), [form, saved]);
+
+  // Warn before leaving with unsaved edits.
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty]);
+
+  async function onSave() {
     setError(null);
-    setSaved(false);
+    setSaveError(null);
     setBusy(true);
     try {
       await apiUpdateProfile({
-        branch: branch.trim() || null,
-        year: year ? Number(year) : null,
-        cgpa: cgpa ? Number(cgpa) : null,
-        cgpaPublic,
-        backlogs: backlogs ? Number(backlogs) : null,
-        bio: bio.trim() || null,
-        headline: headline.trim() || null,
-        githubUrl: githubUrl.trim() || null,
-        linkedinUrl: linkedinUrl.trim() || null,
-        websiteUrl: websiteUrl.trim() || null,
-        openTo,
-        hoursPerWeek: hoursPerWeek ? Number(hoursPerWeek) : null,
+        branch: form.branch.trim() || null,
+        year: form.year ? Number(form.year) : null,
+        cgpa: form.cgpa ? Number(form.cgpa) : null,
+        cgpaPublic: form.cgpaPublic,
+        backlogs: form.backlogs ? Number(form.backlogs) : null,
+        bio: form.bio.trim() || null,
+        headline: form.headline.trim() || null,
+        githubUrl: normalizeLink(form.githubUrl),
+        linkedinUrl: normalizeLink(form.linkedinUrl),
+        websiteUrl: normalizeLink(form.websiteUrl),
+        openTo: form.openTo,
+        hoursPerWeek: form.hoursPerWeek ? Number(form.hoursPerWeek) : null,
       });
-      await apiReplaceSkills(skills);
-      setSaved(true);
+      await apiReplaceSkills(form.skills);
       await load();
+      setJustSaved(true);
+      setTimeout(() => setJustSaved(false), 2500);
     } catch (err) {
-      setError(
-        err instanceof ApiError ? err.message : "Could not save your profile.",
+      setSaveError(
+        err instanceof ApiError
+          ? { message: err.message, field: err.field }
+          : { message: "Could not save your profile.", field: null },
       );
     } finally {
       setBusy(false);
@@ -234,59 +290,53 @@ export default function ProfilePage() {
 
   function addSkill() {
     const name = pickerName.trim();
-    if (!name || skills.length >= SKILL_LIMIT) return;
-    setSkills((prev) => {
-      // Replace a same-named entry (case-insensitive) rather than duplicating it.
-      const next = prev.filter((s) => s.name.toLowerCase() !== name.toLowerCase());
-      return [...next, { name, proficiency: pickerProficiency }];
-    });
+    if (!name || form.skills.length >= SKILL_LIMIT) return;
+    // Replace a same-named entry (case-insensitive) rather than duplicating it.
+    const rest = form.skills.filter((s) => s.name.toLowerCase() !== name.toLowerCase());
+    set("skills", [...rest, { name, proficiency: pickerProficiency }]);
     setPickerName("");
     setPickerProficiency("INTERMEDIATE");
   }
 
-  function removeSkill(name: string) {
-    setSkills((prev) => prev.filter((s) => s.name.toLowerCase() !== name.toLowerCase()));
+  function toggleOpenTo(value: OppType) {
+    set("openTo", form.openTo.includes(value) ? form.openTo.filter((v) => v !== value) : [...form.openTo, value]);
   }
 
-  // Projects use per-item CRUD (there is no batch-replace endpoint), so add,
-  // edit, and remove all call the API immediately and reload — independent
-  // of the "Save profile" button, which owns the about/skills form.
-  function clearProjectForm() {
+  // Projects use per-item endpoints, so they save immediately.
+  function closeProjectForm() {
+    setProjectFormOpen(false);
     setEditingProjectId(null);
-    setProjTitle("");
-    setProjRepo("");
-    setProjLive("");
-    setProjDesc("");
+    setProject(EMPTY_PROJECT);
   }
 
-  function startEditProject(p: Project) {
+  function editProject(p: Project) {
     setEditingProjectId(p.id);
-    setProjTitle(p.title);
-    setProjRepo(p.repoUrl ?? "");
-    setProjLive(p.liveUrl ?? "");
-    setProjDesc(p.description ?? "");
+    setProject({
+      title: p.title,
+      repoUrl: p.repoUrl ?? "",
+      liveUrl: p.liveUrl ?? "",
+      description: p.description ?? "",
+    });
+    setProjectFormOpen(true);
   }
 
   async function saveProject() {
-    if (!projTitle.trim()) return;
-    setError(null);
+    if (!project.title.trim()) return;
+    setProjError(null);
     setProjBusy(true);
     try {
       const input = {
-        title: projTitle.trim(),
-        repoUrl: projRepo.trim() || null,
-        liveUrl: projLive.trim() || null,
-        description: projDesc.trim() || null,
+        title: project.title.trim(),
+        repoUrl: normalizeLink(project.repoUrl),
+        liveUrl: normalizeLink(project.liveUrl),
+        description: project.description.trim() || null,
       };
-      if (editingProjectId) {
-        await apiUpdateProject(editingProjectId, input);
-      } else {
-        await apiAddProject(input);
-      }
-      clearProjectForm();
+      if (editingProjectId) await apiUpdateProject(editingProjectId, input);
+      else await apiAddProject(input);
+      closeProjectForm();
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not save the project.");
+      setProjError(err instanceof ApiError ? err.message : "Could not save the project.");
     } finally {
       setProjBusy(false);
     }
@@ -297,7 +347,7 @@ export default function ProfilePage() {
     setProjBusy(true);
     try {
       await apiRemoveProject(id);
-      if (editingProjectId === id) clearProjectForm();
+      if (editingProjectId === id) closeProjectForm();
       await load();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not remove the project.");
@@ -346,17 +396,33 @@ export default function ProfilePage() {
     }
   }
 
-  async function onLogout() {
-    await apiLogout();
-    router.push("/");
+  async function disconnectCalendar() {
+    setCalendarBusy(true);
+    setError(null);
+    try {
+      await apiDisconnectCalendar();
+      setCalendarConnected(false);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not disconnect Google Calendar.");
+    } finally {
+      setCalendarBusy(false);
+    }
   }
 
-  if (loading) {
-    return (
-      <main className="auth-shell">
-        <p className="sub">Loading your profile…</p>
-      </main>
-    );
+  async function changeEmailFrequency(next: NotificationFrequency) {
+    const previous = emailFrequency;
+    setEmailFrequency(next);
+    setError(null);
+    try {
+      setEmailFrequency(await apiSetNotificationFrequency(next));
+    } catch (err) {
+      setEmailFrequency(previous);
+      setError(err instanceof ApiError ? err.message : "Could not save your email preference.");
+    }
+  }
+
+  function jumpTo(section: ProfileSection) {
+    document.getElementById(`section-${section}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   if (notSignedIn) {
@@ -364,14 +430,9 @@ export default function ProfilePage() {
       <main className="auth-shell">
         <div className="auth-card">
           <h1>Sign in required</h1>
-          <p className="sub">Create a profile to join the pilot.</p>
+          <p className="sub">Sign in to edit your profile.</p>
           <div className="hero-actions">
-            <Link className="btn btn-primary" href="/login">
-              Sign in
-            </Link>
-            <Link className="btn btn-ghost" href="/register">
-              Create account
-            </Link>
+            <Link className="btn btn-primary" href="/">Sign in</Link>
           </div>
         </div>
       </main>
@@ -379,461 +440,384 @@ export default function ProfilePage() {
   }
 
   const user = getUser();
-  const atSkillLimit = skills.length >= SKILL_LIMIT;
 
-  return (
-    // Wrapped in `.app-shell` with `AppNav`, exactly like every other signed-in
-    // screen. This page was the only portal route that rendered no navigation
-    // at all: it offered a single "Home" link, which sent a signed-in user out
-    // to the marketing landing page and left them no way back into the app
-    // except the browser's back button.
-    <div className="app-shell">
-      <AppNav user={user} />
-      <main id="content" className="profile-shell">
-        <div className="wrap">
-          <div className="profile-head">
-            <div>
-              <span className="role">{user?.role ?? ""}</span>
-              <h1>{user?.name ?? "My profile"}</h1>
-              {/* The raw account UUID used to be printed here beside the
-                  status. It is an internal identifier: it tells the account
-                  holder nothing they can act on, and it is the kind of value
-                  that ends up in screenshots and support threads. Only the
-                  status is shown now - the id remains available to code via
-                  `user.id`, it is simply never rendered. */}
-              <div className="mono-id">{user?.status ?? ""}</div>
+  if (loading || !user) {
+    return (
+      <div className="app-shell">
+        <AppNav user={user} />
+        <main id="content" className="app-page">
+          <div className="wrap profile-layout" aria-busy="true">
+            <div className="skeleton skeleton-card" />
+            <div className="profile-sections">
+              <div className="skeleton skeleton-card" />
+              <div className="skeleton skeleton-card" />
             </div>
           </div>
+        </main>
+      </div>
+    );
+  }
 
-          {error && (
-            <p className="form-err" role="alert">
-              {error}
-            </p>
-          )}
-          {saved && <p className="form-ok">Profile saved.</p>}
+  const student = user.role === "STUDENT";
+  const atSkillLimit = form.skills.length >= SKILL_LIMIT;
+  const checklist = profileChecklist(user.role, {
+    headline: saved.headline,
+    bio: saved.bio,
+    branch: saved.branch,
+    year: saved.year,
+    cgpa: saved.cgpa,
+    skillCount: saved.skills.length,
+    openToCount: saved.openTo.length,
+    hasResume: !!profile?.resume,
+    hasLink: !!(saved.githubUrl || saved.linkedinUrl || saved.websiteUrl),
+    projectCount: profile?.projects.length ?? 0,
+  });
+  const facts = [roleLabel(user.role), saved.branch, saved.year && `Year ${saved.year}`].filter(Boolean);
 
-          <form className="panel-grid" onSubmit={onSave} noValidate>
-            <div className="panel-card">
-              <h2>About you</h2>
+  return (
+    <div className="app-shell">
+      <AppNav user={user} />
+      <main id="content" className="app-page">
+        <div className="wrap profile-layout">
+          {/* ── Summary ─────────────────────────────────────────────── */}
+          <aside className="profile-summary card">
+            <div className="profile-id">
+              <span className="avatar avatar-xl" aria-hidden="true">{initials(user.name)}</span>
+              <div>
+                <h1>{user.name}</h1>
+                <p className="profile-facts">{facts.join(" · ")}</p>
+              </div>
+            </div>
+            {saved.headline && <p className="profile-headline">{saved.headline}</p>}
+
+            <div className="completeness">
+              <div className="completeness-head">
+                <span>Profile strength</span>
+                <strong>{checklist.percent}%</strong>
+              </div>
+              <div className="meter" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={checklist.percent}>
+                <span style={{ width: `${checklist.percent}%` }} />
+              </div>
+              <ul className="checklist">
+                {checklist.items.map((item) => (
+                  <li key={item.key} className={item.done ? "done" : ""}>
+                    <button type="button" onClick={() => jumpTo(item.section)} disabled={item.done}>
+                      <span className="check" aria-hidden="true">{item.done ? "✓" : ""}</span>
+                      {item.label}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <Link className="btn btn-ghost btn-block" href={`/profile/${user.id}`}>
+              View as others see it
+            </Link>
+          </aside>
+
+          {/* ── Sections ────────────────────────────────────────────── */}
+          <div className="profile-sections">
+            {error && <p className="form-err" role="alert">{error}</p>}
+
+            <section id="section-basics" className="card section-card">
+              <header>
+                <h2>Basics</h2>
+                <p>The first thing {student ? "a poster" : "a student"} reads about you.</p>
+              </header>
               <div className="form">
                 <div className="field">
                   <label htmlFor="headline">Headline</label>
-                  <input
-                    id="headline"
-                    type="text"
-                    value={headline}
-                    onChange={(e) => setHeadline(e.target.value)}
-                    placeholder="e.g. Security researcher · binary exploitation"
-                    maxLength={120}
-                  />
-                  <p className="empty-note">
-                    One line on what you actually work on — the first thing a
-                    poster reads.
-                  </p>
-                </div>
-                <div className="field">
-                  <label htmlFor="branch">Branch</label>
-                  <BranchSelect id="branch" value={branch} onChange={setBranch} />
-                  <p className="empty-note">
-                    Used to match branch-restricted opportunity postings.
-                  </p>
-                </div>
-                <div className="field">
-                  <label htmlFor="year">Year</label>
-                  <input
-                    id="year"
-                    type="number"
-                    min={1}
-                    max={6}
-                    value={year}
-                    onChange={(e) => setYear(e.target.value)}
-                    placeholder="1-6"
-                  />
-                </div>
-                <div className="field">
-                  <label htmlFor="cgpa">CGPA (private by default)</label>
-                  <input
-                    id="cgpa"
-                    type="number"
-                    step="0.01"
-                    min={0}
-                    max={10}
-                    value={cgpa}
-                    onChange={(e) => setCgpa(e.target.value)}
-                    placeholder="0.00 - 10.00"
-                  />
-                </div>
-                <div className="check-row">
-                  <input
-                    id="cgpaPublic"
-                    type="checkbox"
-                    checked={cgpaPublic}
-                    onChange={(e) => setCgpaPublic(e.target.checked)}
-                  />
-                  <label htmlFor="cgpaPublic">
-                    Make my CGPA visible to posters
-                  </label>
-                </div>
-                <div className="field">
-                  <label htmlFor="backlogs">Active backlogs</label>
-                  <input
-                    id="backlogs"
-                    type="number"
-                    min={0}
-                    max={50}
-                    value={backlogs}
-                    onChange={(e) => setBacklogs(e.target.value)}
-                    placeholder="0"
-                  />
-                  <p className="empty-note">
-                    Used to match backlog-restricted opportunity postings.
-                  </p>
+                  <input id="headline" aria-invalid={invalid("headline")} value={form.headline} maxLength={120}
+                    onChange={(e) => set("headline", e.target.value)}
+                    placeholder={student ? "e.g. 3rd-year COE · ML and computer vision" : "e.g. Associate Professor · distributed systems"} />
                 </div>
                 <div className="field">
                   <label htmlFor="bio">Bio</label>
-                  <textarea
-                    id="bio"
-                    value={bio}
-                    onChange={(e) => setBio(e.target.value)}
-                    placeholder="Research interests, projects, what you're looking for…"
-                    maxLength={1000}
-                  />
-                </div>
-                <div className="field">
-                  <label htmlFor="githubUrl">GitHub</label>
-                  <input
-                    id="githubUrl"
-                    type="url"
-                    value={githubUrl}
-                    onChange={(e) => setGithubUrl(e.target.value)}
-                    placeholder="https://github.com/…"
-                    maxLength={500}
-                  />
-                </div>
-                <div className="field">
-                  <label htmlFor="linkedinUrl">LinkedIn</label>
-                  <input
-                    id="linkedinUrl"
-                    type="url"
-                    value={linkedinUrl}
-                    onChange={(e) => setLinkedinUrl(e.target.value)}
-                    placeholder="https://linkedin.com/in/…"
-                    maxLength={500}
-                  />
-                </div>
-                <div className="field">
-                  <label htmlFor="websiteUrl">Website</label>
-                  <input
-                    id="websiteUrl"
-                    type="url"
-                    value={websiteUrl}
-                    onChange={(e) => setWebsiteUrl(e.target.value)}
-                    placeholder="https://…"
-                    maxLength={500}
-                  />
+                  <textarea id="bio" aria-invalid={invalid("bio")} value={form.bio} maxLength={1000} rows={4}
+                    onChange={(e) => set("bio", e.target.value)}
+                    placeholder={student ? "Your interests, what you've built, and what you're looking for." : "Your research areas and the kind of students you work with."} />
+                  <span className="field-hint">{form.bio.length}/1000</span>
                 </div>
               </div>
-            </div>
+            </section>
 
-            {/* Third card in a two-column grid, so it would otherwise sit alone
-                in the left column of row 2. It spans the row instead. */}
-            <div className="panel-card span-full">
-              <h2>Availability</h2>
-              <p className="empty-note" style={{ marginBottom: 12 }}>
-                What you're open to right now. These are the same categories
-                postings use, so this is what matching reads later.
-              </p>
-              <div className="skills-current">
-                {OPEN_TO_OPTIONS.map((o) => {
-                  const on = openTo.includes(o.value);
-                  return (
-                    <button
-                      key={o.value}
-                      type="button"
-                      className={`skill-chip${on ? " is-on" : ""}`}
-                      aria-pressed={on}
-                      onClick={() =>
-                        setOpenTo((prev) =>
-                          prev.includes(o.value)
-                            ? prev.filter((v) => v !== o.value)
-                            : [...prev, o.value],
-                        )
-                      }
-                    >
-                      {o.label}
-                    </button>
-                  );
-                })}
-              </div>
-              <div className="form" style={{ marginTop: 16 }}>
-                <div className="field">
-                  <label htmlFor="hoursPerWeek">Hours a week (optional)</label>
-                  <input
-                    id="hoursPerWeek"
-                    type="number"
-                    min={1}
-                    max={80}
-                    value={hoursPerWeek}
-                    onChange={(e) => setHoursPerWeek(e.target.value)}
-                    placeholder="e.g. 10"
-                  />
+            {student && (
+              <section id="section-academics" className="card section-card">
+                <header>
+                  <h2>Academics</h2>
+                  <p>Postings can require a branch, a minimum CGPA or a backlog limit. These decide which ones you can apply to.</p>
+                </header>
+                <div className="form-grid">
+                  <div className="field span-2">
+                    <label htmlFor="branch">Branch</label>
+                    <BranchSelect id="branch" value={form.branch} onChange={(v) => set("branch", v)} />
+                  </div>
+                  <div className="field">
+                    <label htmlFor="year">Year</label>
+                    <input id="year" aria-invalid={invalid("year")} type="number" min={1} max={6} value={form.year}
+                      onChange={(e) => set("year", e.target.value)} placeholder="1–6" />
+                  </div>
+                  <div className="field">
+                    <label htmlFor="cgpa">CGPA</label>
+                    <input id="cgpa" aria-invalid={invalid("cgpa")} type="number" step="0.01" min={0} max={10} value={form.cgpa}
+                      onChange={(e) => set("cgpa", e.target.value)} placeholder="0.00–10.00" />
+                  </div>
+                  <div className="field">
+                    <label htmlFor="backlogs">Active backlogs</label>
+                    <input id="backlogs" aria-invalid={invalid("backlogs")} type="number" min={0} max={50} value={form.backlogs}
+                      onChange={(e) => set("backlogs", e.target.value)} placeholder="0" />
+                  </div>
                 </div>
-              </div>
-            </div>
+                <label className="toggle-row" htmlFor="cgpaPublic">
+                  <input id="cgpaPublic" type="checkbox" checked={form.cgpaPublic}
+                    onChange={(e) => set("cgpaPublic", e.target.checked)} />
+                  <span>
+                    <strong>Show my CGPA on my profile</strong>
+                    <span className="field-hint">Posters you apply to always see it. This only affects your public profile.</span>
+                  </span>
+                </label>
+              </section>
+            )}
 
-            <div className="panel-card">
-              <h2>Skills</h2>
-              <p className="empty-note" style={{ marginBottom: 12 }}>
-                Type a skill and add it — pick a suggestion or enter your own. Up
-                to {SKILL_LIMIT}; self-claimed until an attestation verifies them.
-              </p>
+            {student && (
+              <section id="section-availability" className="card section-card">
+                <header>
+                  <h2>Availability</h2>
+                  <p>What you&apos;re open to right now.</p>
+                </header>
+                <div className="chip-row" role="group" aria-label="Open to">
+                  {OPEN_TO_OPTIONS.map((o) => {
+                    const on = form.openTo.includes(o.value);
+                    return (
+                      <button key={o.value} type="button" className={`chip${on ? " is-on" : ""}`}
+                        aria-pressed={on} onClick={() => toggleOpenTo(o.value)}>
+                        {o.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="field field-narrow">
+                  <label htmlFor="hoursPerWeek">Hours a week</label>
+                  <input id="hoursPerWeek" aria-invalid={invalid("hoursPerWeek")} type="number" min={1} max={80} value={form.hoursPerWeek}
+                    onChange={(e) => set("hoursPerWeek", e.target.value)} placeholder="e.g. 10" />
+                </div>
+              </section>
+            )}
 
-              <div className="skills-current">
-                {skills.length === 0 && (
-                  <p className="empty-note">No skills yet — type one below.</p>
-                )}
-                {skills.map((s) => (
-                  <span key={s.name} className="skill-chip" title={s.proficiency.toLowerCase()}>
-                    {s.name} · {s.proficiency.toLowerCase()}
-                    <span
-                      className="x"
-                      role="button"
-                      aria-label={`Remove ${s.name}`}
-                      tabIndex={0}
-                      onClick={() => removeSkill(s.name)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") removeSkill(s.name);
-                      }}
-                    >
+            <section id="section-skills" className="card section-card">
+              <header>
+                <h2>Skills <span className="count">{form.skills.length}/{SKILL_LIMIT}</span></h2>
+                <p>Self-claimed until someone you worked with verifies them.</p>
+              </header>
+              <div className="chip-row">
+                {form.skills.length === 0 && <p className="empty-note">No skills yet. Add your first below.</p>}
+                {form.skills.map((s) => (
+                  <span key={s.name} className="chip is-static">
+                    {s.name}
+                    <span className="chip-meta">{s.proficiency.toLowerCase()}</span>
+                    <button type="button" className="chip-x" aria-label={`Remove ${s.name}`}
+                      onClick={() => set("skills", form.skills.filter((x) => x.name !== s.name))}>
                       ×
-                    </span>
+                    </button>
                   </span>
                 ))}
               </div>
+              <ProfileSkillAddRow
+                name={pickerName}
+                proficiency={pickerProficiency}
+                suggestions={suggestions}
+                atLimit={atSkillLimit}
+                limit={SKILL_LIMIT}
+                onNameChange={setPickerName}
+                onProficiencyChange={setPickerProficiency}
+                onAdd={addSkill}
+              />
+            </section>
 
-              <div className="skill-picker">
-                <ProfileSkillAddRow
-                  name={pickerName}
-                  proficiency={pickerProficiency}
-                  suggestions={suggestions}
-                  atLimit={atSkillLimit}
-                  limit={SKILL_LIMIT}
-                  onNameChange={setPickerName}
-                  onProficiencyChange={setPickerProficiency}
-                  onAdd={addSkill}
-                />
-                {atSkillLimit && (
-                  <p className="empty-note" style={{ marginTop: 8 }}>
-                    You&apos;ve added the maximum of {SKILL_LIMIT} skills. Remove one to add another.
-                  </p>
-                )}
-              </div>
-
-              <div className="save-bar">
-                <button
-                  className="btn btn-primary"
-                  type="submit"
-                  disabled={busy}
-                >
-                  {busy ? "Saving…" : "Save profile"}
-                </button>
-              </div>
-            </div>
-          </form>
-
-          <div className="panel-grid">
-            <div className="panel-card">
-              <h2>Résumé</h2>
-              <p className="empty-note" style={{ marginBottom: 12 }}>
-                Upload a PDF (max {MAX_RESUME_MB} MB). Faculty and employers can
-                preview it inline while reviewing your applications — no download
-                needed.
-              </p>
-
-              <div className="resume-actions">
-                <label className={`btn btn-primary${resumeBusy ? " is-disabled" : ""}`}>
-                  {resumeBusy
-                    ? "Working…"
-                    : profile?.resume
-                      ? "Replace résumé"
-                      : "Upload résumé"}
-                  <input
-                    type="file"
-                    accept="application/pdf"
-                    hidden
-                    disabled={resumeBusy}
-                    onChange={(e) => void onResumeChange(e)}
-                  />
-                </label>
-                {profile?.resume && (
-                  <button
-                    type="button"
-                    className="mini"
-                    onClick={() => void removeResume()}
-                    disabled={resumeBusy}
-                  >
-                    Remove
-                  </button>
-                )}
-              </div>
-
-              {profile?.resume ? (
-                <div style={{ marginTop: 16 }}>
-                  <ResumeViewer userId={profile.userId} refreshKey={resumeRefresh} />
-                </div>
-              ) : (
-                <p className="empty-note" style={{ marginTop: 12 }}>
-                  No résumé yet.
-                </p>
-              )}
-            </div>
-          </div>
-
-          {calendarEnabled && (
-            <div className="panel-grid">
-              <div className="panel-card">
-                <h2>Google Calendar</h2>
-                <p className="empty-note" style={{ marginBottom: 12 }}>
-                  Connect your Google account so you can schedule Meet interviews or
-                  team syncs with an automatic calendar invite and video link.
-                </p>
-                {calendarInfo && <p className="form-ok">{calendarInfo}</p>}
-                {calendarConnected ? (
-                  <button className="mini" type="button" disabled={calendarBusy} onClick={() => void disconnectCalendar()}>
-                    {calendarBusy ? "Working…" : "Disconnect Google Calendar"}
-                  </button>
-                ) : (
-                  <a className="btn btn-ghost" href={googleCalendarConnectUrl("/profile")}>
-                    Connect Google Calendar
-                  </a>
-                )}
-              </div>
-            </div>
-          )}
-
-          <div className="panel-grid">
-            <div className="panel-card">
-              <h2>Projects</h2>
-              <p className="empty-note" style={{ marginBottom: 12 }}>
-                Portfolio work with a repository link. Changes save immediately
-                — no need to press the profile's own Save button.
-              </p>
-
-              <div className="proj-list">
-                {(profile?.projects.length ?? 0) === 0 && (
-                  <p className="empty-note">
-                    No projects yet. Add one with a repo link below.
-                  </p>
-                )}
-                {profile?.projects.map((p) => (
-                  <div key={p.id} className="proj-row">
-                    <div className="proj-main">
-                      <strong>{p.title}</strong>
-                      {p.description && <p className="sub">{p.description}</p>}
-                      <div className="proj-links">
-                        {p.repoUrl && (
-                          <a href={p.repoUrl} target="_blank" rel="noopener noreferrer">
-                            Repository
-                          </a>
-                        )}
-                        {p.liveUrl && (
-                          <a href={p.liveUrl} target="_blank" rel="noopener noreferrer">
-                            Live
-                          </a>
-                        )}
-                      </div>
-                    </div>
-                    <div className="row" style={{ gap: 6 }}>
-                      <button
-                        className="mini"
-                        type="button"
-                        onClick={() => startEditProject(p)}
-                        disabled={projBusy}
-                        aria-label={`Edit ${p.title}`}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        className="mini"
-                        type="button"
-                        onClick={() => void removeProject(p.id)}
-                        disabled={projBusy}
-                        aria-label={`Remove ${p.title}`}
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="form" style={{ marginTop: 16 }}>
-                {editingProjectId && (
-                  <p className="empty-note" style={{ marginBottom: 4 }}>Editing project - changes replace it in place.</p>
-                )}
+            <section id="section-links" className="card section-card">
+              <header>
+                <h2>Links</h2>
+                <p>Where people can see your work.</p>
+              </header>
+              <div className="form-grid">
                 <div className="field">
-                  <label htmlFor="projTitle">Title</label>
-                  <input
-                    id="projTitle"
-                    type="text"
-                    value={projTitle}
-                    onChange={(e) => setProjTitle(e.target.value)}
-                    placeholder="e.g. Distributed cache in Rust"
-                    maxLength={140}
-                  />
+                  <label htmlFor="githubUrl">GitHub</label>
+                  <input id="githubUrl" aria-invalid={invalid("githubUrl")} type="url" value={form.githubUrl} maxLength={500}
+                    onChange={(e) => set("githubUrl", e.target.value)} placeholder="https://github.com/…" />
                 </div>
                 <div className="field">
-                  <label htmlFor="projRepo">Repository URL</label>
-                  <input
-                    id="projRepo"
-                    type="url"
-                    value={projRepo}
-                    onChange={(e) => setProjRepo(e.target.value)}
-                    placeholder="https://github.com/…"
-                    maxLength={500}
-                  />
+                  <label htmlFor="linkedinUrl">LinkedIn</label>
+                  <input id="linkedinUrl" aria-invalid={invalid("linkedinUrl")} type="url" value={form.linkedinUrl} maxLength={500}
+                    onChange={(e) => set("linkedinUrl", e.target.value)} placeholder="https://linkedin.com/in/…" />
                 </div>
-                <div className="field">
-                  <label htmlFor="projLive">Live URL (optional)</label>
-                  <input
-                    id="projLive"
-                    type="url"
-                    value={projLive}
-                    onChange={(e) => setProjLive(e.target.value)}
-                    placeholder="https://…"
-                    maxLength={500}
-                  />
+                <div className="field span-2">
+                  <label htmlFor="websiteUrl">Website</label>
+                  <input id="websiteUrl" aria-invalid={invalid("websiteUrl")} type="url" value={form.websiteUrl} maxLength={500}
+                    onChange={(e) => set("websiteUrl", e.target.value)} placeholder="https://…" />
                 </div>
-                <div className="field">
-                  <label htmlFor="projDesc">Description (optional)</label>
-                  <textarea
-                    id="projDesc"
-                    value={projDesc}
-                    onChange={(e) => setProjDesc(e.target.value)}
-                    placeholder="What it does, your role, the stack…"
-                    maxLength={2000}
-                  />
-                </div>
-                <div className="save-bar">
-                  <button
-                    className="btn btn-primary"
-                    type="button"
-                    onClick={() => void saveProject()}
-                    disabled={projBusy || !projTitle.trim()}
-                  >
-                    {projBusy ? "Working…" : editingProjectId ? "Update project" : "Add project"}
-                  </button>
-                  {editingProjectId && (
-                    <button className="btn btn-ghost" type="button" onClick={clearProjectForm} disabled={projBusy}>
-                      Cancel
+              </div>
+            </section>
+
+            {student && (
+              <section id="section-resume" className="card section-card">
+                <header>
+                  <h2>Résumé</h2>
+                  <p>PDF, up to {MAX_RESUME_MB} MB. Posters preview it while reviewing your applications. Saves as soon as you upload.</p>
+                </header>
+                <div className="row-actions">
+                  <label className={`btn ${profile?.resume ? "btn-ghost" : "btn-primary"}${resumeBusy ? " is-disabled" : ""}`}>
+                    {resumeBusy ? "Uploading…" : profile?.resume ? "Replace PDF" : "Upload PDF"}
+                    <input type="file" accept="application/pdf" hidden disabled={resumeBusy}
+                      onChange={(e) => void onResumeChange(e)} />
+                  </label>
+                  {profile?.resume && (
+                    <button type="button" className="btn btn-text" onClick={() => void removeResume()} disabled={resumeBusy}>
+                      Remove
                     </button>
                   )}
                 </div>
-              </div>
-            </div>
+                {profile?.resume && <ResumeViewer userId={profile.userId} refreshKey={resumeRefresh} />}
+              </section>
+            )}
+
+            <section id="section-projects" className="card section-card">
+              <header>
+                <h2>Projects</h2>
+                <p>Work you&apos;ve built, with a repository or live link. Saves immediately.</p>
+              </header>
+              {(profile?.projects.length ?? 0) > 0 && (
+                <ul className="project-list">
+                  {profile?.projects.map((p) => (
+                    <li key={p.id} className="project-item">
+                      <div>
+                        <strong>{p.title}</strong>
+                        {p.description && <p>{p.description}</p>}
+                        <div className="project-links">
+                          {p.repoUrl && <a href={p.repoUrl} target="_blank" rel="noopener noreferrer">Repository ↗</a>}
+                          {p.liveUrl && <a href={p.liveUrl} target="_blank" rel="noopener noreferrer">Live ↗</a>}
+                        </div>
+                      </div>
+                      <div className="row-actions">
+                        <button className="btn btn-text" type="button" onClick={() => editProject(p)} disabled={projBusy}>Edit</button>
+                        <button className="btn btn-text" type="button" onClick={() => void removeProject(p.id)} disabled={projBusy}>Remove</button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {projectFormOpen ? (
+                <div className="form inset-form">
+                  {projError && <p className="form-err" role="alert">{projError}</p>}
+                  <div className="field">
+                    <label htmlFor="projTitle">Title</label>
+                    <input id="projTitle" value={project.title} maxLength={140} autoFocus
+                      onChange={(e) => setProject({ ...project, title: e.target.value })} placeholder="e.g. Distributed cache in Rust" />
+                  </div>
+                  <div className="form-grid">
+                    <div className="field">
+                      <label htmlFor="projRepo">Repository URL</label>
+                      <input id="projRepo" type="url" value={project.repoUrl} maxLength={500}
+                        onChange={(e) => setProject({ ...project, repoUrl: e.target.value })} placeholder="https://github.com/…" />
+                    </div>
+                    <div className="field">
+                      <label htmlFor="projLive">Live URL</label>
+                      <input id="projLive" type="url" value={project.liveUrl} maxLength={500}
+                        onChange={(e) => setProject({ ...project, liveUrl: e.target.value })} placeholder="Optional" />
+                    </div>
+                  </div>
+                  <div className="field">
+                    <label htmlFor="projDesc">Description</label>
+                    <textarea id="projDesc" value={project.description} maxLength={2000} rows={3}
+                      onChange={(e) => setProject({ ...project, description: e.target.value })}
+                      placeholder="What it does, your role, the stack (optional)" />
+                  </div>
+                  <div className="row-actions">
+                    <button className="btn btn-primary" type="button" onClick={() => void saveProject()}
+                      disabled={projBusy || !project.title.trim()}>
+                      {projBusy ? "Saving…" : editingProjectId ? "Save project" : "Add project"}
+                    </button>
+                    <button className="btn btn-ghost" type="button" onClick={closeProjectForm} disabled={projBusy}>Cancel</button>
+                  </div>
+                </div>
+              ) : (
+                <button className="btn btn-ghost" type="button" onClick={() => setProjectFormOpen(true)}>
+                  + Add a project
+                </button>
+              )}
+            </section>
+
+            {emailFrequency && (
+              <section className="card section-card">
+                <header>
+                  <h2>Email notifications</h2>
+                  <p>How often we email you about your {student ? "applications" : "postings"}. Saves as soon as you choose.</p>
+                </header>
+                <div className="choice-grid" role="radiogroup" aria-label="Email frequency">
+                  {EMAIL_OPTIONS.map((o) => (
+                    <label key={o.value} className={`choice${emailFrequency === o.value ? " is-on" : ""}`}>
+                      <input type="radio" name="emailFrequency" value={o.value}
+                        checked={emailFrequency === o.value}
+                        onChange={() => void changeEmailFrequency(o.value)} />
+                      <strong>{o.label}</strong>
+                      <span>{o.hint}</span>
+                    </label>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {calendarEnabled && (
+              <section className="card section-card">
+                <header>
+                  <h2>Google Calendar</h2>
+                  <p>Schedule Meet interviews and team syncs with an automatic invite and video link.</p>
+                </header>
+                {calendarInfo && <p className="form-ok">{calendarInfo}</p>}
+                {calendarConnected ? (
+                  <div className="row-actions">
+                    <span className="status-pill is-ok">Connected</span>
+                    <button className="btn btn-text" type="button" disabled={calendarBusy} onClick={() => void disconnectCalendar()}>
+                      {calendarBusy ? "Disconnecting…" : "Disconnect"}
+                    </button>
+                  </div>
+                ) : (
+                  <a className="btn btn-ghost" href={googleCalendarConnectUrl("/profile")}>Connect Google Calendar</a>
+                )}
+              </section>
+            )}
           </div>
         </div>
       </main>
+
+      {(dirty || justSaved) && (
+        <div className="save-dock" role="status">
+          <div className="save-dock-inner">
+            {saveError ? (
+              <span className="save-dock-error" role="alert">
+                {saveError.field && FIELD_LABEL[saveError.field] ? (
+                  <button type="button" className="linklike" onClick={() => document.getElementById(saveError.field!)?.focus()}>
+                    {FIELD_LABEL[saveError.field]}
+                  </button>
+                ) : null}
+                {saveError.field && FIELD_LABEL[saveError.field] ? ": " : ""}
+                {saveError.message}
+              </span>
+            ) : (
+              <span>{dirty ? "You have unsaved changes" : "All changes saved"}</span>
+            )}
+            {dirty && (
+              <div className="row-actions">
+                <button className="btn btn-ghost btn-sm" type="button" onClick={() => setForm(saved)} disabled={busy}>
+                  Discard
+                </button>
+                <button className="btn btn-primary btn-sm" type="button" onClick={() => void onSave()} disabled={busy}>
+                  {busy ? "Saving…" : "Save changes"}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { env } from "@/lib/env";
 import { RESUME_CONTENT_TYPE } from "@/lib/domain/resume";
+import { Errors } from "@/lib/http/errors";
 
 /**
  * Résumé object storage on Supabase Storage (T-44; docs/PRD M2).
@@ -43,7 +44,12 @@ export async function uploadResumeObject(userId: string, bytes: Buffer): Promise
   const { error } = await client()
     .storage.from(env.SUPABASE_RESUME_BUCKET)
     .upload(key, bytes, { contentType: RESUME_CONTENT_TYPE, upsert: true });
-  if (error) throw new Error(`Résumé upload failed: ${error.message}`);
+  if (error) {
+    // Log the provider's reason for the operator; tell the member plainly that
+    // the fault is on our side, rather than an opaque "Something went wrong".
+    console.error(`[resume-storage] upload failed: ${error.message}`);
+    throw Errors.internal("Résumé storage is unavailable right now. Please try again later.");
+  }
   return key;
 }
 
