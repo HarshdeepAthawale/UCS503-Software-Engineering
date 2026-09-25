@@ -113,7 +113,7 @@ cp .env.example .env      # set DATABASE_URL and strong JWT secrets
 npm run db:generate       # generate the Prisma client
 npm run db:migrate        # create the schema (needs a live Postgres)
 
-# 4. Provision the single admin (no mock data is ever seeded)
+# 4. Provision the super admin (no mock data is ever seeded); it signs in at /admin
 ADMIN_EMAIL=you@thapar.edu ADMIN_PASSWORD='<strong-secret>' npm run bootstrap:admin
 
 # 5. Run
@@ -123,6 +123,25 @@ npm run typecheck
 ```
 
 **Security model:** see [docs/Security.md](docs/Security.md). RBAC is deny-by-default and enforced at four layers (edge middleware → route guard → service → database). The database starts empty — every record is created by a real user.
+
+### Demo database (made-up data, separate from the real one)
+
+To see the product at institute scale without breaking pilot honesty, a
+separate local database, `nexus_demo`, can be filled with made-up
+`@example.test` accounts (~900 members, 320 postings, ~3,600 applications with
+realistic poster behaviour, teams, messages). The real database is never touched.
+
+```bash
+docker compose up -d db
+# .env.demo.local (gitignored) needs:
+#   DATABASE_URL="postgresql://nexus:nexus@localhost:5432/nexus_demo?schema=public"
+#   DEMO_PASSWORD="<12+ chars, shared by every demo account>"
+npm run demo:setup        # drop + recreate nexus_demo, migrate, seed (~10 s)
+npm run dev:demo          # the app on the demo data; outgoing email is disabled
+```
+
+The seed script refuses any database not named `nexus_demo`, and prints a
+sample sign-in for each role (super admin and admins sign in at `/admin`).
 
 ## 👥 Team
 

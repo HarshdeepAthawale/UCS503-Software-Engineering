@@ -28,7 +28,9 @@
     "db:studio": "prisma studio",
     "link:cursor-skills": "node scripts/link-cursor-skills.mjs",
     "google:uris": "node --env-file=.env scripts/google-oauth-uris.mjs",
-    "docker:up": "docker compose up --build"
+    "docker:up": "docker compose up --build",
+    "demo:setup": "node --env-file=.env --env-file=.env.demo.local scripts/demo-setup.mjs",
+    "dev:demo": "node --env-file=.env --env-file=.env.demo.local scripts/dev-demo.mjs"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",
