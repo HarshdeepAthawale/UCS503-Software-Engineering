@@ -19,6 +19,13 @@ import { portalForRole, type Portal } from "@/lib/domain/admin-portal";
  *  - Refresh tokens rotate on every use, with reuse detection (theft response).
  */
 
+/**
+ * How long a just-rotated refresh token may be presented again and be treated
+ * as a race (parallel tabs, an aborted reload) rather than theft. Short on
+ * purpose: long enough for a slow response, too short to be useful to replay.
+ */
+const REFRESH_REUSE_GRACE_MS = 10_000;
+
 export interface IssuedSession {
   accessToken: string;
   refresh: { raw: string; expiresAt: Date };
@@ -254,9 +261,21 @@ export async function refresh(params: {
 
   if (!record || record.user.deletedAt) throw Errors.unauthenticated("Session expired.");
 
-  // Reuse detection: a token presented after it was already rotated/revoked is a
+  // A token presented again moments after it was rotated, while its session
+  // still holds a live successor, is an ordinary race - two tabs refreshing at
+  // once, or a reload that aborted the response carrying the new cookie. Treat
+  // it as a normal refresh (a fresh sibling in the same family) instead of
+  // theft, which used to sign the member out everywhere.
+  const benignRace =
+    record.revokedAt !== null &&
+    Date.now() - record.revokedAt.getTime() < REFRESH_REUSE_GRACE_MS &&
+    (await prisma.refreshToken.count({
+      where: { familyId: record.familyId, revokedAt: null, expiresAt: { gt: new Date() } },
+    })) > 0;
+
+  // Reuse detection: any other presentation of a rotated/revoked token is a
   // strong theft signal. Invalidate the ENTIRE family and force re-auth.
-  if (record.revokedAt) {
+  if (record.revokedAt && !benignRace) {
     await prisma.refreshToken.updateMany({
       where: { familyId: record.familyId, revokedAt: null },
       data: { revokedAt: new Date() },
@@ -273,10 +292,12 @@ export async function refresh(params: {
   if (record.user.status === "SUSPENDED") throw Errors.forbidden("Account suspended.");
 
   // Rotate: revoke the presented token and mint a fresh one in the same family.
+  // Only stamp revokedAt the first time - re-stamping an already-rotated token
+  // would restart its grace window and let it be replayed indefinitely.
   const next = issueRefreshMaterial();
   await prisma.$transaction([
-    prisma.refreshToken.update({
-      where: { id: record.id },
+    prisma.refreshToken.updateMany({
+      where: { id: record.id, revokedAt: null },
       data: { revokedAt: new Date() },
     }),
     prisma.refreshToken.create({
