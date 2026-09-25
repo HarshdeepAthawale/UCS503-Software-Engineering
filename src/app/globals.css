@@ -1640,6 +1640,11 @@ button.skill-chip {
 .app-page {
   padding: 30px 0 0;
 }
+/* The marketing pages pad every <section> by 76px; inside the app a section
+   is just a grouping, and spacing comes from the page's own stack gap. */
+.app-page section {
+  padding: 0;
+}
 .app-page .wrap {
   padding-left: 24px;
   padding-right: 24px;
@@ -5010,7 +5015,6 @@ html {
   grid-template-columns: 320px minmax(0, 1fr);
   gap: 24px;
   align-items: start;
-  padding-top: 28px;
   padding-bottom: 120px;
 }
 
@@ -5200,10 +5204,6 @@ html {
 
 /* Phone */
 @media (max-width: 768px) {
-  .profile-layout {
-    padding-top: 16px;
-  }
-
   .section-card,
   .profile-summary {
     padding: 18px;
@@ -5304,7 +5304,6 @@ html {
   display: flex;
   flex-direction: column;
   gap: 24px;
-  padding-top: 28px;
   padding-bottom: 48px;
 }
 
@@ -5834,7 +5833,6 @@ html {
 /* Phone */
 @media (max-width: 768px) {
   .page-stack {
-    padding-top: 16px;
     gap: 20px;
   }
 
