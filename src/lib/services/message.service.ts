@@ -137,56 +137,53 @@ export async function sendMessage(principal: Principal, applicationId: string, b
  * application with no messages yet isn't a "conversation".
  */
 export async function listMyThreads(principal: Principal) {
-  const applications = await prisma.application.findMany({
+  // Start from the THREADS, not from every application the caller touched: a
+  // poster may have received thousands of applications and messaged a few.
+  // Loading all of them to discard the silent ones was the slowest read on the
+  // platform at scale.
+  const rows = await prisma.messageThread.findMany({
     where: {
-      deletedAt: null,
-      OR: [{ studentId: principal.userId }, { opportunity: { posterId: principal.userId } }],
+      messages: { some: {} },
+      application: {
+        deletedAt: null,
+        OR: [{ studentId: principal.userId }, { opportunity: { posterId: principal.userId } }],
+      },
     },
     select: {
-      id: true,
-      status: true,
-      student: { select: { id: true, name: true, role: true } },
-      opportunity: {
+      application: {
         select: {
           id: true,
-          title: true,
-          poster: { select: { id: true, name: true, role: true } },
-        },
-      },
-      thread: {
-        select: {
-          messages: {
-            orderBy: { createdAt: "desc" },
-            take: 1,
-            select: { body: true, createdAt: true, senderId: true },
+          status: true,
+          student: { select: { id: true, name: true, role: true } },
+          opportunity: {
+            select: { id: true, title: true, poster: { select: { id: true, name: true, role: true } } },
           },
         },
+      },
+      messages: {
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: { body: true, createdAt: true, senderId: true },
       },
     },
   });
 
-  const threads = applications
-    .filter((a) => a.thread && a.thread.messages.length > 0)
-    .map((a) => {
+  const threads = rows
+    .map(({ application: a, messages }) => {
+      const lastRow = messages[0]!;
       const isStudent = principal.userId === a.student.id;
-      const counterpart = isStudent ? a.opportunity.poster : a.student;
-      const lastRow = a.thread!.messages[0]!;
-      const senderName =
-        lastRow.senderId === a.student.id ? a.student.name : a.opportunity.poster.name;
-      const lastMessage = { ...lastRow, senderName };
+      const senderName = lastRow.senderId === a.student.id ? a.student.name : a.opportunity.poster.name;
       return {
         applicationId: a.id,
         opportunity: { id: a.opportunity.id, title: a.opportunity.title },
         status: a.status,
         student: a.student,
         poster: a.opportunity.poster,
-        counterpart,
-        lastMessage,
+        counterpart: isStudent ? a.opportunity.poster : a.student,
+        lastMessage: { ...lastRow, senderName },
       };
     })
-    .sort(
-      (x, y) => new Date(y.lastMessage.createdAt).getTime() - new Date(x.lastMessage.createdAt).getTime(),
-    );
+    .sort((x, y) => y.lastMessage.createdAt.getTime() - x.lastMessage.createdAt.getTime());
 
   return { threads };
 }
