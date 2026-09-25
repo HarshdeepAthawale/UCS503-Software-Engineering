@@ -11,6 +11,13 @@ describe("describeNotification", () => {
       href: "/opportunities/o1/applicants",
     });
   });
+  it("names application stages in words, not database values", () => {
+    expect(describeNotification({ type: "application.status_changed", payload: { applicationId: "a1", to: "SHORTLISTED" } }).text)
+      .toBe("Your application moved to Shortlisted.");
+    expect(describeNotification({ type: "application.status_changed", payload: { to: "REJECTED" } }).text)
+      .toBe("Your application moved to Not selected.");
+  });
+
   it("falls back to the raw type for an unknown notification", () => {
     expect(describeNotification({ type: "something.new", payload: {} })).toEqual({ text: "something.new" });
   });

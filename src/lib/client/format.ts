@@ -112,7 +112,7 @@ export function timeAgo(iso: string): string {
   if (hours < 24) return `${hours}h ago`;
   const days = Math.floor(ms / 86_400_000);
   if (days < 7) return `${days}d ago`;
-  return new Date(iso).toLocaleDateString();
+  return dateLabel(iso);
 }
 
 export function ttaLabel(hours: number | null): string {

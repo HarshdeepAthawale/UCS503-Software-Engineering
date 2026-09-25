@@ -4,6 +4,8 @@
  * describe the same event differently. Pure - safe on the client and server.
  */
 
+import { appStateLabel } from "./app-state-label";
+
 export interface NotificationLike {
   type: string;
   payload: unknown;
@@ -33,7 +35,10 @@ export function describeNotification(n: NotificationLike): NotificationCopy {
     case "application.received":
       return { text: "A new application arrived on your posting.", href: link(oppId && `/opportunities/${oppId}/applicants`) };
     case "application.status_changed":
-      return { text: `Your application moved to ${String(payload.to ?? "a new stage")}.`, href: link(appId && `/applications/${appId}`) };
+      return {
+        text: `Your application moved to ${typeof payload.to === "string" ? appStateLabel(payload.to) : "a new stage"}.`,
+        href: link(appId && `/applications/${appId}`),
+      };
     case "application.withdrawn":
       return { text: "An applicant withdrew from your posting." };
     case "message.received":
