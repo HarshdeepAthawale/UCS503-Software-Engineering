@@ -1,17 +1,17 @@
 import type { ReactNode } from "react";
 import { headers } from "next/headers";
-import { IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
+import { IBM_Plex_Mono, Outfit } from "next/font/google";
 import "./globals.css";
 
 /**
- * Root layout — IBM Plex Sans (UI + headings), IBM Plex Mono (codes only).
- * Single professional sans family for the whole institute portal.
+ * Root layout - Outfit (the exam portal's face) for all UI, IBM Plex Mono for
+ * codes only. Light theme only; the tokens live in globals.css.
  */
 
-const ibmPlexSans = IBM_Plex_Sans({
+const outfit = Outfit({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
-  variable: "--font-ibm-sans",
+  variable: "--font-outfit",
   display: "swap",
 });
 
@@ -25,7 +25,7 @@ const ibmPlexMono = IBM_Plex_Mono({
 export const metadata = {
   title: "Thapar Nexus",
   description:
-    "A verified opportunity pipeline for the institute — make sure an application reaches a decision, and make it visible when it doesn't.",
+    "The opportunities portal for Thapar Institute: research, internships, TA roles and teams, with every application tracked to a decision.",
 };
 
 export const viewport = {
@@ -34,29 +34,21 @@ export const viewport = {
   viewportFit: "cover",
 };
 
-const THEME_INIT = `(function(){try{var s=localStorage.getItem('nexus-theme');var t=(s==='light'||s==='dark')?s:(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','light');}})();`;
-
 export default async function RootLayout({
   children,
 }: {
   children: ReactNode;
 }) {
-  const nonce = (await headers()).get("x-nonce") ?? undefined;
+  // Reading the request headers opts every page into per-request rendering.
+  // That is required, not incidental: the CSP in middleware.ts carries a fresh
+  // nonce per request, and Next.js can only stamp it onto its own scripts when
+  // the page is rendered for that request. A prerendered page would ship
+  // scripts without the nonce, the browser would block them, and React would
+  // never hydrate.
+  await headers();
 
   return (
-    <html
-      lang="en"
-      data-scroll-behavior="smooth"
-      suppressHydrationWarning
-      className={`${ibmPlexSans.variable} ${ibmPlexMono.variable}`}
-    >
-      <head>
-        <script
-          nonce={nonce}
-          suppressHydrationWarning
-          dangerouslySetInnerHTML={{ __html: THEME_INIT }}
-        />
-      </head>
+    <html lang="en" data-scroll-behavior="smooth" className={`${outfit.variable} ${ibmPlexMono.variable}`}>
       <body>{children}</body>
     </html>
   );

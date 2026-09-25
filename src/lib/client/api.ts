@@ -12,9 +12,14 @@
  *   from the cookie.
  */
 
+export type Role = "STUDENT" | "FACULTY" | "ALUMNI" | "ADMIN" | "SUPER_ADMIN";
+
+/** Which sign-in door a request comes through - see domain/admin-portal.ts. */
+export type Portal = "admin" | "member";
+
 export interface SessionUser {
   id: string;
-  role: "STUDENT" | "FACULTY" | "ALUMNI" | "ADMIN";
+  role: Role;
   status: string;
   name: string;
 }
@@ -212,10 +217,14 @@ export async function bootstrapSession(): Promise<boolean> {
 
 // ── Auth endpoints ───────────────────────────────────────────────────────────
 
-export async function apiLogin(email: string, password: string): Promise<SessionUser> {
+export async function apiLogin(
+  email: string,
+  password: string,
+  portal: Portal = "member",
+): Promise<SessionUser> {
   const body = await request<{ accessToken: string; user: SessionUser }>("/api/auth/login", {
     method: "POST",
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, portal }),
   });
   setSession(body.accessToken, body.user);
   return body.user;
@@ -416,6 +425,8 @@ export interface Opportunity {
     responsiveness?: {
       badge: ResponsivenessBadge;
       medianTtaHours: number | null;
+      /** Share of due applications the poster answered (rolling window); null = none due yet. */
+      responseRate: number | null;
       sampleSize: number;
     };
   };
@@ -697,6 +708,17 @@ export interface TeamCreateInput {
   roles: TeamRoleInput[];
 }
 
+export interface TeamSuggestions {
+  /** Hackathons with at least one team recruiting now, most teams first. */
+  hackathons: { name: string; teams: number }[];
+  /** Role names teams post most often. */
+  roles: { label: string; uses: number }[];
+}
+
+export async function apiTeamSuggestions(): Promise<TeamSuggestions> {
+  return request<TeamSuggestions>("/api/teams/suggestions");
+}
+
 export async function apiListTeams(
   params: { hackathon?: string; status?: string; mine?: boolean; cursor?: string; limit?: number } = {},
 ): Promise<{ teams: Team[]; nextCursor: string | null }> {
@@ -942,19 +964,41 @@ export async function apiMarkNotificationsRead(ids?: string[]): Promise<number> 
   return body.marked;
 }
 
+export type NotificationFrequency = "IMMEDIATE" | "DAILY" | "WEEKLY";
+
+/** How often notifications are emailed to the caller. */
+export async function apiGetNotificationFrequency(): Promise<NotificationFrequency> {
+  const body = await request<{ frequency: NotificationFrequency }>("/api/notifications/preferences");
+  return body.frequency;
+}
+
+export async function apiSetNotificationFrequency(
+  frequency: NotificationFrequency,
+): Promise<NotificationFrequency> {
+  const body = await request<{ frequency: NotificationFrequency }>("/api/notifications/preferences", {
+    method: "PUT",
+    body: JSON.stringify({ frequency }),
+  });
+  return body.frequency;
+}
+
 // ── Passwordless OTP login (alumni + convenience) ────────────────────────────
 
-export async function apiRequestLoginOtp(email: string): Promise<void> {
+export async function apiRequestLoginOtp(email: string, portal: Portal = "member"): Promise<void> {
   await request("/api/auth/otp-login/request", {
     method: "POST",
-    body: JSON.stringify({ email }),
+    body: JSON.stringify({ email, portal }),
   });
 }
 
-export async function apiVerifyLoginOtp(email: string, otp: string): Promise<SessionUser> {
+export async function apiVerifyLoginOtp(
+  email: string,
+  otp: string,
+  portal: Portal = "member",
+): Promise<SessionUser> {
   const body = await request<{ accessToken: string; user: SessionUser }>(
     "/api/auth/otp-login/verify",
-    { method: "POST", body: JSON.stringify({ email, otp }) },
+    { method: "POST", body: JSON.stringify({ email, otp, portal }) },
   );
   setSession(body.accessToken, body.user);
   return body.user;
@@ -991,7 +1035,7 @@ export interface AdminUser {
   id: string;
   email: string;
   name: string;
-  role: "STUDENT" | "FACULTY" | "ALUMNI" | "ADMIN";
+  role: Role;
   status: string;
   createdAt: string;
 }
@@ -1001,6 +1045,29 @@ export interface AllowlistEntry {
   email: string;
   note: string | null;
   createdAt: string;
+}
+
+// ── Admins (super admin only) ──
+
+export async function apiAdminListAdmins(): Promise<AdminUser[]> {
+  const body = await request<{ admins: AdminUser[] }>("/api/admin/admins");
+  return body.admins;
+}
+
+/** `invited` is false when the sign-in email could not be sent. */
+export async function apiAdminCreateAdmin(
+  name: string,
+  email: string,
+): Promise<AdminUser & { invited: boolean }> {
+  const body = await request<{ admin: AdminUser & { invited: boolean } }>("/api/admin/admins", {
+    method: "POST",
+    body: JSON.stringify({ name, email }),
+  });
+  return body.admin;
+}
+
+export async function apiAdminRemoveAdmin(id: string): Promise<void> {
+  await request(`/api/admin/admins/${id}`, { method: "DELETE" });
 }
 
 export async function apiAdminOverview(): Promise<AdminOverview> {

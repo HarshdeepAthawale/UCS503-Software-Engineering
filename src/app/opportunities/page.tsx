@@ -7,7 +7,6 @@ import { AppNav } from "@/components/app-nav";
 import { OpportunityCard } from "@/components/opportunity-card";
 import { OpportunityFacetBar, type OpportunityFilters } from "@/components/opportunity-facet-bar";
 import {
-  apiListNotifications,
   apiListOpportunities,
   bootstrapSession,
   getUser,
@@ -28,7 +27,6 @@ export default function OpportunitiesPage() {
   const router = useRouter();
   const [ready, setReady] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
-  const [unread, setUnread] = useState(0);
 
   const [items, setItems] = useState<Opportunity[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
@@ -69,11 +67,6 @@ export default function OpportunitiesPage() {
       const ok = await bootstrapSession();
       setSignedIn(ok);
       setReady(true);
-      if (ok) {
-        void apiListNotifications()
-          .then((n) => setUnread(n.unread))
-          .catch(() => {});
-      }
     })();
   }, []);
 
@@ -111,14 +104,14 @@ export default function OpportunitiesPage() {
 
   return (
     <div className="app-shell">
-      <AppNav user={user} unread={unread} />
+      <AppNav user={user} />
       <main id="content" className="app-page">
         <div className="wrap">
           <div className="page-head opp-page-head">
             <div>
               <h1>Opportunities</h1>
               <p className="sub">
-                Research, internships, TA roles, and more — every posting carries an SLA pledge.
+                Research projects, internships, TA roles and hackathon teams from across the institute.
               </p>
             </div>
             {canPost && (
