@@ -1640,11 +1640,6 @@ button.skill-chip {
 .app-page {
   padding: 30px 0 0;
 }
-/* The marketing pages pad every <section> by 76px; inside the app a section
-   is just a grouping, and spacing comes from the page's own stack gap. */
-.app-page section {
-  padding: 0;
-}
 .app-page .wrap {
   padding-left: 24px;
   padding-right: 24px;
@@ -5879,4 +5874,17 @@ html {
   .team-hero-main h1 {
     font-size: 24px;
   }
+}
+
+/* ============================================================================
+   Keep LAST: the marketing stylesheet above sets section { padding } at
+   several breakpoints, and this reset only wins because it comes after them.
+   ========================================================================== */
+
+/* The marketing pages pad every <section> by 76px; inside the app a section
+   is just a grouping, and spacing comes from the page's own stack gap.
+   :where() keeps this at element specificity, so a section's own class
+   (.section-card, .how-strip, ...) still sets its padding. */
+:where(.app-page) section {
+  padding: 0;
 }
