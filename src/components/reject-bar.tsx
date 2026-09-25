@@ -19,6 +19,7 @@ export function RejectBar({
 }) {
   return (
     <div className="reject-bar" role="group" aria-label="Rejection reason">
+      <span className="reject-bar-label">Reason</span>
       <select
         aria-label="Rejection reason"
         value={value}
@@ -32,7 +33,7 @@ export function RejectBar({
         ))}
       </select>
       <button className="mini solid" type="button" disabled={busy} onClick={onConfirm}>
-        {busy ? "Saving…" : "Confirm reject"}
+        {busy ? "Saving…" : "Confirm"}
       </button>
       <button className="mini" type="button" disabled={busy} onClick={onCancel}>
         Cancel

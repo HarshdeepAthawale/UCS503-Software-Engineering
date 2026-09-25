@@ -6303,6 +6303,327 @@ html {
     height: calc(100dvh - 56px - 60px - 40px);
   }
 }
+
+/* ============================================================================
+   Applicants - the poster's review screen
+   ========================================================================== */
+.stage-tabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin: 0 -2px;
+  padding: 2px;
+}
+
+.stage-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.stage-tabs .chip {
+  flex-shrink: 0;
+}
+
+.stage-count {
+  min-width: 22px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.chip.is-on .stage-count {
+  background: var(--accent);
+  color: var(--on-ink);
+}
+
+.applicant-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.applicant-toolbar .search-input {
+  flex: 1 1 260px;
+}
+
+.toolbar-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 4px 0 12px;
+  min-height: 46px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  font-size: 13.5px;
+  color: var(--muted);
+}
+
+.toolbar-field:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-ring);
+}
+
+.toolbar-field input,
+.toolbar-field select {
+  border: none;
+  outline: none;
+  background: none;
+  font: inherit;
+  font-size: 14.5px;
+  font-weight: 500;
+  color: var(--text);
+  padding: 8px 6px;
+}
+
+.toolbar-field input {
+  width: 64px;
+}
+
+.toolbar-field select {
+  cursor: pointer;
+}
+
+.applicant-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.applicant {
+  padding: 16px 20px 12px;
+}
+
+.applicant + .applicant {
+  border-top: 1px solid var(--border);
+}
+
+.applicant.is-open {
+  background: var(--surface-alt);
+}
+
+.applicant-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 14px;
+}
+
+.applicant-who {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.applicant-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.applicant-name:hover {
+  color: var(--accent);
+}
+
+.applicant-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 0;
+  font-size: 13.5px;
+  color: var(--muted);
+}
+
+.applicant-facts span:not(:last-child)::after {
+  content: "·";
+  margin: 0 8px;
+  color: var(--faint);
+}
+
+.applicant-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.applicant-reason {
+  font-size: 12px;
+  color: var(--faint);
+}
+
+.applicant-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.applicant-reject {
+  color: var(--muted);
+}
+
+.applicant-reject:hover {
+  color: var(--accent);
+}
+
+.applicant-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 8px 0 0 54px;
+  font-size: 13.5px;
+}
+
+.applicant-tools button,
+.applicant-tools a {
+  padding: 2px 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-weight: 500;
+  color: var(--muted);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.applicant-tools button:hover,
+.applicant-tools a:hover,
+.applicant-tools .is-on {
+  color: var(--accent);
+}
+
+.applicant-panel {
+  margin: 12px 0 4px 54px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.applicant-panel > * {
+  max-width: 100%;
+}
+
+.pager {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+
+/* Inline decision forms (reason, attestation, meeting) */
+.reject-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+}
+
+.reject-bar-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.reject-bar select,
+.reject-bar input {
+  min-height: 36px;
+  padding: 6px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  font: inherit;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.reject-bar select:focus,
+.reject-bar input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-ring);
+}
+
+@media (max-width: 640px) {
+  .reject-bar select,
+  .reject-bar input {
+    flex: 1 1 100%;
+    min-width: 0 !important;
+  }
+}
+/* Tablet: actions drop under the name */
+@media (max-width: 1024px) {
+  .applicant-row {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .applicant-actions {
+    grid-column: 2 / -1;
+    justify-content: flex-start;
+  }
+}
+
+/* Phone */
+@media (max-width: 640px) {
+  .applicant {
+    padding: 14px 14px 10px;
+  }
+
+  .applicant-row {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 10px 12px;
+  }
+
+  .applicant-stage {
+    grid-column: 2;
+    align-items: flex-start;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .applicant-actions {
+    grid-column: 1 / -1;
+  }
+
+  .applicant-actions .btn-primary {
+    flex: 1;
+  }
+
+  .applicant-tools,
+  .applicant-panel {
+    margin-left: 0;
+  }
+
+  .toolbar-field {
+    flex: 1;
+  }
+
+  .toolbar-field select {
+    flex: 1;
+    min-width: 0;
+  }
+}
 /* ============================================================================
    Keep LAST: the marketing stylesheet above sets section { padding } at
    several breakpoints, and this reset only wins because it comes after them.

@@ -1,87 +1,79 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useParams } from "next/navigation";
-import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { useParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppNav } from "@/components/app-nav";
+import { AttestBar } from "@/components/attest-bar";
+import { MeetingList } from "@/components/meeting-list";
+import { MeetingScheduler } from "@/components/meeting-scheduler";
+import { NavIcon } from "@/components/nav-icon";
+import { RejectBar } from "@/components/reject-bar";
 import { ResumeViewer } from "@/components/resume-viewer";
+import { SignInRequired } from "@/components/sign-in-required";
 import {
-  apiListApplicants,
-  apiTransition,
-  apiIssueAttestation,
+  apiCancelMeeting,
   apiGetCalendarStatus,
+  apiGetOpportunity,
+  apiIssueAttestation,
+  apiListApplicants,
   apiListApplicationMeetings,
   apiScheduleApplicationMeeting,
-  apiCancelMeeting,
-  googleCalendarConnectUrl,
+  apiTransition,
   ApiError,
   bootstrapSession,
   getUser,
+  googleCalendarConnectUrl,
   type Applicant,
-  type AppState,
-  type RejectionCode,
   type Meeting,
+  type RejectionCode,
 } from "@/lib/client/api";
-import { RejectBar } from "@/components/reject-bar";
-import { AttestBar } from "@/components/attest-bar";
-import { MeetingScheduler } from "@/components/meeting-scheduler";
-import { MeetingList } from "@/components/meeting-list";
-import { statusClass, timeAgo, titleCase } from "@/lib/client/format";
+import {
+  filterApplicants,
+  MOVE_LABEL,
+  nextSteps,
+  rejectionLabel,
+  SORT_OPTIONS,
+  STAGE_TABS,
+  stageCounts,
+  type ApplicantSort,
+  type PosterMove,
+  type Stage,
+} from "@/lib/client/applicants";
+import { timeAgo } from "@/lib/client/format";
+import { initials } from "@/lib/client/nav";
+import { appStateLabel } from "@/lib/domain/app-state-label";
 
-// Which forward moves a poster may make from each state (mirrors the server -
-// see POSTER_TRANSITIONS in src/lib/domain/application-state.ts). New
-// applications skip RECEIVED entirely (APPLIED goes straight to
-// SHORTLISTED/REJECTED), but it stays a valid FROM-state here too: any
-// pre-existing RECEIVED row from before that change must still be movable,
-// or the poster is stuck with an applicant they can never act on.
-const NEXT: Record<string, Exclude<AppState, "APPLIED" | "WITHDRAWN" | "RECEIVED">[]> = {
-  APPLIED: ["SHORTLISTED", "REJECTED"],
-  RECEIVED: ["SHORTLISTED", "REJECTED"],
-  SHORTLISTED: ["INTERVIEW", "SELECTED", "REJECTED"],
-  INTERVIEW: ["SELECTED", "REJECTED"],
-};
-const STATUS_TABS: { value: AppState | "ALL"; label: string }[] = [
-  { value: "ALL", label: "All" },
-  { value: "APPLIED", label: "Applied" },
-  { value: "SHORTLISTED", label: "Shortlisted" },
-  { value: "INTERVIEW", label: "Interview" },
-  { value: "SELECTED", label: "Selected" },
-  { value: "REJECTED", label: "Rejected" },
-  { value: "WITHDRAWN", label: "Withdrawn" },
-];
-const ACTION_LABEL: Record<string, string> = {
-  SHORTLISTED: "Shortlist",
-  INTERVIEW: "Interview",
-  SELECTED: "Select",
-  REJECTED: "Reject",
-};
-
-type SortKey = "applied_desc" | "applied_asc" | "cgpa_desc" | "name_asc";
 const PAGE_SIZE = 25;
 
+/** Which panel is open under an applicant's row - one at a time. */
+type Panel = "resume" | "reject" | "attest" | "meetings";
+
+/**
+ * The poster's review screen for one posting: stage tabs with counts, a
+ * compact search/filter bar, and one row per applicant with the obvious next
+ * move as the primary button. Narrow first, then work a page of 25 rows.
+ */
 export default function ApplicantsPage() {
-  const router = useRouter();
   const id = useParams<{ id: string }>().id;
   const [ready, setReady] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
+  const [title, setTitle] = useState<string | null>(null);
   const [applicants, setApplicants] = useState<Applicant[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [openResume, setOpenResume] = useState<string | null>(null);
-  const [rejectingId, setRejectingId] = useState<string | null>(null);
+  const [open, setOpen] = useState<{ id: string; panel: Panel } | null>(null);
   const [rejectCode, setRejectCode] = useState<RejectionCode>("STRONGER_APPLICANTS");
-  const [attestingId, setAttestingId] = useState<string | null>(null);
-  const [openMeetings, setOpenMeetings] = useState<string | null>(null);
   const [schedulingId, setSchedulingId] = useState<string | null>(null);
   const [meetingsByApp, setMeetingsByApp] = useState<Record<string, Meeting[]>>({});
   const [calendarConnected, setCalendarConnected] = useState(false);
   const [calendarEnabled, setCalendarEnabled] = useState(false);
-  const [info, setInfo] = useState<string | null>(null);
 
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<AppState | "ALL">("ALL");
-  const [minCgpaFilter, setMinCgpaFilter] = useState("");
-  const [sort, setSort] = useState<SortKey>("applied_desc");
+  const [q, setQ] = useState("");
+  const [stage, setStage] = useState<Stage>("ALL");
+  const [minCgpa, setMinCgpa] = useState("");
+  const [sort, setSort] = useState<ApplicantSort>("applied_desc");
   const [page, setPage] = useState(1);
 
   const load = useCallback(async () => {
@@ -96,22 +88,25 @@ export default function ApplicantsPage() {
     void (async () => {
       const ok = await bootstrapSession();
       setSignedIn(ok);
-      setReady(true);
       if (ok) {
-        await load();
-        try {
-          const status = await apiGetCalendarStatus();
-          setCalendarConnected(status.connected);
-          setCalendarEnabled(status.enabled);
-        } catch {
-          /* calendar status is optional - schedule attempt surfaces the error */
-        }
+        await Promise.all([
+          load(),
+          apiGetOpportunity(id).then((o) => setTitle(o.title)).catch(() => {}),
+          // Optional - a schedule attempt surfaces any calendar error.
+          apiGetCalendarStatus()
+            .then((s) => {
+              setCalendarConnected(s.connected);
+              setCalendarEnabled(s.enabled);
+            })
+            .catch(() => {}),
+        ]);
       }
+      setReady(true);
     })();
-  }, [load]);
+  }, [id, load]);
 
-  // Feedback after the round trip to Google's consent screen (calendar/start ->
-  // callback -> back here). Read once, then strip so a refresh doesn't repeat it.
+  // Feedback after the round trip to Google's consent screen. Read once, then
+  // strip so a refresh doesn't repeat it.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.has("calendarConnected")) {
@@ -126,29 +121,24 @@ export default function ApplicantsPage() {
   }, []);
 
   // Any filter/sort change invalidates the current page.
-  useEffect(() => {
-    setPage(1);
-  }, [search, statusFilter, minCgpaFilter, sort]);
+  useEffect(() => setPage(1), [q, stage, minCgpa, sort]);
 
-  async function move(app: Applicant, to: Exclude<AppState, "APPLIED" | "WITHDRAWN" | "RECEIVED">) {
-    if (to === "REJECTED") {
-      setRejectingId(app.id);
-      setRejectCode("STRONGER_APPLICANTS");
-      return;
+  function toggle(appId: string, panel: Panel) {
+    setOpen((cur) => (cur?.id === appId && cur.panel === panel ? null : { id: appId, panel }));
+    if (panel === "reject") setRejectCode("STRONGER_APPLICANTS");
+    if (panel === "meetings" && !meetingsByApp[appId]) {
+      apiListApplicationMeetings(appId)
+        .then((m) => setMeetingsByApp((prev) => ({ ...prev, [appId]: m })))
+        .catch((err: unknown) => setError(err instanceof ApiError ? err.message : "Could not load meetings."));
     }
-    await applyTransition(app, to);
   }
 
-  async function applyTransition(
-    app: Applicant,
-    to: Exclude<AppState, "APPLIED" | "WITHDRAWN" | "RECEIVED">,
-    rejectionCode?: RejectionCode,
-  ) {
+  async function move(app: Applicant, to: PosterMove, rejectionCode?: RejectionCode) {
     setError(null);
     setBusyId(app.id);
     try {
       await apiTransition(app.id, to, rejectionCode ? { rejectionCode } : {});
-      setRejectingId(null);
+      setOpen(null);
       await load();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not update the application.");
@@ -157,12 +147,13 @@ export default function ApplicantsPage() {
     }
   }
 
-  async function issueAttestation(app: Applicant, skillId: string, context: string) {
+  async function attest(app: Applicant, skillId: string, context: string) {
     setError(null);
     setBusyId(app.id);
     try {
       await apiIssueAttestation(app.id, { skillId, context });
-      setAttestingId(null);
+      setOpen(null);
+      setInfo(`Skill attested for ${app.student.name}.`);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not issue the attestation.");
     } finally {
@@ -170,26 +161,7 @@ export default function ApplicantsPage() {
     }
   }
 
-  async function toggleMeetings(appId: string) {
-    if (openMeetings === appId) {
-      setOpenMeetings(null);
-      return;
-    }
-    setOpenMeetings(appId);
-    if (!meetingsByApp[appId]) {
-      try {
-        const meetings = await apiListApplicationMeetings(appId);
-        setMeetingsByApp((prev) => ({ ...prev, [appId]: meetings }));
-      } catch (err) {
-        setError(err instanceof ApiError ? err.message : "Could not load meetings.");
-      }
-    }
-  }
-
-  async function scheduleMeeting(
-    app: Applicant,
-    input: { title: string; scheduledAt: string; durationMinutes: number },
-  ) {
+  async function schedule(app: Applicant, input: { title: string; scheduledAt: string; durationMinutes: number }) {
     setError(null);
     setBusyId(app.id);
     try {
@@ -219,270 +191,228 @@ export default function ApplicantsPage() {
     }
   }
 
-  const filtered = useMemo(() => {
-    const cgpaFloor = minCgpaFilter === "" ? null : Number(minCgpaFilter);
-    const q = search.trim().toLowerCase();
-    let list = applicants;
-    if (statusFilter !== "ALL") list = list.filter((a) => a.status === statusFilter);
-    if (cgpaFloor != null) list = list.filter((a) => a.student.cgpa != null && a.student.cgpa >= cgpaFloor);
-    if (q) list = list.filter((a) => a.student.name.toLowerCase().includes(q));
-
-    const sorted = [...list];
-    switch (sort) {
-      case "applied_asc":
-        sorted.sort((a, b) => new Date(a.appliedAt).getTime() - new Date(b.appliedAt).getTime());
-        break;
-      case "cgpa_desc":
-        sorted.sort((a, b) => (b.student.cgpa ?? -1) - (a.student.cgpa ?? -1));
-        break;
-      case "name_asc":
-        sorted.sort((a, b) => a.student.name.localeCompare(b.student.name));
-        break;
-      case "applied_desc":
-      default:
-        sorted.sort((a, b) => new Date(b.appliedAt).getTime() - new Date(a.appliedAt).getTime());
-    }
-    return sorted;
-  }, [applicants, statusFilter, minCgpaFilter, search, sort]);
-
+  const counts = useMemo(() => stageCounts(applicants), [applicants]);
+  const filtered = useMemo(
+    () => filterApplicants(applicants, { stage, q, minCgpa, sort }),
+    [applicants, stage, q, minCgpa, sort],
+  );
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
-  const pageRows = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const rows = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const narrowed = q.trim() !== "" || minCgpa.trim() !== "";
 
-  const countByStatus = useMemo(() => {
-    const m = new Map<AppState, number>();
-    for (const a of applicants) m.set(a.status, (m.get(a.status) ?? 0) + 1);
-    return m;
-  }, [applicants]);
+  if (ready && !signedIn) return <SignInRequired message="Sign in to review applicants." />;
 
-  if (!ready) return <main className="app-shell"><p className="app-loading">Loading…</p></main>;
-  if (!signedIn) {
-    return (
-      <main className="auth-shell">
-        <div className="auth-card"><h1>Sign in required</h1>
-          <div className="hero-actions"><Link className="btn btn-primary" href="/">Sign in</Link></div>
-        </div>
-      </main>
-    );
-  }
-
-  function goToProfile(studentId: string) {
-    router.push(`/profile/${studentId}`);
-  }
+  const me = getUser();
 
   return (
     <div className="app-shell">
-      <AppNav user={getUser()} />
+      <AppNav user={me} />
       <main id="content" className="app-page">
-        <div className="wrap">
-          <Link href={`/opportunities/${id}`} className="back-link">
-            ← Back to posting
-          </Link>
-          <div className="page-head">
+        <div className="wrap page-stack">
+          <div className="page-title-row">
             <div>
-              <h1>Applicant pipeline</h1>
+              <Link href={`/opportunities/${id}`} className="back-link">← Posting</Link>
+              <h1>Applicants</h1>
               <p className="sub">
-                {filtered.length} of {applicants.length} applicant{applicants.length === 1 ? "" : "s"} shown · click a row for the full profile.
+                {title ?? "…"}
+                {ready && ` · ${applicants.length} applicant${applicants.length === 1 ? "" : "s"}`}
               </p>
-              <Link href={`/opportunities/${id}/shortlisted`} className="link-quiet">
-                Shortlisted candidates →
-              </Link>
             </div>
+            <Link href={`/opportunities/${id}/shortlisted`} className="btn btn-ghost">
+              Shortlist board
+            </Link>
           </div>
 
           {error && <p className="form-err" role="alert">{error}</p>}
-          {info && <p className="empty-note" role="status">{info}</p>}
+          {info && <p className="form-ok" role="status">{info}</p>}
 
-          {applicants.length === 0 ? (
-            <div className="app-empty"><h3>No applicants yet</h3><p>They'll appear here as students apply.</p></div>
+          {!ready ? (
+            <div className="skeleton skeleton-card" aria-busy="true" />
+          ) : applicants.length === 0 ? (
+            <div className="empty-card">
+              <h3>No applicants yet</h3>
+              <p>Students who apply will appear here, newest first.</p>
+            </div>
           ) : (
             <>
-              {/* Search + filters — this is how a 100+ applicant pipeline stays
-                  usable: narrow first, then scan a page of 25 rows at a time,
-                  rather than scrolling a wall of cards. */}
-              <div className="panel filter-bar">
-                <div className="field" style={{ minWidth: 200 }}>
-                  <label htmlFor="search">Search by name</label>
-                  <input id="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="e.g. Priya" />
+              <div className="stage-tabs" role="tablist" aria-label="Filter by stage">
+                {STAGE_TABS.filter((t) => t.value === "ALL" || (counts.get(t.value) ?? 0) > 0 || stage === t.value).map((t) => (
+                  <button
+                    key={t.value}
+                    type="button"
+                    role="tab"
+                    aria-selected={stage === t.value}
+                    className={`chip${stage === t.value ? " is-on" : ""}`}
+                    onClick={() => setStage(t.value)}
+                  >
+                    {t.label}
+                    <span className="stage-count">{counts.get(t.value) ?? 0}</span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="applicant-toolbar">
+                <div className="search-input">
+                  <NavIcon name="search" size={16} />
+                  <label htmlFor="applicant-search" className="sr-only">Search applicants by name</label>
+                  <input id="applicant-search" type="search" value={q} onChange={(e) => setQ(e.target.value)}
+                    placeholder="Search by name" />
                 </div>
-                <div className="field" style={{ minWidth: 160 }}>
-                  <label htmlFor="cgpaFilter">Minimum CGPA</label>
-                  <input
-                    id="cgpaFilter"
-                    type="number"
-                    min={0}
-                    max={10}
-                    step={0.01}
-                    value={minCgpaFilter}
-                    onChange={(e) => setMinCgpaFilter(e.target.value)}
-                    placeholder="e.g. 7.5"
-                  />
-                </div>
-                <div className="field" style={{ minWidth: 180 }}>
-                  <label htmlFor="sort">Sort by</label>
-                  <select id="sort" value={sort} onChange={(e) => setSort(e.target.value as SortKey)}>
-                    <option value="applied_desc">Applied — newest first</option>
-                    <option value="applied_asc">Applied — oldest first</option>
-                    <option value="cgpa_desc">CGPA — highest first</option>
-                    <option value="name_asc">Name — A to Z</option>
+                <label className="toolbar-field">
+                  <span>Min CGPA</span>
+                  <input type="number" inputMode="decimal" min={0} max={10} step={0.1} value={minCgpa}
+                    onChange={(e) => setMinCgpa(e.target.value)} placeholder="Any" />
+                </label>
+                <label className="toolbar-field">
+                  <span>Sort</span>
+                  <select value={sort} onChange={(e) => setSort(e.target.value as ApplicantSort)}>
+                    {SORT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
-                </div>
-                <div className="field" style={{ minWidth: 180 }}>
-                  <label htmlFor="statusFilter">Status</label>
-                  <select id="statusFilter" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as AppState | "ALL")}>
-                    {STATUS_TABS.map((tab) => (
-                      <option key={tab.value} value={tab.value}>
-                        {tab.label} ({tab.value === "ALL" ? applicants.length : countByStatus.get(tab.value) ?? 0})
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                </label>
               </div>
 
               {filtered.length === 0 ? (
-                <div className="app-empty"><h3>No applicants match</h3><p>Try clearing a filter.</p></div>
-              ) : (
-                <div style={{ overflowX: "auto" }}>
-                  <table className="atable">
-                    <thead>
-                      <tr>
-                        <th>Name</th>
-                        <th>Branch</th>
-                        <th>CGPA</th>
-                        <th>Backlogs</th>
-                        <th>Applied</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {pageRows.map((a) => (
-                        <Fragment key={a.id}>
-                          <tr
-                            onClick={() => goToProfile(a.student.id)}
-                            style={{ cursor: "pointer" }}
-                          >
-                            <td>
-                              {/* A real <Link> too, not just row-click: keeps
-                                  middle-click / open-in-new-tab working. */}
-                              <Link href={`/profile/${a.student.id}`} onClick={(e) => e.stopPropagation()}>
-                                {a.student.name}
-                              </Link>
-                            </td>
-                            <td>{a.student.branch ?? "—"}</td>
-                            <td>{a.student.cgpa ?? "—"}</td>
-                            <td>{a.student.backlogs ?? "—"}</td>
-                            <td>{timeAgo(a.appliedAt)}</td>
-                            <td>
-                              <span className={`pill ${statusClass(a.status)}`}>{titleCase(a.status)}</span>
-                              {a.rejectionCode && (
-                                <div className="tl-meta" style={{ marginTop: 4 }}>{titleCase(a.rejectionCode)}</div>
-                              )}
-                            </td>
-                            <td onClick={(e) => e.stopPropagation()}>
-                              <div className="row" style={{ flexWrap: "wrap", gap: 6 }}>
-                                {NEXT[a.status]?.map((to) => (
-                                  <button
-                                    key={to}
-                                    type="button"
-                                    className={`mini${to === "REJECTED" ? "" : " solid"}`}
-                                    disabled={busyId === a.id}
-                                    onClick={() => void move(a, to)}
-                                  >
-                                    {ACTION_LABEL[to]}
-                                  </button>
-                                ))}
-                                <button
-                                  type="button"
-                                  className="mini"
-                                  onClick={() => setOpenResume((cur) => (cur === a.id ? null : a.id))}
-                                >
-                                  {openResume === a.id ? "Hide résumé" : "Résumé"}
-                                </button>
-                                {a.status === "SELECTED" && (
-                                  <button
-                                    type="button"
-                                    className="mini solid"
-                                    onClick={() => setAttestingId((cur) => (cur === a.id ? null : a.id))}
-                                  >
-                                    Attest a skill
-                                  </button>
-                                )}
-                                {calendarEnabled && (a.status === "SHORTLISTED" || a.status === "INTERVIEW") && (
-                                  <button type="button" className="mini" onClick={() => void toggleMeetings(a.id)}>
-                                    {openMeetings === a.id ? "Hide meetings" : "Meetings"}
-                                  </button>
-                                )}
-                                <Link className="link-quiet" href={`/applications/${a.id}`}>
-                                  Timeline →
-                                </Link>
-                              </div>
-                              {rejectingId === a.id && (
-                                <RejectBar
-                                  value={rejectCode}
-                                  busy={busyId === a.id}
-                                  onChange={setRejectCode}
-                                  onConfirm={() => void applyTransition(a, "REJECTED", rejectCode)}
-                                  onCancel={() => setRejectingId(null)}
-                                />
-                              )}
-                              {attestingId === a.id && (
-                                <AttestBar
-                                  skills={a.student.skills}
-                                  busy={busyId === a.id}
-                                  onConfirm={(skillId, context) => void issueAttestation(a, skillId, context)}
-                                  onCancel={() => setAttestingId(null)}
-                                />
-                              )}
-                              {openMeetings === a.id && (
-                                <div style={{ marginTop: 8 }}>
-                                  <MeetingList
-                                    meetings={meetingsByApp[a.id] ?? []}
-                                    currentUserId={getUser()?.id}
-                                    busyId={busyId}
-                                    onCancel={(meetingId) => void cancelMeeting(a.id, meetingId)}
-                                  />
-                                  {schedulingId === a.id ? (
-                                    <MeetingScheduler
-                                      busy={busyId === a.id}
-                                      connected={calendarConnected}
-                                      connectUrl={googleCalendarConnectUrl(`/opportunities/${id}/applicants`)}
-                                      onConfirm={(input) => void scheduleMeeting(a, input)}
-                                      onCancel={() => setSchedulingId(null)}
-                                    />
-                                  ) : (
-                                    <button type="button" className="mini solid" onClick={() => setSchedulingId(a.id)}>
-                                      Schedule Meet
-                                    </button>
-                                  )}
-                                </div>
-                              )}
-                            </td>
-                          </tr>
-                          {openResume === a.id && (
-                            <tr onClick={(e) => e.stopPropagation()}>
-                              <td colSpan={7} className="resume-expand">
-                                <ResumeViewer userId={a.student.id} />
-                              </td>
-                            </tr>
-                          )}
-                        </Fragment>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="empty-card">
+                  <h3>No applicants match</h3>
+                  <p>{narrowed ? "Try a different name or a lower CGPA." : "Nobody is at this stage right now."}</p>
+                  {(narrowed || stage !== "ALL") && (
+                    <button type="button" className="btn btn-ghost" onClick={() => { setQ(""); setMinCgpa(""); setStage("ALL"); }}>
+                      Clear filters
+                    </button>
+                  )}
                 </div>
+              ) : (
+                <ul className="applicant-list">
+                  {rows.map((a) => {
+                    const steps = nextSteps(a.status);
+                    const busy = busyId === a.id;
+                    const panel = open?.id === a.id ? open.panel : null;
+                    const canMeet = calendarEnabled && (a.status === "SHORTLISTED" || a.status === "INTERVIEW");
+                    return (
+                      <li key={a.id} className={`applicant${panel ? " is-open" : ""}`}>
+                        <div className="applicant-row">
+                          <span className="avatar" aria-hidden="true">{initials(a.student.name)}</span>
+                          <div className="applicant-who">
+                            <Link href={`/profile/${a.student.id}`} className="applicant-name">{a.student.name}</Link>
+                            <span className="applicant-facts">
+                              <span>{a.student.branch ?? "Branch not set"}</span>
+                              <span>CGPA {a.student.cgpa ?? "–"}</span>
+                              <span>{a.student.backlogs ?? 0} backlog{a.student.backlogs === 1 ? "" : "s"}</span>
+                              <span>Applied {timeAgo(a.appliedAt)}</span>
+                            </span>
+                          </div>
+                          <div className="applicant-stage">
+                            <span className={`stage-pill s-${a.status.toLowerCase()}`}>{appStateLabel(a.status)}</span>
+                            {a.rejectionCode && <span className="applicant-reason">{rejectionLabel(a.rejectionCode)}</span>}
+                          </div>
+                          <div className="applicant-actions">
+                            {steps.primary && (
+                              <button type="button" className="btn btn-primary btn-sm" disabled={busy}
+                                onClick={() => void move(a, steps.primary!)}>
+                                {MOVE_LABEL[steps.primary]}
+                              </button>
+                            )}
+                            {steps.others.map((to) => (
+                              <button key={to} type="button" className="btn btn-ghost btn-sm" disabled={busy}
+                                onClick={() => void move(a, to)}>
+                                {MOVE_LABEL[to]}
+                              </button>
+                            ))}
+                            {a.status === "SELECTED" && (
+                              <button type="button" className="btn btn-ghost btn-sm" aria-expanded={panel === "attest"}
+                                onClick={() => toggle(a.id, "attest")}>
+                                Attest a skill
+                              </button>
+                            )}
+                            {steps.canReject && (
+                              <button type="button" className="btn btn-text btn-sm applicant-reject" disabled={busy}
+                                aria-expanded={panel === "reject"} onClick={() => toggle(a.id, "reject")}>
+                                Not selected
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="applicant-tools">
+                          <button type="button" className={panel === "resume" ? "is-on" : ""} aria-expanded={panel === "resume"}
+                            onClick={() => toggle(a.id, "resume")}>
+                            Résumé
+                          </button>
+                          {canMeet && (
+                            <button type="button" className={panel === "meetings" ? "is-on" : ""} aria-expanded={panel === "meetings"}
+                              onClick={() => toggle(a.id, "meetings")}>
+                              Meetings
+                            </button>
+                          )}
+                          <Link href={`/applications/${a.id}`}>Conversation &amp; history</Link>
+                        </div>
+
+                        {panel === "reject" && (
+                          <div className="applicant-panel">
+                            <RejectBar
+                              value={rejectCode}
+                              busy={busy}
+                              onChange={setRejectCode}
+                              onConfirm={() => void move(a, "REJECTED", rejectCode)}
+                              onCancel={() => setOpen(null)}
+                            />
+                          </div>
+                        )}
+                        {panel === "attest" && (
+                          <div className="applicant-panel">
+                            <AttestBar
+                              skills={a.student.skills}
+                              busy={busy}
+                              onConfirm={(skillId, context) => void attest(a, skillId, context)}
+                              onCancel={() => setOpen(null)}
+                            />
+                          </div>
+                        )}
+                        {panel === "meetings" && (
+                          <div className="applicant-panel">
+                            <MeetingList
+                              meetings={meetingsByApp[a.id] ?? []}
+                              currentUserId={me?.id}
+                              busyId={busyId}
+                              onCancel={(meetingId) => void cancelMeeting(a.id, meetingId)}
+                            />
+                            {schedulingId === a.id ? (
+                              <MeetingScheduler
+                                busy={busy}
+                                connected={calendarConnected}
+                                connectUrl={googleCalendarConnectUrl(`/opportunities/${id}/applicants`)}
+                                onConfirm={(input) => void schedule(a, input)}
+                                onCancel={() => setSchedulingId(null)}
+                              />
+                            ) : (
+                              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setSchedulingId(a.id)}>
+                                Schedule a meeting
+                              </button>
+                            )}
+                          </div>
+                        )}
+                        {panel === "resume" && (
+                          <div className="applicant-panel">
+                            <ResumeViewer userId={a.student.id} />
+                          </div>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
               )}
 
               {totalPages > 1 && (
-                <div className="row" style={{ justifyContent: "center", gap: 12, marginTop: 16 }}>
-                  <button type="button" className="mini" disabled={currentPage <= 1} onClick={() => setPage((p) => p - 1)}>
-                    ← Prev
+                <nav className="pager" aria-label="Pages">
+                  <button type="button" className="btn btn-ghost btn-sm" disabled={currentPage <= 1} onClick={() => setPage((p) => p - 1)}>
+                    ← Previous
                   </button>
-                  <span className="tl-meta">Page {currentPage} of {totalPages}</span>
-                  <button type="button" className="mini" disabled={currentPage >= totalPages} onClick={() => setPage((p) => p + 1)}>
+                  <span>Page {currentPage} of {totalPages}</span>
+                  <button type="button" className="btn btn-ghost btn-sm" disabled={currentPage >= totalPages} onClick={() => setPage((p) => p + 1)}>
                     Next →
                   </button>
-                </div>
+                </nav>
               )}
             </>
           )}
