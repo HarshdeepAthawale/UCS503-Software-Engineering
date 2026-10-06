@@ -47,7 +47,9 @@ describe("Team formation core flow", () => {
     const finalTeam = await getTeam(team.id);
     expect(finalTeam.status).toBe("LOCKED");
     expect(finalTeam.members).toHaveLength(1);
-  });
+    // The two accepts collide on purpose and the loser retries its serializable
+    // transaction; with the whole suite sharing the database that can pass 5s.
+  }, 15_000);
 
   it("lets a student re-request a role after withdrawing (the unique index is NOT partial like applications')", async () => {
     const lead = await makeUser("STUDENT");
