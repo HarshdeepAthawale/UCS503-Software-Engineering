@@ -1,10 +1,11 @@
 import type { AdminOverview } from "@/lib/client/api";
 
-export type AdminTab = "overview" | "flags" | "users" | "faculty" | "alumni" | "admins";
+export type AdminTab = "overview" | "flags" | "claims" | "users" | "faculty" | "alumni" | "admins";
 
 const TABS: { value: AdminTab; label: string; superOnly?: boolean }[] = [
   { value: "overview", label: "Overview" },
   { value: "flags", label: "Flags" },
+  { value: "claims", label: "Alumni claims" },
   { value: "users", label: "Users" },
   { value: "faculty", label: "Faculty roster" },
   { value: "alumni", label: "Alumni" },
@@ -39,7 +40,7 @@ export function attentionItems(o: AdminOverview): AttentionItem[] {
       count: o.opportunities.atRisk,
       label: plural(o.opportunities.atRisk, "posting at risk of going silent", "postings at risk of going silent"),
     },
-    { key: "claims", count: o.pendingClaims, label: plural(o.pendingClaims, "alumni claim awaiting review", "alumni claims awaiting review") },
+    { key: "claims", count: o.pendingClaims, label: plural(o.pendingClaims, "alumni claim awaiting review", "alumni claims awaiting review"), tab: "claims" },
   ];
   return items.filter((i) => i.count > 0);
 }

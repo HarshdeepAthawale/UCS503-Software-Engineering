@@ -13,9 +13,11 @@ import {
   getUser,
   type OppType,
   type Profile,
+  type SessionUser,
 } from "@/lib/client/api";
 import { timeAgo } from "@/lib/client/format";
 import { handleLoadError, loadErrorMessage } from "@/lib/client/handle-load-error";
+import { roleLabel } from "@/lib/client/nav";
 
 /** Display labels for the posting-type vocabulary used by `openTo`. */
 const OPEN_TO_LABEL: Record<OppType, string> = {
@@ -142,7 +144,11 @@ export default function MemberProfilePage() {
             <>
               <div className="profile-head">
                 <div>
-                  <span className="role">{profile.role}</span>
+                  <span className="role">
+                    {profile.role === "ALUMNI"
+                      ? profile.alumniVerified ? "Verified alumnus" : "Alumnus · verification pending"
+                      : roleLabel(profile.role as SessionUser["role"])}
+                  </span>
                   <h1>{profile.name}</h1>
                   {profile.headline && <p className="sub">{profile.headline}</p>}
                   <div className="mono-id">

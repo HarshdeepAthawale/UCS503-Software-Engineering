@@ -73,7 +73,7 @@ Full-text search plus structured filters (type, domain, skills, stipend) and sor
 _Avoid_: feed, browse, search (when you mean the whole discovery path)
 
 **Alumni claim**:
-The prove-you-graduated path: roll number, grad year, proof → admin approve. Needed because alumni no longer have `@thapar.edu`.
+The prove-you-graduated path: roll number, grad year, proof → admin approve. Needed because alumni no longer have `@thapar.edu`. An alumnus registers with any email at `/register/alumni`, confirms it, and stays **Pending alumni** (read-only, can only submit the claim) until an admin verifies it in the console's Alumni claims queue. A claim that can't be verified comes back with a reason and can be resubmitted; it never suspends the account. Admins can still create an alumni account directly.
 _Avoid_: alumni signup (implies self-serve), verification (too generic)
 
 **Faculty allowlist**:

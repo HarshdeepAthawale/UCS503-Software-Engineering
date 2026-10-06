@@ -39,3 +39,11 @@ describe("attentionItems", () => {
     expect(items[1]!.label).toBe("postings at risk of going silent");
   });
 });
+
+describe("alumni claims", () => {
+  it("has its own tab, and the attention item links to it", () => {
+    expect(adminTabs(false).map((t) => t.value)).toContain("claims");
+    const item = attentionItems(overview({ pendingClaims: 2 }))[0]!;
+    expect(item).toMatchObject({ key: "claims", tab: "claims", label: "alumni claims awaiting review" });
+  });
+});

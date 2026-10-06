@@ -32,14 +32,18 @@ const OPPORTUNITIES: NavItem = { href: "/opportunities", label: "Opportunities",
 const MESSAGES: NavItem = { href: "/messages", label: "Messages", icon: "messages", match: under("/messages") };
 const PROFILE: NavItem = { href: "/profile", label: "Profile", icon: "profile", match: (p) => p === "/profile" };
 
+/** Faculty and verified alumni post; a pending alumnus cannot until approved. */
 export function canPost(user: SessionUser): boolean {
-  return user.role === "FACULTY" || user.role === "ALUMNI";
+  return user.role === "FACULTY" || (user.role === "ALUMNI" && user.status !== "PENDING_ALUMNI");
 }
 
 /** The main destinations for a role, in order. */
 export function primaryNav(user: SessionUser): NavItem[] {
   if (isAdminRole(user.role)) {
     return [{ href: "/admin", label: "Console", icon: "console", match: under("/admin") }, OPPORTUNITIES];
+  }
+  if (user.role === "ALUMNI" && user.status === "PENDING_ALUMNI") {
+    return [OPPORTUNITIES, { href: "/alumni", label: "Verification", icon: "applications", match: under("/alumni") }];
   }
   if (canPost(user)) {
     return [
@@ -71,4 +75,11 @@ export function initials(name: string): string {
   const first = parts[0]?.[0] ?? "";
   const last = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? "") : "";
   return (first + last).toUpperCase() || "?";
+}
+
+/** Where someone lands after signing in: admins at the console, a pending alumnus at their claim. */
+export function homeFor(user: SessionUser | null): string {
+  if (user && isAdminRole(user.role)) return "/admin";
+  if (user?.role === "ALUMNI" && user.status === "PENDING_ALUMNI") return "/alumni";
+  return "/opportunities";
 }

@@ -40,7 +40,7 @@ export function OpportunityCard({
         <Link href={`/opportunities/${o.id}`}>{o.title}</Link>
       </h3>
       <p className="opp-card-poster">
-        {o.poster.name} · {titleCase(o.poster.role)}
+        {o.poster.name} · {o.poster.role === "ALUMNI" ? "Verified alumnus" : titleCase(o.poster.role)}
       </p>
       <p className="opp-card-desc">{o.description}</p>
 

@@ -49,6 +49,8 @@ export interface Profile {
   name: string;
   /** Account type (STUDENT/FACULTY/...) — see `headline` for what they do. */
   role: string;
+  /** An alumnus whose claim an admin has approved. */
+  alumniVerified?: boolean;
   branch: string | null;
   year: number | null;
   bio: string | null;
@@ -239,6 +241,59 @@ export async function apiRegister(name: string, email: string, password: string)
     method: "POST",
     body: JSON.stringify({ name, email, password }),
   });
+}
+
+/** Alumni register with any email (they no longer have an institute one). */
+export async function apiRegisterAlumni(name: string, email: string, password: string): Promise<RegisterResult> {
+  return request<RegisterResult>("/api/auth/register-alumni", {
+    method: "POST",
+    body: JSON.stringify({ name, email, password }),
+  });
+}
+
+export interface AlumniClaim {
+  id: string;
+  rollNo: string;
+  gradYear: number;
+  degree: string;
+  proofUrl: string;
+  decision: "APPROVED" | "REJECTED" | null;
+  decisionReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AlumniClaimInput {
+  rollNo: string;
+  gradYear: number;
+  degree: string;
+  proofUrl: string;
+}
+
+/** The signed-in alumnus's own claim, or null before they submit one. */
+export async function apiGetMyClaim(): Promise<AlumniClaim | null> {
+  const body = await request<{ claim: AlumniClaim | null }>("/api/alumni/claim");
+  return body.claim;
+}
+
+export async function apiSubmitClaim(input: AlumniClaimInput): Promise<AlumniClaim> {
+  const body = await request<{ claim: AlumniClaim }>("/api/alumni/claim", { method: "POST", body: JSON.stringify(input) });
+  return body.claim;
+}
+
+export interface PendingAlumniClaim extends AlumniClaim {
+  user: { id: string; name: string; email: string; createdAt: string };
+  /** Other claims that use the same roll number - a likely duplicate. */
+  sameRollNo: { userId: string; name: string; decision: "APPROVED" | "REJECTED" | null }[];
+}
+
+export async function apiAdminListClaims(): Promise<PendingAlumniClaim[]> {
+  const body = await request<{ claims: PendingAlumniClaim[] }>("/api/admin/alumni-claims");
+  return body.claims;
+}
+
+export async function apiAdminDecideClaim(id: string, decision: "APPROVED" | "REJECTED", reason?: string): Promise<void> {
+  await request(`/api/admin/alumni-claims/${id}`, { method: "POST", body: JSON.stringify({ decision, reason }) });
 }
 
 export async function apiVerifyOtp(email: string, otp: string): Promise<SessionUser> {

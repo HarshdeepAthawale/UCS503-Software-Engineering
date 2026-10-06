@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { initials, primaryNav, tabNav } from "@/lib/client/nav";
+import { canPost, homeFor, initials, primaryNav, tabNav } from "@/lib/client/nav";
 import type { SessionUser } from "@/lib/client/api";
 
 /** The app navigation: who sees what, and which item is active where. */
@@ -44,5 +44,25 @@ describe("initials", () => {
     expect(initials("Harshdeep Shantaram Athawale")).toBe("HA");
     expect(initials("madonna")).toBe("M");
     expect(initials("   ")).toBe("?");
+  });
+});
+
+describe("homeFor", () => {
+  it("sends admins to the console, a pending alumnus to their claim, everyone else to opportunities", () => {
+    const u = (role: SessionUser["role"], status = "ACTIVE"): SessionUser => ({ id: "u", role, status, name: "N" });
+    expect(homeFor(u("SUPER_ADMIN"))).toBe("/admin");
+    expect(homeFor(u("ALUMNI", "PENDING_ALUMNI"))).toBe("/alumni");
+    expect(homeFor(u("ALUMNI"))).toBe("/opportunities");
+    expect(homeFor(u("STUDENT"))).toBe("/opportunities");
+    expect(homeFor(null)).toBe("/opportunities");
+  });
+});
+
+describe("a pending alumnus", () => {
+  it("cannot post yet and is pointed at verification instead of My postings", () => {
+    const pending: SessionUser = { id: "u", role: "ALUMNI", status: "PENDING_ALUMNI", name: "N" };
+    expect(canPost(pending)).toBe(false);
+    expect(primaryNav(pending).map((i) => i.href)).toEqual(["/opportunities", "/alumni"]);
+    expect(canPost({ ...pending, status: "ACTIVE" })).toBe(true);
   });
 });

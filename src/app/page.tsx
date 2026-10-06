@@ -11,7 +11,7 @@ import {
   bootstrapSession,
   getUser,
 } from "@/lib/client/api";
-import { isAdminRole } from "@/lib/domain/admin-portal";
+import { homeFor } from "@/lib/client/nav";
 import { GoogleButton, googleEnabled } from "@/components/google-button";
 import { TiLogo } from "@/components/ti-logo";
 import { AuthShell } from "@/components/auth-shell";
@@ -46,7 +46,7 @@ export default function LoginPage() {
     void bootstrapSession().then((signedIn) => {
       if (!signedIn) return;
       const user = getUser();
-      router.replace(user && isAdminRole(user.role) ? "/admin" : "/opportunities");
+      router.replace(homeFor(user));
     });
   }, [router]);
 
@@ -56,7 +56,7 @@ export default function LoginPage() {
     setBusy(true);
     try {
       await apiLogin(email.trim(), password);
-      router.push("/opportunities");
+      router.push(homeFor(getUser()));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
     } finally {
@@ -85,7 +85,7 @@ export default function LoginPage() {
     setBusy(true);
     try {
       await apiVerifyLoginOtp(email.trim(), otp.trim());
-      router.push("/opportunities");
+      router.push(homeFor(getUser()));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Invalid or expired code.");
     } finally {
@@ -104,7 +104,7 @@ export default function LoginPage() {
   const subtitle = {
     google: "Sign in with your institute Google account to continue.",
     password: "Sign in with your email and password.",
-    code: "Alumni and passwordless sign-in - we'll email you a one-time code.",
+    code: "We'll email you a one-time sign-in code.",
   }[view];
 
   return (
@@ -130,7 +130,7 @@ export default function LoginPage() {
             <div className="field">
               <label htmlFor="email">Email</label>
               <input id="email" type="email" autoComplete="email" required
-                value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@thapar.edu" />
+                value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Your email" />
             </div>
             <div className="field">
               <label htmlFor="password">Password</label>
@@ -141,7 +141,7 @@ export default function LoginPage() {
               {busy ? "Signing in…" : "Sign in"}
             </button>
             <button className="linklike auth-switch" type="button" onClick={() => go("code")}>
-              Alumni? Sign in with a one-time code
+              Email me a sign-in code instead
             </button>
           </form>
         )}
@@ -194,6 +194,9 @@ export default function LoginPage() {
           )}
           <Link className="btn btn-ghost" href="/register">Create account</Link>
         </div>
+        <p className="auth-alt">
+          Graduated from Thapar? <Link href="/register/alumni">Register as an alumnus</Link>
+        </p>
       </div>
     </AuthShell>
   );

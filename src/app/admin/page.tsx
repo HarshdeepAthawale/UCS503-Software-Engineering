@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AppNav } from "@/components/app-nav";
 import { AdminSignIn } from "@/components/admin-sign-in";
+import { AdminClaimsPanel } from "@/components/admin/admin-claims";
 import { AdminFlagsPanel } from "@/components/admin/admin-flags";
 import { AdminOverviewPanel } from "@/components/admin/admin-overview";
 import { AdminAdminsPanel, AdminAlumniPanel, AdminFacultyPanel } from "@/components/admin/admin-people-forms";
@@ -118,6 +119,7 @@ export default function AdminPage() {
                 aria-current={tab === t.value ? "page" : undefined} onClick={() => go(t.value)}>
                 {t.label}
                 {t.value === "flags" && (overview?.openFlags ?? 0) > 0 && <span className="stage-count is-alert">{overview!.openFlags}</span>}
+                {t.value === "claims" && (overview?.pendingClaims ?? 0) > 0 && <span className="stage-count is-alert">{overview!.pendingClaims}</span>}
               </button>
             ))}
           </nav>
@@ -128,6 +130,9 @@ export default function AdminPage() {
           {tab === "overview" && <AdminOverviewPanel overview={overview} onGo={go} onError={onError} />}
           {tab === "flags" && (
             <AdminFlagsPanel isSuper={isSuper} onChanged={() => void refreshOverview()} onNotice={onNotice} onError={onError} />
+          )}
+          {tab === "claims" && (
+            <AdminClaimsPanel onChanged={() => void refreshOverview()} onNotice={onNotice} onError={onError} />
           )}
           {tab === "users" && <AdminUsersPanel isSuper={isSuper} onNotice={onNotice} onError={onError} />}
           {tab === "faculty" && <AdminFacultyPanel isSuper={isSuper} onNotice={onNotice} onError={onError} />}
