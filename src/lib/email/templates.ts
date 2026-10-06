@@ -43,6 +43,17 @@ export function verificationEmail(code: string): Omit<EmailMessage, "to"> {
   };
 }
 
+export function passwordResetEmail(code: string): Omit<EmailMessage, "to"> {
+  return {
+    subject: `${code} is your ${PRODUCT} password reset code`,
+    text: codeBody(
+      `Enter this code to choose a new password for ${PRODUCT}:`,
+      code,
+      "If you did not ask to reset your password, ignore this message - your password stays the same unless the code is entered.",
+    ),
+  };
+}
+
 export function loginCodeEmail(code: string): Omit<EmailMessage, "to"> {
   return {
     subject: `${code} is your ${PRODUCT} sign-in code`,

@@ -448,6 +448,85 @@ export async function verifyLoginOtp(params: {
   return issueSession({ ...user, role }, params.userAgent);
 }
 
+// ── Forgot password ──────────────────────────────────────────────────────────
+
+/** Accounts that may set a new password: signed-up and not suspended. */
+const RESETTABLE = new Set(["ACTIVE", "PENDING_ALUMNI"]);
+
+/**
+ * Step 1: a one-time reset code for an account that may sign in at this door.
+ * Returns null (and the route answers identically) for an unknown, suspended
+ * or unverified account, or one that signs in at the other door.
+ */
+export async function requestPasswordReset(email: string, portal: Portal = "member"): Promise<string | null> {
+  const user = await prisma.user.findFirst({
+    where: { email, deletedAt: null },
+    select: { id: true, status: true, role: true },
+  });
+  if (!user || !RESETTABLE.has(user.status)) return null;
+  if (portalForRole(user.role) !== portal) return null;
+
+  const otp = generateOtp();
+  await prisma.otpChallenge.create({
+    data: {
+      userId: user.id,
+      codeHash: hashOtp(otp),
+      purpose: "PASSWORD_RESET",
+      expiresAt: new Date(Date.now() + env.OTP_TTL_MINUTES * 60 * 1000),
+    },
+  });
+  await audit({ action: "auth.password_reset.requested", actorId: user.id });
+  return otp;
+}
+
+/**
+ * Step 2: the emailed code plus a new password. Sets the password, revokes
+ * every existing session (whoever else might have been signed in), and signs
+ * this person in. Failures are generic - never which part was wrong.
+ */
+export async function resetPassword(params: {
+  email: string;
+  otp: string;
+  password: string;
+  userAgent: string | null;
+  portal?: Portal;
+}): Promise<IssuedSession> {
+  const user = await prisma.user.findFirst({
+    where: { email: params.email, deletedAt: null },
+    select: { id: true, role: true, status: true, name: true },
+  });
+  const genericFail = Errors.validation("Invalid or expired code.");
+  if (!user || !RESETTABLE.has(user.status)) throw genericFail;
+  if (portalForRole(user.role) !== (params.portal ?? "member")) throw genericFail;
+
+  const challenge = await prisma.otpChallenge.findFirst({
+    where: { userId: user.id, purpose: "PASSWORD_RESET", consumedAt: null },
+    orderBy: { createdAt: "desc" },
+  });
+  if (!challenge) throw genericFail;
+  if (challenge.expiresAt <= new Date()) throw Errors.gone("Code expired. Request a new one.");
+  if (challenge.attempts >= env.OTP_MAX_ATTEMPTS) {
+    throw Errors.rateLimited("Too many attempts. Request a new code.");
+  }
+  if (!verifyOtp(params.otp, challenge.codeHash)) {
+    await prisma.otpChallenge.update({ where: { id: challenge.id }, data: { attempts: { increment: 1 } } });
+    throw genericFail;
+  }
+
+  const passwordHash = await hashPassword(params.password);
+  const now = new Date();
+  await prisma.$transaction(async (tx) => {
+    // Conditional, so the same code cannot be spent twice concurrently.
+    const spent = await tx.otpChallenge.updateMany({ where: { id: challenge.id, consumedAt: null }, data: { consumedAt: now } });
+    if (spent.count === 0) throw genericFail;
+    await tx.user.update({ where: { id: user.id }, data: { passwordHash } });
+    await tx.refreshToken.updateMany({ where: { userId: user.id, revokedAt: null }, data: { revokedAt: now } });
+  });
+  await audit({ action: "auth.password_reset", actorId: user.id });
+
+  return issueSession(user, params.userAgent);
+}
+
 // ── Sign-in doors ────────────────────────────────────────────────────────────
 
 /**

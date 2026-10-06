@@ -8,6 +8,8 @@ describe("isPublicApi", () => {
     expect(isPublicApi("/api/auth/register-alumni")).toBe(true);
     expect(isPublicApi("/api/auth/otp-login/request")).toBe(true);
     expect(isPublicApi("/api/health")).toBe(true);
+    expect(isPublicApi("/api/auth/password-reset/request")).toBe(true);
+    expect(isPublicApi("/api/auth/password-reset/confirm")).toBe(true);
   });
 
   it("keeps everything else behind sign-in, including look-alike paths", () => {

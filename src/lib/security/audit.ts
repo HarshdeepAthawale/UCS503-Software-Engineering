@@ -7,6 +7,8 @@ import { prisma } from "@/lib/db";
  */
 export type AuditAction =
   | "auth.register"
+  | "auth.password_reset.requested"
+  | "auth.password_reset"
   | "auth.verify_otp"
   | "auth.login.success"
   | "auth.login.failed"

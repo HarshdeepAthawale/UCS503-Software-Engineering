@@ -56,6 +56,22 @@ export const VerifyOtpSchema = z.object({
   portal,
 });
 
+// Forgot password. The new password meets the same policy as sign-up.
+export const PasswordResetRequestSchema = z.object({
+  email: z.string().trim().toLowerCase().email("Enter a valid email address."),
+  portal,
+});
+
+export const PasswordResetConfirmSchema = z.object({
+  email: z.string().trim().toLowerCase().email(),
+  otp: z
+    .string()
+    .trim()
+    .regex(/^\d{6}$/, "Enter the 6-digit code."),
+  password,
+  portal,
+});
+
 export const LoginSchema = z.object({
   email: z.string().trim().toLowerCase().email(),
   password: z.string().min(1).max(200),

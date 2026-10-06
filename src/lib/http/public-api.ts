@@ -13,6 +13,7 @@ const PUBLIC_API = [
   "/api/auth/refresh",
   "/api/auth/logout",
   "/api/auth/otp-login",
+  "/api/auth/password-reset",
   "/api/auth/google",
   "/api/cron",
 ];
