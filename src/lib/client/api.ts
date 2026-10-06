@@ -1068,6 +1068,21 @@ export async function apiSetNotificationFrequency(
 
 // ── Passwordless OTP login (alumni + convenience) ────────────────────────────
 
+/** Forgot password, step 1: email a reset code (the reply is the same either way). */
+export async function apiRequestPasswordReset(email: string, portal: Portal = "member"): Promise<void> {
+  await request("/api/auth/password-reset/request", { method: "POST", body: JSON.stringify({ email, portal }) });
+}
+
+/** Forgot password, step 2: code + new password; signs the person in. */
+export async function apiResetPassword(email: string, otp: string, password: string, portal: Portal = "member"): Promise<SessionUser> {
+  const body = await request<{ accessToken: string; user: SessionUser }>("/api/auth/password-reset/confirm", {
+    method: "POST",
+    body: JSON.stringify({ email, otp, password, portal }),
+  });
+  setSession(body.accessToken, body.user);
+  return body.user;
+}
+
 export async function apiRequestLoginOtp(email: string, portal: Portal = "member"): Promise<void> {
   await request("/api/auth/otp-login/request", {
     method: "POST",

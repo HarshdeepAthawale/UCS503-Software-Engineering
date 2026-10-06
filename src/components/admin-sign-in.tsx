@@ -11,8 +11,9 @@ import {
 } from "@/lib/client/api";
 import { AuthShell } from "@/components/auth-shell";
 import { TiLogo } from "@/components/ti-logo";
+import { ForgotPassword } from "@/components/forgot-password";
 
-type View = "password" | "code";
+type View = "password" | "code" | "reset";
 
 /**
  * The admin door (/admin, signed out). Admin accounts can sign in only here -
@@ -81,7 +82,9 @@ export function AdminSignIn({ onSignedIn }: { onSignedIn: (user: SessionUser) =>
         <p className="sub">
           {view === "password"
             ? "Sign in with your administrator account."
-            : "We'll email a one-time code to your admin address."}
+            : view === "reset"
+              ? "Choose a new password. We'll email you a code to confirm it's you."
+              : "We'll email a one-time code to your admin address."}
         </p>
 
         {error && <p className="form-err" role="alert">{error}</p>}
@@ -102,7 +105,14 @@ export function AdminSignIn({ onSignedIn }: { onSignedIn: (user: SessionUser) =>
             <button className="btn btn-primary" type="submit" disabled={busy}>
               {busy ? "Signing in…" : "Sign in"}
             </button>
+            <button className="linklike auth-switch" type="button" onClick={() => go("reset")}>
+              Forgot password?
+            </button>
           </form>
+        )}
+
+        {view === "reset" && (
+          <ForgotPassword portal="admin" initialEmail={email} onDone={onSignedIn} onCancel={() => go("password")} />
         )}
 
         {view === "code" && !codeSent && (

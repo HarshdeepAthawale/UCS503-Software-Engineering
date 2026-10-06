@@ -15,13 +15,14 @@ import { homeFor } from "@/lib/client/nav";
 import { GoogleButton, googleEnabled } from "@/components/google-button";
 import { TiLogo } from "@/components/ti-logo";
 import { AuthShell } from "@/components/auth-shell";
+import { ForgotPassword } from "@/components/forgot-password";
 
 /**
  * The site's front door: sign-in is the root page, like exams.thapar.edu.
  * Google is the primary path for institute accounts; email + password and the
  * emailed one-time code (alumni) sit one click behind "Sign in with email".
  */
-type View = "google" | "password" | "code";
+type View = "google" | "password" | "code" | "reset";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -104,6 +105,7 @@ export default function LoginPage() {
   const subtitle = {
     google: "Sign in with your institute Google account to continue.",
     password: "Sign in with your email and password.",
+    reset: "Choose a new password. We'll email you a code to confirm it's you.",
     code: "We'll email you a one-time sign-in code.",
   }[view];
 
@@ -140,10 +142,17 @@ export default function LoginPage() {
             <button className="btn btn-primary" type="submit" disabled={busy}>
               {busy ? "Signing in…" : "Sign in"}
             </button>
+            <button className="linklike auth-switch" type="button" onClick={() => go("reset")}>
+              Forgot password?
+            </button>
             <button className="linklike auth-switch" type="button" onClick={() => go("code")}>
               Email me a sign-in code instead
             </button>
           </form>
+        )}
+
+        {view === "reset" && (
+          <ForgotPassword portal="member" initialEmail={email} onDone={(u) => router.push(homeFor(u))} onCancel={() => go("password")} />
         )}
 
         {view === "code" && !codeSent && (
