@@ -5,12 +5,11 @@ import { listPendingClaims } from "@/lib/services/alumni.service";
 export const runtime = "nodejs";
 
 /**
- * GET /api/admin/alumni-claims - the pending alumni claim queue.
- * Requires `alumni_claim:read`, which only ADMIN holds in the matrix. Any other
- * role is denied with a generic 403 (and the denial is audited).
+ * GET /api/admin/alumni-claims - claims waiting for review, oldest first, each
+ * with any other claim that uses the same roll number.
+ * Requires `alumni_claim:read` (admins).
  */
 export const GET = handler(async (req) => {
   await authorize(req, "alumni_claim:read");
-  const claims = await listPendingClaims();
-  return ok({ claims });
+  return ok({ claims: await listPendingClaims() });
 });

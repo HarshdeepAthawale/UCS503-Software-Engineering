@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { verifyAccessToken } from "@/lib/security/access-token";
+import { isPublicApi } from "@/lib/http/public-api";
 
 /**
  * Edge middleware - the OUTERMOST security layer (defense-in-depth).
@@ -16,20 +17,6 @@ import { verifyAccessToken } from "@/lib/security/access-token";
  * no database lookups happen here by design.
  */
 
-// Paths under /api that skip the edge USER-JWT gate. Public auth endpoints, plus
-// scheduled-job endpoints under /api/cron (authenticated by CRON_SECRET at the
-// route layer, not by a user token - see http/cron-auth.ts).
-const PUBLIC_API = [
-  "/api/health",
-  "/api/auth/register",
-  "/api/auth/verify-otp",
-  "/api/auth/login",
-  "/api/auth/refresh",
-  "/api/auth/logout",
-  "/api/auth/otp-login",
-  "/api/auth/google",
-  "/api/cron",
-];
 
 function securityHeaders(res: NextResponse, nonce: string): NextResponse {
   res.headers.set("X-Content-Type-Options", "nosniff");
@@ -122,9 +109,7 @@ export async function middleware(req: NextRequest): Promise<NextResponse> {
   const nonce = btoa(crypto.randomUUID());
 
   const isApi = pathname.startsWith("/api/");
-  const isPublic = PUBLIC_API.some(
-    (p) => pathname === p || pathname.startsWith(p + "/"),
-  );
+  const isPublic = isPublicApi(pathname);
 
   // On the FRONTEND deployment (BACKEND_ORIGIN set) this middleware runs in
   // front of a rewrite that forwards /api/* to the backend — and it runs BEFORE

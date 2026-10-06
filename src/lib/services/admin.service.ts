@@ -6,6 +6,7 @@ import { Errors } from "@/lib/http/errors";
 import { configuredOrigin } from "@/lib/http/origin";
 import { audit } from "@/lib/security/audit";
 import { hashPassword } from "@/lib/security/password";
+import { PENDING_CLAIM_WHERE } from "@/lib/services/alumni.service";
 import type { Principal } from "@/lib/iam/policy";
 import type {
   AdminCreateInput,
@@ -43,7 +44,7 @@ export async function getOverview() {
     prisma.opportunity.count({ where: { deletedAt: null, status: "LIVE" } }),
     prisma.opportunity.count({ where: { deletedAt: null, status: "AT_RISK" } }),
     prisma.application.count({ where: { deletedAt: null } }),
-    prisma.alumniClaim.count({ where: { decision: null } }),
+    prisma.alumniClaim.count({ where: PENDING_CLAIM_WHERE }),
     prisma.flag.count({ where: { status: "OPEN" } }),
   ]);
 

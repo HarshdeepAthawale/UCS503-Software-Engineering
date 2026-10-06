@@ -52,9 +52,13 @@ export function decide(
   // them mutations and lock out UNVERIFIED / PENDING_ALUMNI viewers.
   const action = permission.split(":")[1] ?? "";
   const isMutating = !action.startsWith("read") && !action.startsWith("list");
+  // The one exception: a pending alumnus submitting the claim that gets them
+  // out of pending. It is still subject to the RBAC check below.
+  const claimSubmission = principal.status === "PENDING_ALUMNI" && permission === "alumni_claim:submit";
   if (
     (principal.status === "UNVERIFIED" || principal.status === "PENDING_ALUMNI") &&
-    isMutating
+    isMutating &&
+    !claimSubmission
   ) {
     // Read-only until verified / approved.
     return { allowed: false, reason: "account_read_only" };

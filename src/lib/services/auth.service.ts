@@ -122,8 +122,9 @@ export async function verifyRegistrationOtp(params: {
   }
 
   // Success: consume the challenge and activate the account atomically.
-  // PENDING_ALUMNI stays pending (admin must still approve); others become ACTIVE.
-  const nextStatus = user.status === "PENDING_ALUMNI" ? "PENDING_ALUMNI" : "ACTIVE";
+  // An alumnus who has proven their email still needs an admin to approve
+  // their alumni claim, so they become PENDING_ALUMNI; everyone else ACTIVE.
+  const nextStatus = user.role === "ALUMNI" || user.status === "PENDING_ALUMNI" ? "PENDING_ALUMNI" : "ACTIVE";
   const updated = await prisma.$transaction(async (tx) => {
     await tx.otpChallenge.update({
       where: { id: challenge.id },

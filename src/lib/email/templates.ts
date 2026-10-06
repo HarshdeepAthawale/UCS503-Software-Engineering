@@ -28,7 +28,7 @@ function codeBody(intro: string, code: string, caution: string): string {
     caution,
     "",
     "--",
-    `${PRODUCT} - a verified opportunity pipeline for the institute`,
+    `${PRODUCT} - verified opportunities for the institute`,
   ].join("\n");
 }
 
@@ -75,7 +75,7 @@ export function teamInviteEmail(opts: {
     "Open the link, sign in with your institute account, and request the role that fits you.",
     "",
     "--",
-    `${PRODUCT} - verified opportunity pipeline for the institute`,
+    `${PRODUCT} - verified opportunities for the institute`,
   ].join("\n");
 
   return {
@@ -113,7 +113,7 @@ export function notificationEmail(
         : "You can change how often you hear from us on the Notifications page.",
       "",
       "--",
-      `${PRODUCT} - verified opportunity pipeline for the institute`,
+      `${PRODUCT} - verified opportunities for the institute`,
     ].join("\n"),
   };
 }
@@ -142,7 +142,42 @@ export function adminInviteEmail(opts: {
       "If you were not expecting this, you can ignore this message.",
       "",
       "--",
-      `${PRODUCT} - verified opportunity pipeline for the institute`,
+      `${PRODUCT} - verified opportunities for the institute`,
+    ].join("\n"),
+  };
+}
+
+/** The outcome of an alumni claim, sent to the alumnus. A rejection carries the reviewer's reason. */
+export function alumniClaimDecisionEmail(opts: {
+  name: string;
+  decision: "APPROVED" | "REJECTED";
+  reason: string | null;
+  origin: string | null;
+}): Omit<EmailMessage, "to"> {
+  const site = opts.origin ?? PRODUCT;
+  const approved = opts.decision === "APPROVED";
+  return {
+    subject: approved ? `You're a verified alumnus on ${PRODUCT}` : `Your alumni claim on ${PRODUCT} needs a change`,
+    text: [
+      `Hi ${opts.name},`,
+      "",
+      ...(approved
+        ? [
+            "An administrator has verified your alumni claim. Your account is now active:",
+            "you can post opportunities for students and attest their skills.",
+            "",
+            `Sign in at ${site}.`,
+          ]
+        : [
+            "An administrator could not verify your alumni claim yet.",
+            "",
+            `Reason: ${opts.reason ?? "Not given."}`,
+            "",
+            `Sign in at ${site}, correct your details or proof, and submit again.`,
+          ]),
+      "",
+      "--",
+      `${PRODUCT} - verified opportunities for the institute`,
     ].join("\n"),
   };
 }

@@ -22,6 +22,7 @@ export type AuditAction =
   | "faculty_allowlist.added"
   | "faculty_allowlist.removed"
   | "alumni.claim.submitted"
+  | "alumni.claim.resubmitted"
   | "alumni.claim.decided"
   | "profile.updated"
   | "profile.skills_replaced"

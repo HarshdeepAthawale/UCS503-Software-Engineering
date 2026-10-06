@@ -108,8 +108,10 @@ const FACULTY: Permission[] = [
   "flag:create",
 ];
 
-// Approved alumni behave like faculty for posting/attesting.
-const ALUMNI: Permission[] = [...FACULTY];
+// Approved alumni behave like faculty for posting/attesting. A pending
+// alumnus may also submit their own claim (the policy lets that one write
+// through while the account is read-only; the service scopes it to self).
+const ALUMNI: Permission[] = [...FACULTY, "alumni_claim:submit"];
 
 // Admins run the governance console (/admin). Still explicit - no silent
 // wildcard on ownership-scoped actions, which must go through the owner or an

@@ -43,7 +43,7 @@ export async function getProfile(viewer: Principal, targetUserId: string) {
   const row = await prisma.profile.findFirst({
     where: { userId: targetUserId, deletedAt: null },
     include: {
-      user: { select: { id: true, name: true, role: true } },
+      user: { select: { id: true, name: true, role: true, status: true } },
       userSkills: { include: { skill: true } },
       projects: {
         where: { deletedAt: null },
@@ -86,6 +86,8 @@ export async function getProfile(viewer: Principal, targetUserId: string) {
     userId: row.userId,
     name: row.user.name,
     role: row.user.role,
+    // An alumnus is verified once an admin approved their claim (account ACTIVE).
+    alumniVerified: row.user.role === "ALUMNI" && row.user.status === "ACTIVE",
     branch: row.branch,
     year: row.year,
     bio: row.bio,

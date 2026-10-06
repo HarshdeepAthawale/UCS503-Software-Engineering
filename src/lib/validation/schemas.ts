@@ -69,16 +69,25 @@ export const OtpLoginRequestSchema = z.object({
   portal,
 });
 
-export const AlumniClaimSchema = z.object({
-  rollNo: z.string().trim().min(3).max(30),
-  gradYear: z.coerce
-    .number()
-    .int()
-    .gte(1960)
-    .lte(new Date().getFullYear()),
-  degree: z.string().trim().min(2).max(120),
-  proofUrl: z.string().trim().url().max(500),
-});
+export const AlumniClaimSchema = z
+  .object({
+    rollNo: z.string().trim().min(3, "Enter your roll number.").max(30),
+    gradYear: z.coerce
+      .number()
+      .int()
+      .gte(1960, "Enter your graduation year.")
+      .lte(new Date().getFullYear(), "Enter a year that has already passed."),
+    degree: z.string().trim().min(2, "Enter your degree.").max(120),
+    // The reviewer opens this link, so only web links - never javascript: or data:.
+    proofUrl: z
+      .string()
+      .trim()
+      .max(500)
+      .url("Enter a full link, starting with https://")
+      .refine((u) => /^https?:\/\//i.test(u), "Enter a full link, starting with https://"),
+  })
+  .strict();
+export type AlumniClaimInput = z.infer<typeof AlumniClaimSchema>;
 
 // The posting-type vocabulary. Declared here rather than in the opportunity
 // block below because a profile's `openTo` reuses it — one list, so "open to
