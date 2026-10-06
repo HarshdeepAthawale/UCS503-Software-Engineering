@@ -21,7 +21,7 @@ const child = spawn(process.execPath, ["node_modules/next/dist/bin/next", "dev",
   env: {
     ...process.env,
     DIRECT_URL: process.env.DATABASE_URL,
-    RESEND_API_KEY: "",
+    BREVO_API_KEY: "",
     EMAIL_FROM: "",
     SUPABASE_URL: "",
     SUPABASE_SERVICE_ROLE_KEY: "",

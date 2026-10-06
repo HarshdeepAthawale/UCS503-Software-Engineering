@@ -33,7 +33,7 @@ Full documentation lives in [`docs/`](docs/):
 
 ## 🛠️ Stack
 
-**Shipped:** Next.js 15 (App Router) · TypeScript · a hand-authored CSS design system (`src/app/globals.css`, CSP-safe, light/dark) · Supabase PostgreSQL 16 via Prisma + `@prisma/adapter-pg` · Supabase Storage (résumé PDFs) · `jose` JWT auth · Zod · Resend (email) · Vitest (201 tests)
+**Shipped:** Next.js 15 (App Router) · TypeScript · a hand-authored CSS design system (`src/app/globals.css`, CSP-safe, light/dark) · Supabase PostgreSQL 16 via Prisma + `@prisma/adapter-pg` · Supabase Storage (résumé PDFs) · `jose` JWT auth · Zod · Brevo (email) · Vitest (201 tests)
 
 **Planned, not yet installed:** Redis token-bucket rate limiting (T-41 — today's limiter is in-memory and therefore per-instance) · Supertest + Playwright (T-38) · GitHub Actions (workflow committed, inert until the account's Actions billing clears — B-01)
 

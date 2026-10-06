@@ -46,11 +46,11 @@ const EnvSchema = z.object({
     .url("APP_ORIGIN must be an absolute URL, e.g. https://nexus.example.edu")
     .optional(),
 
-  // Outbound email (Resend). Both are needed for delivery; with either unset
+  // Outbound email (Brevo). Both are needed for delivery; with either unset
   // the mailer refuses to send in production rather than silently dropping the
-  // message, and logs it instead in dev. EMAIL_FROM must be an address on a
-  // domain verified with the provider, e.g. "Thapar Nexus <nexus@example.in>".
-  RESEND_API_KEY: z.string().optional(),
+  // message, and logs it instead in dev. EMAIL_FROM must be a sender verified
+  // in the Brevo account, e.g. "Thapar Nexus <you@gmail.com>".
+  BREVO_API_KEY: z.string().optional(),
   EMAIL_FROM: z.string().optional(),
 
   // Google OAuth (Sign in with Google). Optional - when either is unset the

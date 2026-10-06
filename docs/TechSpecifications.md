@@ -325,7 +325,7 @@ flowchart LR
 |---|---|---|
 | `DATABASE_URL` / `DIRECT_URL` | Supabase Postgres (pooled / direct) | ✅ |
 | `JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET` | Token signing — must differ | ✅ |
-| `RESEND_API_KEY` / `EMAIL_FROM` | OTP + digest delivery. Without both, the mailer refuses to send in production | ✅ / ❌ |
+| `BREVO_API_KEY` / `EMAIL_FROM` | OTP + digest delivery (Brevo; EMAIL_FROM is the verified sender). Without both, the mailer refuses to send in production | ✅ / ❌ |
 | `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` / `SUPABASE_RESUME_BUCKET` | Résumé object storage. The service-role key is server-only — never `NEXT_PUBLIC` | ✅ / ✅ / ❌ |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `NEXT_PUBLIC_GOOGLE_ENABLED` | Sign in with Google. The `NEXT_PUBLIC_` flag is read at **build** time | ❌ / ✅ / ❌ |
 | `CRON_SECRET` | Bearer token for `/api/cron/*`. Unset ⇒ every cron route 404s (fail-closed) | ✅ |
