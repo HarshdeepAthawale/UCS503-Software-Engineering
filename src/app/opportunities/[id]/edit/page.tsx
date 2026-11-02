@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AppNav } from "@/components/app-nav";
+import { PageLoading } from "@/components/page-loading";
+import { SignInRequired } from "@/components/sign-in-required";
 import {
   apiGetOpportunity,
   apiGetSkills,
@@ -150,17 +152,10 @@ export default function EditOpportunityPage() {
     }
   }
 
-  if (!ready) return <main className="app-shell"><p className="app-loading">Loading…</p></main>;
+  if (!ready) return <PageLoading />;
 
   if (!signedIn) {
-    return (
-      <main className="auth-shell">
-        <div className="auth-card">
-          <h1>Sign in required</h1>
-          <div className="hero-actions"><Link className="btn btn-primary" href="/">Sign in</Link></div>
-        </div>
-      </main>
-    );
+    return <SignInRequired message="Sign in to edit this posting." />;
   }
 
   if (notFound) {

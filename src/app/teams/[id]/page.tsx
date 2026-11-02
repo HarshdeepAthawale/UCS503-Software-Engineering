@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { AppNav } from "@/components/app-nav";
+import { ConfirmAction } from "@/components/confirm-action";
+import { SignInRequired } from "@/components/sign-in-required";
 import {
   apiCloseTeam,
   apiGetTeam,
@@ -116,16 +118,7 @@ export default function TeamDetailPage() {
   }
 
   if (ready && !signedIn) {
-    return (
-      <main className="auth-shell">
-        <div className="auth-card">
-          <h1>Sign in required</h1>
-          <div className="hero-actions">
-            <Link className="btn btn-primary" href="/">Sign in</Link>
-          </div>
-        </div>
-      </main>
-    );
+    return <SignInRequired message="Sign in to view this team." />;
   }
 
   const user = getUser();
@@ -165,7 +158,6 @@ export default function TeamDetailPage() {
   }
 
   async function close() {
-    if (!confirm("Close this team? It stops accepting join requests immediately.")) return;
     setBusy(true);
     try {
       await apiCloseTeam(id);
@@ -216,9 +208,14 @@ export default function TeamDetailPage() {
                       )}
                       <Link className="btn btn-ghost btn-sm" href={`/teams/${id}/requests`}>Join requests</Link>
                       {team.status === "FORMING" && (
-                        <button className="btn btn-text btn-sm" type="button" disabled={busy} onClick={() => void close()}>
-                          Close team
-                        </button>
+                        <ConfirmAction
+                          label="Close team"
+                          question="Stop accepting join requests?"
+                          confirmLabel="Close team"
+                          triggerClassName="btn btn-text btn-sm"
+                          busy={busy}
+                          onConfirm={() => void close()}
+                        />
                       )}
                     </div>
                   )}

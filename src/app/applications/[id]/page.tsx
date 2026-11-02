@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AppNav } from "@/components/app-nav";
+import { ConfirmAction } from "@/components/confirm-action";
+import { SignInRequired } from "@/components/sign-in-required";
 import { Conversation } from "@/components/conversation";
 import { MeetingList } from "@/components/meeting-list";
 import {
@@ -80,11 +82,6 @@ export default function ApplicationPage() {
   }
 
   async function onWithdraw() {
-    const prompt =
-      mine?.status === "SELECTED"
-        ? "Decline this offer? You were selected - withdrawing frees your seat for another applicant. This cannot be undone."
-        : "Withdraw this application? It frees a slot in your application budget. This cannot be undone.";
-    if (!confirm(prompt)) return;
     setBusy(true);
     try {
       await apiWithdraw(id);
@@ -97,13 +94,7 @@ export default function ApplicationPage() {
   }
 
   if (ready && !signedIn) {
-    return (
-      <main className="auth-shell">
-        <div className="auth-card"><h1>Sign in required</h1>
-          <div className="hero-actions"><Link className="btn btn-primary" href="/">Sign in</Link></div>
-        </div>
-      </main>
-    );
+    return <SignInRequired message="Sign in to view this application." />;
   }
 
   const me = getUser();
@@ -179,9 +170,18 @@ export default function ApplicationPage() {
 
               {canWithdraw && (
                 <div className="form-actions">
-                  <button className="btn btn-text" type="button" onClick={() => void onWithdraw()} disabled={busy}>
-                    {mine?.status === "SELECTED" ? "Decline offer" : "Withdraw application"}
-                  </button>
+                  <ConfirmAction
+                    label={mine?.status === "SELECTED" ? "Decline offer" : "Withdraw application"}
+                    question={
+                      mine?.status === "SELECTED"
+                        ? "Give up your seat for another applicant? This can't be undone."
+                        : "Free up a slot in your application budget? This can't be undone."
+                    }
+                    confirmLabel={mine?.status === "SELECTED" ? "Decline" : "Withdraw"}
+                    triggerClassName="btn btn-text"
+                    busy={busy}
+                    onConfirm={() => void onWithdraw()}
+                  />
                 </div>
               )}
             </>

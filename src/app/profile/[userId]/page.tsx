@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { AppNav } from "@/components/app-nav";
+import { SignInRequired } from "@/components/sign-in-required";
 import { ResumeViewer } from "@/components/resume-viewer";
 import {
   apiGetProfile,
@@ -83,22 +84,9 @@ export default function MemberProfilePage() {
   }
 
   if (!signedIn) {
-    return (
-      <main className="auth-shell">
-        <div className="auth-card">
-          <h1>Sign in required</h1>
-          <p className="sub">Profiles are visible to members of the institute community.</p>
-          <div className="hero-actions">
-            <Link className="btn btn-primary" href="/">
-              Sign in
-            </Link>
-            <Link className="btn btn-ghost" href="/register">
-              Create account
-            </Link>
-          </div>
-        </div>
-      </main>
-    );
+    return <SignInRequired message="Profiles are visible to members of the institute community.">
+        <Link className="btn btn-ghost" href="/register">Create account</Link>
+      </SignInRequired>;
   }
 
   const viewer = getUser();

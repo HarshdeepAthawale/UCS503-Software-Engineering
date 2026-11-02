@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { AppNav } from "@/components/app-nav";
+import { PageLoading } from "@/components/page-loading";
+import { SignInRequired } from "@/components/sign-in-required";
 import { ResumeViewer } from "@/components/resume-viewer";
 import {
   apiListApplicants,
@@ -89,15 +91,9 @@ export default function ShortlistedCandidatesPage() {
     }
   }
 
-  if (!ready) return <main className="app-shell"><p className="app-loading">Loading…</p></main>;
+  if (!ready) return <PageLoading />;
   if (!signedIn) {
-    return (
-      <main className="auth-shell">
-        <div className="auth-card"><h1>Sign in required</h1>
-          <div className="hero-actions"><Link className="btn btn-primary" href="/">Sign in</Link></div>
-        </div>
-      </main>
-    );
+    return <SignInRequired message="Sign in to review your shortlist." />;
   }
 
   // Awaiting a decision: shortlisted, and interviewing (both accept SELECTED/

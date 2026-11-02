@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppNav } from "@/components/app-nav";
+import { SignInRequired } from "@/components/sign-in-required";
 import { ResumeViewer } from "@/components/resume-viewer";
 import {
   apiAddProject,
@@ -426,17 +427,7 @@ export default function ProfilePage() {
   }
 
   if (notSignedIn) {
-    return (
-      <main className="auth-shell">
-        <div className="auth-card">
-          <h1>Sign in required</h1>
-          <p className="sub">Sign in to edit your profile.</p>
-          <div className="hero-actions">
-            <Link className="btn btn-primary" href="/">Sign in</Link>
-          </div>
-        </div>
-      </main>
-    );
+    return <SignInRequired message="Sign in to edit your profile." />;
   }
 
   const user = getUser();

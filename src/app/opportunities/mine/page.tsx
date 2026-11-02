@@ -3,6 +3,10 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { AppNav } from "@/components/app-nav";
+import { ConfirmAction } from "@/components/confirm-action";
+import { PageLoading } from "@/components/page-loading";
+import { PostingGate } from "@/components/posting-gate";
+import { postingAccess, type PostingAccess } from "@/lib/client/nav";
 import {
   apiCloseOpportunity,
   apiListOpportunities,
@@ -23,7 +27,7 @@ import { closesLabel, oppTypeLabel, statusClass, titleCase } from "@/lib/client/
  */
 export default function MyPostingsPage() {
   const [ready, setReady] = useState(false);
-  const [allowed, setAllowed] = useState(false);
+  const [access, setAccess] = useState<PostingAccess>("signed-out");
   const [items, setItems] = useState<Opportunity[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -40,16 +44,15 @@ export default function MyPostingsPage() {
   useEffect(() => {
     void (async () => {
       const ok = await bootstrapSession();
-      const role = getUser()?.role;
-      const canPost = ok && (role === "FACULTY" || role === "ALUMNI");
-      setAllowed(canPost);
+      const nextAccess: PostingAccess = ok ? postingAccess(getUser()) : "signed-out";
+      setAccess(nextAccess);
+      const canPost = nextAccess === "ok";
       setReady(true);
       if (canPost) await load();
     })();
   }, [load]);
 
   async function close(id: string) {
-    if (!confirm("Close this posting? It stops accepting applications immediately.")) return;
     setError(null);
     setBusyId(id);
     try {
@@ -62,22 +65,9 @@ export default function MyPostingsPage() {
     }
   }
 
-  if (!ready) return <main className="app-shell"><p className="app-loading">Loading…</p></main>;
+  if (!ready) return <PageLoading />;
 
-  if (!allowed) {
-    return (
-      <div className="app-shell">
-        <AppNav user={getUser()} />
-        <main id="content" className="app-page">
-          <div className="wrap app-empty">
-            <h3>Only faculty and approved alumni post opportunities</h3>
-            <p>This dashboard lists what you've posted - students see everyone's postings on the feed.</p>
-            <Link className="btn btn-ghost" href="/opportunities">← Back to feed</Link>
-          </div>
-        </main>
-      </div>
-    );
-  }
+  if (access !== "ok") return <PostingGate access={access} />;
 
   return (
     <div className="app-shell">
@@ -128,14 +118,14 @@ export default function MyPostingsPage() {
                           {(o.status === "LIVE" || o.status === "AT_RISK") && (
                             <>
                               <Link className="mini" href={`/opportunities/${o.id}/edit`}>Edit</Link>
-                              <button
-                                type="button"
-                                className="mini"
-                                disabled={busyId === o.id}
-                                onClick={() => void close(o.id)}
-                              >
-                                Close
-                              </button>
+                              <ConfirmAction
+                                label="Close"
+                                question="Stop accepting applications?"
+                                confirmLabel="Close posting"
+                                triggerClassName="mini"
+                                busy={busyId === o.id}
+                                onConfirm={() => void close(o.id)}
+                              />
                             </>
                           )}
                         </div>

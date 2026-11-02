@@ -1,9 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AppNav } from "@/components/app-nav";
+import { PageLoading } from "@/components/page-loading";
+import { PostingGate } from "@/components/posting-gate";
+import { postingAccess, type PostingAccess } from "@/lib/client/nav";
 import {
   apiCreateOpportunity,
   apiGetSkills,
@@ -35,7 +37,7 @@ interface PickedSkill {
 export default function NewOpportunityPage() {
   const router = useRouter();
   const [ready, setReady] = useState(false);
-  const [allowed, setAllowed] = useState(false);
+  const [access, setAccess] = useState<PostingAccess>("signed-out");
   const [taxonomy, setTaxonomy] = useState<TaxonomySkill[]>([]);
 
   const [type, setType] = useState<OppType>("RESEARCH");
@@ -61,9 +63,9 @@ export default function NewOpportunityPage() {
   useEffect(() => {
     void (async () => {
       const ok = await bootstrapSession();
-      const role = getUser()?.role;
-      const canPost = ok && (role === "FACULTY" || role === "ALUMNI");
-      setAllowed(canPost);
+      const nextAccess: PostingAccess = ok ? postingAccess(getUser()) : "signed-out";
+      setAccess(nextAccess);
+      const canPost = nextAccess === "ok";
       setReady(true);
       if (canPost) {
         try {
@@ -111,21 +113,8 @@ export default function NewOpportunityPage() {
     }
   }
 
-  if (!ready) return <main className="app-shell"><p className="app-loading">Loading…</p></main>;
-  if (!allowed) {
-    return (
-      <div className="app-shell">
-        <AppNav user={getUser()} />
-        <main id="content" className="app-page">
-          <div className="wrap app-empty">
-            <h3>Only faculty and approved alumni can post</h3>
-            <p>Students discover and apply; posting is for opportunity owners.</p>
-            <Link className="btn btn-ghost" href="/opportunities">← Back to feed</Link>
-          </div>
-        </main>
-      </div>
-    );
-  }
+  if (!ready) return <PageLoading />;
+  if (access !== "ok") return <PostingGate access={access} />;
 
   const skillById = new Map(taxonomy.map((t) => [t.id, t]));
   const available = taxonomy.filter((t) => !skills.some((s) => s.skillId === t.id));

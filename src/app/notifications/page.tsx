@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AppNav } from "@/components/app-nav";
+import { PageLoading } from "@/components/page-loading";
 import {
   apiListNotifications,
   apiMarkNotificationsRead,
@@ -51,7 +52,7 @@ export default function NotificationsPage() {
     }
   }
 
-  if (!ready) return <main className="app-shell"><p className="app-loading">Loading…</p></main>;
+  if (!ready) return <PageLoading />;
   if (!signedIn) {
     return <SignInRequired message="Sign in to view your notifications." />;
   }

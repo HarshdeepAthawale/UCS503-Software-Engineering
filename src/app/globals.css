@@ -3038,6 +3038,11 @@ a.notif:hover {
 .auth-photo .auth-card .auth-switch {
   align-self: center;
   font-size: 13px;
+  /* A phone-sized touch target: these links were 21px tall. */
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 12px;
 }
 
 .auth-photo .auth-card .auth-foot {
@@ -7099,6 +7104,12 @@ a.adm-row-title:hover {
   margin-top: 10px;
 }
 
+
+/* Loading screen: a heading-sized bar above the card skeletons */
+.skeleton-line {
+  height: 56px;
+  max-width: 420px;
+}
 /* ============================================================================
    Keep LAST: the marketing stylesheet above sets section { padding } at
    several breakpoints, and this reset only wins because it comes after them.

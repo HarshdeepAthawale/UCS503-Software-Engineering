@@ -13,6 +13,7 @@ export function ConfirmAction({
   onConfirm,
   busy = false,
   danger = false,
+  triggerClassName,
 }: {
   label: string;
   question: string;
@@ -20,12 +21,14 @@ export function ConfirmAction({
   onConfirm: () => void;
   busy?: boolean;
   danger?: boolean;
+  /** Overrides the look of the first button, so it can match the control it replaces. */
+  triggerClassName?: string;
 }) {
   const [asking, setAsking] = useState(false);
 
   if (!asking) {
     return (
-      <button type="button" className={`btn btn-sm ${danger ? "btn-text confirm-danger" : "btn-ghost"}`} disabled={busy}
+      <button type="button" className={triggerClassName ?? `btn btn-sm ${danger ? "btn-text confirm-danger" : "btn-ghost"}`} disabled={busy}
         onClick={() => setAsking(true)}>
         {label}
       </button>

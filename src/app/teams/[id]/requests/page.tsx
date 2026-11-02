@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { AppNav } from "@/components/app-nav";
+import { SignInRequired } from "@/components/sign-in-required";
 import {
   apiDecideTeamRequest,
   apiListTeamRequests,
@@ -55,16 +56,7 @@ export default function TeamRequestsPage() {
   }
 
   if (ready && !signedIn) {
-    return (
-      <main className="auth-shell">
-        <div className="auth-card">
-          <h1>Sign in required</h1>
-          <div className="hero-actions">
-            <Link className="btn btn-primary" href="/">Sign in</Link>
-          </div>
-        </div>
-      </main>
-    );
+    return <SignInRequired message="Sign in to review join requests." />;
   }
 
   const pending = requests.filter((r) => r.status === "PENDING");

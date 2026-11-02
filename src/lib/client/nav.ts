@@ -83,3 +83,13 @@ export function homeFor(user: SessionUser | null): string {
   if (user?.role === "ALUMNI" && user.status === "PENDING_ALUMNI") return "/alumni";
   return "/opportunities";
 }
+
+export type PostingAccess = "ok" | "signed-out" | "pending" | "not-poster";
+
+/** Why a person can or cannot post, so a posting page can say the right thing. */
+export function postingAccess(user: SessionUser | null): PostingAccess {
+  if (!user) return "signed-out";
+  if (canPost(user)) return "ok";
+  if (user.role === "ALUMNI" && user.status === "PENDING_ALUMNI") return "pending";
+  return "not-poster";
+}

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { canPost, homeFor, initials, primaryNav, tabNav } from "@/lib/client/nav";
+import { canPost, homeFor, initials, postingAccess, primaryNav, tabNav } from "@/lib/client/nav";
 import type { SessionUser } from "@/lib/client/api";
 
 /** The app navigation: who sees what, and which item is active where. */
@@ -64,5 +64,18 @@ describe("a pending alumnus", () => {
     expect(canPost(pending)).toBe(false);
     expect(primaryNav(pending).map((i) => i.href)).toEqual(["/opportunities", "/alumni"]);
     expect(canPost({ ...pending, status: "ACTIVE" })).toBe(true);
+  });
+});
+
+describe("postingAccess", () => {
+  const u = (role: SessionUser["role"], status = "ACTIVE"): SessionUser => ({ id: "u", role, status, name: "N" });
+
+  it("says why someone cannot post: signed out, still pending, or simply not a poster", () => {
+    expect(postingAccess(null)).toBe("signed-out");
+    expect(postingAccess(u("FACULTY"))).toBe("ok");
+    expect(postingAccess(u("ALUMNI"))).toBe("ok");
+    expect(postingAccess(u("ALUMNI", "PENDING_ALUMNI"))).toBe("pending");
+    expect(postingAccess(u("STUDENT"))).toBe("not-poster");
+    expect(postingAccess(u("ADMIN"))).toBe("not-poster");
   });
 });

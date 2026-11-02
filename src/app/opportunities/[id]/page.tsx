@@ -6,6 +6,9 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { AppNav } from "@/components/app-nav";
+import { ConfirmAction } from "@/components/confirm-action";
+import { PageLoading } from "@/components/page-loading";
+import { SignInRequired } from "@/components/sign-in-required";
 import {
   apiApply,
   apiCloseOpportunity,
@@ -129,7 +132,6 @@ export default function OpportunityDetailPage() {
   }
 
   async function onClose() {
-    if (!confirm("Close this posting? Students can no longer apply.")) return;
     setBusy(true);
     try {
       await apiCloseOpportunity(id);
@@ -141,18 +143,9 @@ export default function OpportunityDetailPage() {
     }
   }
 
-  if (!ready) return <main className="app-shell"><p className="app-loading">Loading…</p></main>;
+  if (!ready) return <PageLoading />;
   if (!signedIn) {
-    return (
-      <main className="auth-shell">
-        <div className="auth-card">
-          <h1>Sign in required</h1>
-          <div className="hero-actions">
-            <Link className="btn btn-primary" href="/">Sign in</Link>
-          </div>
-        </div>
-      </main>
-    );
+    return <SignInRequired message="Sign in to view this posting." />;
   }
 
   const user = getUser();
@@ -245,7 +238,14 @@ export default function OpportunityDetailPage() {
                       <Link className="btn btn-ghost" href={`/opportunities/${id}/shortlisted`}>Shortlisted candidates</Link>
                       <Link className="btn btn-ghost" href={`/opportunities/${id}/edit`}>Edit posting</Link>
                       {opp.status !== "CLOSED" && opp.status !== "EXPIRED" && (
-                        <button className="btn btn-danger" type="button" onClick={onClose} disabled={busy}>Close posting</button>
+                        <ConfirmAction
+                          label="Close posting"
+                          question="Students can no longer apply."
+                          confirmLabel="Close posting"
+                          triggerClassName="btn btn-danger"
+                          busy={busy}
+                          onConfirm={() => void onClose()}
+                        />
                       )}
                     </div>
                   ) : isStudent && open && !profileLoaded ? (
